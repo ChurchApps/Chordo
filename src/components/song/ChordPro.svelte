@@ -50,6 +50,8 @@
         </div>
 
         {#each parsed.lines as line}
+            {@const hasChords = line.tokens?.some((token) => token.chord)}
+
             {#if line.type === "empty"}
                 <div class="line empty">&nbsp;</div>
             {:else if line.type === "directive"}
@@ -68,11 +70,14 @@
                 <div class="line lyrics-line">
                     {#each line.tokens as token}
                         <span class="token">
-                            {#if token.chord}
-                                <span class="chord-cell">{token.chord}</span>
-                            {:else}
-                                <span class="chord-cell placeholder">&nbsp;</span>
+                            {#if hasChords}
+                                {#if token.chord}
+                                    <span class="chord-cell">{token.chord}</span>
+                                {:else}
+                                    <span class="chord-cell placeholder">&nbsp;</span>
+                                {/if}
                             {/if}
+
                             <span class="lyric-cell">{token.lyric}</span>
                         </span>
                     {/each}
@@ -141,6 +146,8 @@
         font-weight: 500;
         color: #5498be;
         margin: 4px 0;
+
+        text-transform: capitalize;
     }
     .comment {
         font-weight: 600;

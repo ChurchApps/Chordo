@@ -2,10 +2,12 @@
     import { onMount, tick } from "svelte"
 
     let {
+        pageIndex,
         padding = 20, // mm
         headerText = "",
         children
     } = $props<{
+        pageIndex?: number | null
         padding?: number
         headerText?: string
         children: any
@@ -37,6 +39,7 @@
         const createPage = (pageNum: number) => {
             const page = document.createElement("div")
             page.className = "paper-page"
+            page.setAttribute("data-page", pageNum.toString())
             page.style.aspectRatio = `${ASPECT_RATIO}`
             page.style.padding = `${padding}mm`
 
@@ -169,11 +172,22 @@
             const num = el.getAttribute("data-page")
             el.textContent = `${num} / ${currentPageNum}`
         })
+
+        // If a specific page index was requested (0-based), display only that page
+        if (typeof pageIndex === "number" && pageIndex >= 0 && pageIndex < currentPageNum) {
+            const targetPageNum = (pageIndex + 1).toString()
+            const requested = pagesContainerEl.querySelector(`.paper-page[data-page="${targetPageNum}"]`) as HTMLElement | null
+            if (requested) {
+                pagesContainerEl.innerHTML = ""
+                pagesContainerEl.appendChild(requested.cloneNode(true) as HTMLElement)
+            }
+        }
     }
 
     $effect(() => {
         padding
         headerText
+        pageIndex
         paginate()
     })
 

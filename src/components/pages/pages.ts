@@ -5,6 +5,7 @@ import SongPage from "./SongPage.svelte"
 import AllSongsPage from "./AllSongsPage.svelte"
 import SongEditPage from "./SongEditPage.svelte"
 import SongFullscreen from "./SongFullscreen.svelte"
+import SongDraw from "./SongDraw.svelte"
 
 export const pages = {
     home: {
@@ -34,5 +35,9 @@ export const pages = {
     song_live: {
         title: "",
         component: SongFullscreen
+    },
+    song_draw: {
+        title: "",
+        component: SongDraw
     }
 }

@@ -4,7 +4,7 @@
     let { songId } = $props<{ songId: string | null }>()
 </script>
 
-<div class="paper-wrapper">
+<div id={songId} class="paper-wrapper">
     <div class="paper">
         <ChordPro {songId} />
     </div>

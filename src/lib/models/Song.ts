@@ -31,6 +31,7 @@ export class Song {
     tempo: string
     content: string
     createdAt: number
+    drawings: string[]
 
     constructor(data: Partial<SongKeys> = {}) {
         this.id = data.id ?? getId("song")
@@ -40,6 +41,7 @@ export class Song {
         this.tempo = data.tempo ?? ""
         this.content = data.content ?? ""
         this.createdAt = data.createdAt ?? Date.now()
+        this.drawings = data.drawings ?? []
     }
 
     getTitle(): string {

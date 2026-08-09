@@ -27,17 +27,24 @@ function getCurrentState(): MenuState {
 }
 
 export function updatePageTitle(newTitle: string | null): void {
+    const oldTitle = menuState.customPageTitle
+    if (oldTitle === newTitle) return
+
     menuState.customPageTitle = newTitle
 
     const id = menuState.contentId
     menuState.previousPages = menuState.previousPages.map((page) => {
-        if (page.contentId === id) {
+        if (page.contentId === id && page.customPageTitle === oldTitle) {
             return { ...page, customPageTitle: newTitle }
         }
         return page
     })
 }
 
+const fullscreenPages: Pages[] = ["song_live", "song_draw"]
+export function isFullscreenPage(page: Pages): boolean {
+    return fullscreenPages.includes(page)
+}
 export function setActivePage(menu: Pages, contentId?: string | null, customTitle?: string | null): void {
     const currentState = getCurrentState()
 
@@ -52,7 +59,7 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
     }
 
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
-        document.documentElement.dataset.vtDirection = menu === "song_live" ? "enter_fullscreen" : "forward"
+        document.documentElement.dataset.vtDirection = isFullscreenPage(menu) ? "enter_fullscreen" : "forward"
         ;(document as any).startViewTransition(doSet)
     } else {
         doSet()
@@ -71,7 +78,7 @@ export function goBack(): void {
     }
 
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
-        document.documentElement.dataset.vtDirection = menuState.activePage === "song_live" ? "exit_fullscreen" : "back"
+        document.documentElement.dataset.vtDirection = isFullscreenPage(menuState.activePage) ? "exit_fullscreen" : "back"
         ;(document as any).startViewTransition(doSet)
     } else {
         doSet()
@@ -85,3 +92,6 @@ export const popupState = $state<{ popupId: Popups | null }>({ popupId: null })
 export function setActivePopup(popup: Popups | null): void {
     popupState.popupId = popup
 }
+
+// restore page position when returning from draw
+export const savedFullscreenPosition = $state<{ index: number | null }>({ index: null })

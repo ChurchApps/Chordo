@@ -1,5 +1,5 @@
 <script>
-    import { goBack, menuState, setActivePage } from "../../lib/state/menu.svelte"
+    import { goBack, isFullscreenPage, menuState, setActivePage } from "../../lib/state/menu.svelte"
     import { pages } from "../pages/pages"
 
     let headerPath = $derived(
@@ -13,7 +13,7 @@
     let headerTitle = $derived(menuState.customPageTitle ?? pages[menuState.activePage]?.title ?? "")
 </script>
 
-{#if menuState.activePage !== "song_live"}
+{#if !isFullscreenPage(menuState.activePage)}
     <header class="top-app-bar">
         <div class="top-bar-left">
             {#if menuState.previousPages.length > 0}

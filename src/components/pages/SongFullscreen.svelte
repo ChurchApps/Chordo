@@ -1,54 +1,83 @@
 <script lang="ts">
+    import { onMount, tick } from "svelte"
     import { slide } from "svelte/transition"
-    import { goBack, menuState } from "../../lib/state/menu.svelte"
+    import { goBack, menuState, setActivePage, savedFullscreenPosition } from "../../lib/state/menu.svelte"
     import storage from "../../lib/storage/StorageManager.svelte"
     import ChordPro from "../song/ChordPro.svelte"
     import Paper from "../song/Paper.svelte"
-    import { onMount, tick } from "svelte"
+    import Draw from "../draw/Draw.svelte"
 
-    let listId = menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null
-    let list = $derived(listId ? storage.getListById(listId, storage.lists) : null)
-    let songs = $derived(list ? list.songs : [menuState.contentId])
+    // --- State & Derived State ---
+    const listId = $derived(menuState.previousPages.find((a) => a.activePage === "list")?.contentId)
+    const list = $derived(listId ? storage.getListById(listId, storage.lists) : null)
+    const songs = $derived(list?.songs ?? [menuState.contentId])
 
     let actionsVisible = $state(false)
-    let hideTimeout: ReturnType<typeof setTimeout> | null = null
-    function windowClick(e: MouseEvent) {
-        if (didDrag) return
-        if ((e.target as HTMLElement)?.closest("header")) return
+    let hideTimeout: ReturnType<typeof setTimeout> | undefined
 
-        actionsVisible = !actionsVisible
-
-        if (actionsVisible) {
-            if (hideTimeout) clearTimeout(hideTimeout)
-            hideTimeout = setTimeout(() => {
-                actionsVisible = false
-            }, 3000)
-        }
-    }
-
-    // Carousel / page swipe state
+    // Carousel state
     let currentPageIndex = $state(0)
     let totalPages = $state(1)
-    let sliderEl: HTMLDivElement | null = null
+    let sliderEl = $state<HTMLDivElement | null>(null)
+
+    // Gesture tracking state
     let isDragging = false
     let startX = 0
     let currentTranslate = 0
     let prevTranslate = 0
     let didDrag = false
 
-    /**
-     * Counts all generated .paper-page elements across all songs
-     */
+    // Dynamic pagination mappings
+    let pageSongMap: Array<string | null> = []
+    let pageIndexMap: number[] = []
+    let songPageId = $state("")
+    let previousPage = -1
+
+    // --- Actions Header Toggle ---
+    function windowClick(e: MouseEvent) {
+        if (didDrag || (e.target as HTMLElement)?.closest("header")) return
+
+        actionsVisible = !actionsVisible
+        clearTimeout(hideTimeout)
+
+        if (actionsVisible) {
+            hideTimeout = setTimeout(() => (actionsVisible = false), 3000)
+        }
+    }
+
+    // --- Page Counting & Mapping ---
     function updatePageCount() {
         if (!sliderEl) return
-        const pages = sliderEl.querySelectorAll(".paper-page")
+
+        const pages = Array.from(sliderEl.querySelectorAll<HTMLElement>(".paper-page"))
+        const slideEls = Array.from(sliderEl.querySelectorAll<HTMLElement>(".slide"))
+
         totalPages = pages.length || 1
-        if (currentPageIndex >= totalPages) {
+
+        // Build mappings: global page index -> (songId, indexInSong)
+        pageSongMap = pages.map((page) => {
+            const slideEl = page.closest(".slide") as HTMLElement | null
+            const index = slideEl ? slideEls.indexOf(slideEl) : -1
+            return songs[index] ?? null
+        })
+
+        pageIndexMap = pages.map((page) => {
+            const slideEl = page.closest(".slide")
+            return slideEl ? Array.from(slideEl.querySelectorAll(".paper-page")).indexOf(page) : 0
+        })
+
+        // Restore saved position if restoring
+        if (savedFullscreenPosition.index != null && pages.length > savedFullscreenPosition.index) {
+            currentPageIndex = savedFullscreenPosition.index
+            savedFullscreenPosition.index = null
+            setPositionByIndex(false)
+        } else if (currentPageIndex >= totalPages) {
             currentPageIndex = Math.max(0, totalPages - 1)
             setPositionByIndex()
         }
     }
 
+    // --- Drag & Touch Handlers ---
     function pointerDown(e: PointerEvent) {
         isDragging = true
         didDrag = false
@@ -58,8 +87,7 @@
 
     function pointerMove(e: PointerEvent) {
         if (!isDragging || !sliderEl) return
-        const currentX = e.clientX
-        const delta = currentX - startX
+        const delta = e.clientX - startX
         if (Math.abs(delta) > 6) didDrag = true
         currentTranslate = prevTranslate + delta
         sliderEl.style.transform = `translateX(${currentTranslate}px)`
@@ -68,6 +96,7 @@
     function pointerUp(e: PointerEvent) {
         if (!isDragging || !sliderEl) return
         isDragging = false
+
         const movedBy = currentTranslate - prevTranslate
         const threshold = sliderEl.clientWidth * 0.2
 
@@ -76,56 +105,69 @@
         } else if (movedBy > threshold && currentPageIndex > 0) {
             currentPageIndex--
         }
+
         setPositionByIndex()
         sliderEl.releasePointerCapture?.(e.pointerId)
         setTimeout(() => (didDrag = false), 100)
     }
 
-    function setPositionByIndex() {
+    function setPositionByIndex(animate = true) {
         if (!sliderEl) return
-        const width = sliderEl.clientWidth
-        currentTranslate = -currentPageIndex * width
+        currentTranslate = -currentPageIndex * sliderEl.clientWidth
         prevTranslate = currentTranslate
-        sliderEl.style.transition = "transform 300ms ease"
+
+        sliderEl.style.transition = animate ? "transform 300ms ease" : "none"
         sliderEl.style.transform = `translateX(${currentTranslate}px)`
-        setTimeout(() => {
-            if (sliderEl) sliderEl.style.transition = ""
-        }, 300)
+
+        if (animate) {
+            setTimeout(() => {
+                if (sliderEl) sliderEl.style.transition = ""
+            }, 300)
+        }
+
+        detectSongAndPage()
     }
 
-    // function goPrev() {
-    //     if (currentPageIndex > 0) {
-    //         currentPageIndex--
-    //         setPositionByIndex()
-    //     }
-    // }
-    // function goNext() {
-    //     if (currentPageIndex < totalPages - 1) {
-    //         currentPageIndex++
-    //         setPositionByIndex()
-    //     }
-    // }
+    let visibleSongId: string | null = $state(null)
+    let songPageIndex = $state(0)
+    function detectSongAndPage(index = currentPageIndex) {
+        const globalIndex = Math.max(0, Math.min(index, Math.max(0, pageSongMap.length - 1)))
+        const songId = pageSongMap[globalIndex] ?? songs[0] ?? null
+        const pageInSong = pageIndexMap[globalIndex] ?? 0
 
+        if (globalIndex !== previousPage) {
+            previousPage = globalIndex
+            songPageId = `${songId}:${pageInSong}`
+
+            visibleSongId = songId
+            songPageIndex = pageInSong
+        }
+    }
+
+    // --- Lifecycle & DOM Observation ---
     onMount(() => {
         let observer: MutationObserver | null = null
 
         tick().then(() => {
-            currentPageIndex = 0
-            setPositionByIndex()
+            if (savedFullscreenPosition.index != null) {
+                currentPageIndex = savedFullscreenPosition.index
+            }
+            setPositionByIndex(false)
 
             if (sliderEl) {
                 updatePageCount()
-
-                // Observe DOM changes so page counts update dynamically when Paper finishes paginating
-                observer = new MutationObserver(() => {
-                    updatePageCount()
-                })
+                observer = new MutationObserver(updatePageCount)
                 observer.observe(sliderEl, { childList: true, subtree: true })
             }
         })
 
-        return () => {
-            observer?.disconnect()
+        return () => observer?.disconnect()
+    })
+
+    $effect(() => {
+        if (menuState.activePage === "song_live" && savedFullscreenPosition.index != null) {
+            currentPageIndex = savedFullscreenPosition.index
+            setPositionByIndex(false)
         }
     })
 </script>
@@ -141,18 +183,16 @@
 
             <div style="flex:1"></div>
 
-            <md-icon-button onclick={() => console.log("draw")}>
+            <md-icon-button
+                onclick={() => {
+                    savedFullscreenPosition.index = currentPageIndex
+                    setActivePage("song_draw", songPageId)
+                }}
+            >
                 <md-icon>draw</md-icon>
             </md-icon-button>
         </div>
     </header>
-
-    <!-- <md-icon-button onclick={goPrev} disabled={currentPageIndex === 0}>
-        <md-icon>chevron_left</md-icon>
-    </md-icon-button>
-    <md-icon-button onclick={goNext} disabled={currentPageIndex === totalPages - 1}>
-        <md-icon>chevron_right</md-icon>
-    </md-icon-button> -->
 
     <footer transition:slide={{ duration: 200, axis: "y" }}>
         <div class="progress">
@@ -174,6 +214,11 @@
                 </div>
             {/each}
         </div>
+
+        <!-- WIP: make drawing move/slide along with the "slider" -->
+        {#key visibleSongId + ":" + songPageIndex}
+            <Draw initialData={visibleSongId ? storage.getSongById(visibleSongId)?.drawings?.[songPageIndex] || "" : ""} />
+        {/key}
     </div>
 </main>
 
@@ -219,6 +264,7 @@
     }
 
     .slider-viewport {
+        position: relative;
         width: 100vw;
         height: 100vh;
         overflow: hidden;
