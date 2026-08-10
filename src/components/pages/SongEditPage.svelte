@@ -12,7 +12,7 @@
         if (!song) return
 
         if (key === "name" && !value.trim()) return
-        if (key === "createdAt") return
+        if (key === "createdAt" || key === "drawings") return
 
         song[key] = value
 
@@ -26,7 +26,7 @@
 </script>
 
 <main>
-    <div style="padding: 30px;">
+    <div style="display: flex;flex-direction: column;flex: 1;padding: 30px;padding-bottom: 93px;">
         {#if song}
             <div style="display: flex; gap: 16px; margin-top: 16px;">
                 <!-- Title -->
@@ -49,7 +49,7 @@
                 rows={8}
                 value={song.content}
                 oninput={(e: Event) => updateValue(e, "content")}
-                style="width: 100%; margin-top: 16px;"
+                style="width: 100%;flex: 1;margin-top: 16px;"
             >
             </md-outlined-text-field>
         {/if}

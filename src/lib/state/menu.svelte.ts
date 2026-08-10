@@ -13,6 +13,8 @@ type MenuState = {
     customPageTitle: string | null
 }
 
+export const listEditingState = $state<{ isEditing: boolean; onDeleteSelected?: () => void }>({ isEditing: false })
+
 export const menuState = $state<MenuState & { previousPages: MenuState[] }>({
     activePage: "home",
     contentId: null,
@@ -51,6 +53,7 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
     const addToHistory = menu !== "home" && menuState.previousPages.at(-1)?.activePage !== menu // && (!contentId || menuState.previousPages.at(-1)?.contentId !== contentId)
 
     function doSet() {
+        listEditingState.isEditing = false
         menuState.activePage = menu
         menuState.contentId = contentId ?? null
         menuState.customPageTitle = customTitle ?? null
@@ -94,4 +97,4 @@ export function setActivePopup(popup: Popups | null): void {
 }
 
 // restore page position when returning from draw
-export const savedFullscreenPosition = $state<{ index: number | null }>({ index: null })
+export const savedFullscreenPosition = $state<{ index: number | null; pageIndex: number | null }>({ index: null, pageIndex: null })

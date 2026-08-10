@@ -17,6 +17,11 @@
 
     --md-icon-button-icon-color: var(--md-sys-color-on-primary);
     --md-list-container-color: transparent;
+
+    /* draw */
+    --md-filled-tonal-button-container-color: var(--md-sys-color-primary);
+    --md-filled-tonal-button-label-text-color: var(--md-sys-color-on-primary);
+    --md-sys-color-surface-container-high: var(--md-sys-color-primary-container);
 }
 
 /* TODO: support dark mode */

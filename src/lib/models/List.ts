@@ -50,9 +50,28 @@ export class List {
 
     addSong(songId: string) {
         this.songs.push(songId)
+        storage.persist()
     }
 
     addSongs(songIds: string[]) {
         this.songs.push(...songIds)
+        storage.persist()
+    }
+
+    moveSong(fromIndex: number, toIndex: number): boolean {
+        if (fromIndex < 0 || fromIndex >= this.songs.length) return false
+        if (toIndex < 0 || toIndex >= this.songs.length) return false
+        if (fromIndex === toIndex) return true
+        const [moved] = this.songs.splice(fromIndex, 1)
+        this.songs.splice(toIndex, 0, moved)
+        storage.persist()
+        return true
+    }
+
+    removeSong(index: number): boolean {
+        if (index < 0 || index >= this.songs.length) return false
+        this.songs.splice(index, 1)
+        storage.persist()
+        return true
     }
 }

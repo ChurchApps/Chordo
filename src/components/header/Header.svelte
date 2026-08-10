@@ -1,5 +1,5 @@
 <script>
-    import { goBack, isFullscreenPage, menuState, setActivePage } from "../../lib/state/menu.svelte"
+    import { goBack, isFullscreenPage, listEditingState, menuState, setActivePage } from "../../lib/state/menu.svelte"
     import { pages } from "../pages/pages"
 
     let headerPath = $derived(
@@ -11,12 +11,20 @@
     )
 
     let headerTitle = $derived(menuState.customPageTitle ?? pages[menuState.activePage]?.title ?? "")
+
+    let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
 </script>
 
-{#if !isFullscreenPage(menuState.activePage)}
+{#if isFullscreenPage(menuState.activePage)}
+    <!-- don't show any headers -->
+{:else}
     <header class="top-app-bar">
         <div class="top-bar-left">
-            {#if menuState.previousPages.length > 0}
+            {#if isEditing}
+                <md-icon-button disabled>
+                    <span class="material-symbols-outlined">edit</span>
+                </md-icon-button>
+            {:else if menuState.previousPages.length > 0}
                 <md-icon-button aria-label="Go back" onclick={goBack}>
                     <span class="material-symbols-outlined">arrow_back</span>
                 </md-icon-button>
@@ -25,22 +33,35 @@
                     <span class="material-symbols-outlined">music_note</span>
                 </md-icon-button>
             {/if}
-            <h1 class="top-bar-title"><span style="font-size: 0.7em;opacity: 0.7;">{headerPath}</span>{headerTitle}</h1>
+
+            <h1 class="top-bar-title">
+                {#if isEditing}
+                    Edit
+                {:else}
+                    <span style="font-size: 0.7em;opacity: 0.7;">{headerPath}</span>{headerTitle}
+                {/if}
+            </h1>
         </div>
 
         <div class="top-bar-actions">
-            {#if menuState.activePage === "song"}
-                <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", menuState.contentId, "Edit Song")}>
-                    <span class="material-symbols-outlined">edit</span>
+            {#if isEditing}
+                <md-icon-button aria-label="Delete selected" onclick={() => listEditingState.onDeleteSelected?.()}>
+                    <span class="material-symbols-outlined" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
                 </md-icon-button>
             {:else}
-                <md-icon-button aria-label="Search">
-                    <span class="material-symbols-outlined">search</span>
+                {#if menuState.activePage === "song"}
+                    <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", menuState.contentId, "Edit Song")}>
+                        <span class="material-symbols-outlined">edit</span>
+                    </md-icon-button>
+                {:else}
+                    <md-icon-button aria-label="Search">
+                        <span class="material-symbols-outlined">search</span>
+                    </md-icon-button>
+                {/if}
+                <md-icon-button aria-label="More options">
+                    <span class="material-symbols-outlined">more_vert</span>
                 </md-icon-button>
             {/if}
-            <md-icon-button aria-label="More options">
-                <span class="material-symbols-outlined">more_vert</span>
-            </md-icon-button>
         </div>
     </header>
 {/if}

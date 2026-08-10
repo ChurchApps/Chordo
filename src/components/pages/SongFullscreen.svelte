@@ -16,7 +16,7 @@
     let hideTimeout: ReturnType<typeof setTimeout> | undefined
 
     // Carousel state
-    let currentPageIndex = $state(0)
+    let currentPageIndex = $state(savedFullscreenPosition.pageIndex ?? savedFullscreenPosition.index ?? 0)
     let totalPages = $state(1)
     let sliderEl = $state<HTMLDivElement | null>(null)
 
@@ -30,6 +30,7 @@
     // Dynamic pagination mappings
     let pageSongMap: Array<string | null> = []
     let pageIndexMap: number[] = []
+    let pageSongIndexMap: number[] = []
     let songPageId = $state("")
     let previousPage = -1
 
@@ -45,6 +46,8 @@
         }
     }
 
+    let initialPositionConsumed = false
+
     // --- Page Counting & Mapping ---
     function updatePageCount() {
         if (!sliderEl) return
@@ -52,28 +55,57 @@
         const pages = Array.from(sliderEl.querySelectorAll<HTMLElement>(".paper-page"))
         const slideEls = Array.from(sliderEl.querySelectorAll<HTMLElement>(".slide"))
 
-        totalPages = pages.length || 1
+        totalPages = pages.length || slideEls.length || 1
+        const isRealLayout = pages.length > 0
 
-        // Build mappings: global page index -> (songId, indexInSong)
-        pageSongMap = pages.map((page) => {
-            const slideEl = page.closest(".slide") as HTMLElement | null
-            const index = slideEl ? slideEls.indexOf(slideEl) : -1
-            return songs[index] ?? null
-        })
+        if (isRealLayout) {
+            pageSongMap = pages.map((page) => {
+                const slideEl = page.closest(".slide") as HTMLElement | null
+                const index = slideEl ? slideEls.indexOf(slideEl) : -1
+                return songs[index] ?? null
+            })
 
-        pageIndexMap = pages.map((page) => {
-            const slideEl = page.closest(".slide")
-            return slideEl ? Array.from(slideEl.querySelectorAll(".paper-page")).indexOf(page) : 0
-        })
+            pageIndexMap = pages.map((page) => {
+                const slideEl = page.closest(".slide")
+                return slideEl ? Array.from(slideEl.querySelectorAll(".paper-page")).indexOf(page) : 0
+            })
 
-        // Restore saved position if restoring
-        if (savedFullscreenPosition.index != null && pages.length > savedFullscreenPosition.index) {
-            currentPageIndex = savedFullscreenPosition.index
-            savedFullscreenPosition.index = null
-            setPositionByIndex(false)
+            pageSongIndexMap = pages.map((page) => {
+                const slideEl = page.closest(".slide") as HTMLElement | null
+                return slideEl ? slideEls.indexOf(slideEl) : 0
+            })
+        } else {
+            pageSongMap = songs
+            pageIndexMap = songs.map(() => 0)
+            pageSongIndexMap = songs.map((_, i) => i)
+        }
+
+        if (!initialPositionConsumed) {
+            restoreInitialPosition(isRealLayout)
         } else if (currentPageIndex >= totalPages) {
             currentPageIndex = Math.max(0, totalPages - 1)
             setPositionByIndex()
+        }
+    }
+
+    function restoreInitialPosition(isRealLayout: boolean) {
+        let restored = false
+        if (savedFullscreenPosition.pageIndex != null) {
+            currentPageIndex = savedFullscreenPosition.pageIndex
+            restored = true
+        } else if (savedFullscreenPosition.index != null) {
+            const targetPageIdx = pageSongIndexMap.indexOf(savedFullscreenPosition.index)
+            currentPageIndex = targetPageIdx !== -1 ? targetPageIdx : Math.min(savedFullscreenPosition.index, totalPages - 1)
+            restored = true
+        }
+
+        if (restored) {
+            if (isRealLayout) {
+                savedFullscreenPosition.pageIndex = null
+                savedFullscreenPosition.index = null
+                initialPositionConsumed = true
+            }
+            setPositionByIndex(false)
         }
     }
 
@@ -98,7 +130,8 @@
         isDragging = false
 
         const movedBy = currentTranslate - prevTranslate
-        const threshold = sliderEl.clientWidth * 0.2
+        const viewportWidth = sliderEl.parentElement?.clientWidth || window.innerWidth
+        const threshold = viewportWidth * 0.2
 
         if (movedBy < -threshold && currentPageIndex < totalPages - 1) {
             currentPageIndex++
@@ -113,7 +146,8 @@
 
     function setPositionByIndex(animate = true) {
         if (!sliderEl) return
-        currentTranslate = -currentPageIndex * sliderEl.clientWidth
+        const viewportWidth = sliderEl.parentElement?.clientWidth || window.innerWidth
+        currentTranslate = -currentPageIndex * viewportWidth
         prevTranslate = currentTranslate
 
         sliderEl.style.transition = animate ? "transform 300ms ease" : "none"
@@ -131,13 +165,20 @@
     let visibleSongId: string | null = $state(null)
     let songPageIndex = $state(0)
     function detectSongAndPage(index = currentPageIndex) {
-        const globalIndex = Math.max(0, Math.min(index, Math.max(0, pageSongMap.length - 1)))
-        const songId = pageSongMap[globalIndex] ?? songs[0] ?? null
+        const pageCount = pageSongMap.length
+        const globalIndex = pageCount > 0 ? Math.max(0, Math.min(index, pageCount - 1)) : index
+        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : songs[globalIndex]) ?? songs[0] ?? null
         const pageInSong = pageIndexMap[globalIndex] ?? 0
+        const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
-        if (globalIndex !== previousPage) {
+        if (initialPositionConsumed && songIndexInList >= 0 && songIndexInList < songs.length) {
+            savedFullscreenPosition.index = songIndexInList
+        }
+
+        const newSongPageId = `${songId}:${pageInSong}`
+        if (songPageId !== newSongPageId || visibleSongId !== songId || songPageIndex !== pageInSong || globalIndex !== previousPage) {
             previousPage = globalIndex
-            songPageId = `${songId}:${pageInSong}`
+            songPageId = newSongPageId
 
             visibleSongId = songId
             songPageIndex = pageInSong
@@ -149,26 +190,15 @@
         let observer: MutationObserver | null = null
 
         tick().then(() => {
-            if (savedFullscreenPosition.index != null) {
-                currentPageIndex = savedFullscreenPosition.index
-            }
-            setPositionByIndex(false)
-
             if (sliderEl) {
                 updatePageCount()
                 observer = new MutationObserver(updatePageCount)
                 observer.observe(sliderEl, { childList: true, subtree: true })
             }
+            setPositionByIndex(false)
         })
 
         return () => observer?.disconnect()
-    })
-
-    $effect(() => {
-        if (menuState.activePage === "song_live" && savedFullscreenPosition.index != null) {
-            currentPageIndex = savedFullscreenPosition.index
-            setPositionByIndex(false)
-        }
     })
 </script>
 
@@ -185,7 +215,8 @@
 
             <md-icon-button
                 onclick={() => {
-                    savedFullscreenPosition.index = currentPageIndex
+                    savedFullscreenPosition.pageIndex = currentPageIndex
+                    savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
                     setActivePage("song_draw", songPageId)
                 }}
             >

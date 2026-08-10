@@ -18,13 +18,18 @@
             addSongsOrder = [...addSongsOrder, songId]
         }
     }
-    function addSongs() {
+    async function addSongs() {
         let list = storage.getListById(menuState.contentId)
         if (!list) return
 
-        list.addSongs(addSongsOrder)
-        storage.persist()
+        // go back first so we get the slide in animation in the list
         goBack()
+
+        // wait for page navigation animation
+        setTimeout(() => {
+            list.addSongs(addSongsOrder)
+            storage.lists = [...storage.lists]
+        }, 80)
     }
 </script>
 

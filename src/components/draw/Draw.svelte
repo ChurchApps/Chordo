@@ -270,11 +270,11 @@
 
 <style>
     .m3-drawing-container {
-        --md-sys-color-surface-container-high: #ece6f0;
+        /* --md-sys-color-surface-container-high: #ece6f0;
         --md-sys-color-on-surface: #1d1b20;
         --md-sys-color-on-surface-variant: #49454f;
-        --md-sys-color-outline-variant: #cac4d0;
-        --md-sys-color-primary: #6750a4;
+        --md-sys-color-outline-variant: #cac4d0; */
+        /* --md-sys-color-primary: #6750a4; */
 
         position: absolute;
         top: 0;
