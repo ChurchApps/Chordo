@@ -7,8 +7,8 @@
         "build": "vite build",
         "preview": "vite preview",
         "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-        "android": "npx cap sync android && npx cap open android",
-        "ios": "npx cap sync ios && npx cap open ios"
+        "android": "vite build && npx cap sync android && npx cap run android",
+        "ios": "vite build && npx cap sync ios && npx cap run ios"
     },
     "devDependencies": {
         "@capacitor/cli": "^8.5.0",
@@ -21,6 +21,7 @@
         "vite": "^8.2.0"
     },
     "dependencies": {
+        "@capacitor/android": "^8.5.0",
         "@capacitor/core": "^8.5.0",
         "@capacitor/filesystem": "^8.1.2",
         "@material/web": "^2.5.0"

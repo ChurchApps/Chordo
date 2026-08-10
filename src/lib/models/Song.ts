@@ -32,6 +32,7 @@ export class Song {
     content: string
     createdAt: number
     drawings: string[]
+    images: string[]
 
     constructor(data: Partial<SongKeys> = {}) {
         this.id = data.id ?? getId("song")
@@ -42,9 +43,66 @@ export class Song {
         this.content = data.content ?? ""
         this.createdAt = data.createdAt ?? Date.now()
         this.drawings = data.drawings ?? []
+        this.images = data.images ?? []
     }
 
     getTitle(): string {
         return this.name || "Untitled"
+    }
+
+    // Images
+
+    addImage(dataUrl: string): void {
+        if (!this.images) this.images = []
+        this.images.push(dataUrl)
+    }
+
+    async rotateImage(index: number, degrees: number = 90): Promise<void> {
+        if (!this.images || index < 0 || index >= this.images.length) return
+        const imageSrc = this.images[index]
+        if (!imageSrc) return
+
+        const rotated = await new Promise<string>((resolve) => {
+            const img = new Image()
+            img.crossOrigin = "anonymous"
+            img.onload = () => {
+                const canvas = document.createElement("canvas")
+                canvas.width = img.height
+                canvas.height = img.width
+                const ctx = canvas.getContext("2d")
+                if (!ctx) return resolve(imageSrc)
+
+                ctx.translate(canvas.width / 2, canvas.height / 2)
+                ctx.rotate((degrees * Math.PI) / 180)
+                ctx.drawImage(img, -img.width / 2, -img.height / 2)
+
+                resolve(canvas.toDataURL("image/png"))
+            }
+            img.onerror = () => resolve(imageSrc)
+            img.src = imageSrc
+        })
+
+        this.images[index] = rotated
+    }
+
+    moveImage(fromIndex: number, toIndex: number): void {
+        if (!this.images || fromIndex < 0 || fromIndex >= this.images.length) return
+        if (toIndex < 0 || toIndex >= this.images.length) return
+
+        const [movedImage] = this.images.splice(fromIndex, 1)
+        this.images.splice(toIndex, 0, movedImage)
+
+        if (this.drawings && this.drawings.length > 0) {
+            const [movedDrawing] = this.drawings.splice(fromIndex, 1)
+            this.drawings.splice(toIndex, 0, movedDrawing)
+        }
+    }
+
+    removeImage(index: number): void {
+        if (!this.images || index < 0 || index >= this.images.length) return
+        this.images.splice(index, 1)
+        if (this.drawings && this.drawings.length > index) {
+            this.drawings.splice(index, 1)
+        }
     }
 }

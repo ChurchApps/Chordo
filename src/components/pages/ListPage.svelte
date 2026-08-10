@@ -19,6 +19,8 @@
         for (const idx of sorted) {
             list.removeSong(idx)
         }
+
+        // WIP should we not do .map((s) => (s.id === list.id ? new List(s as any) : s)) ?
         storage.lists = [...storage.lists]
         selectedIndices = []
         listEditingState.isEditing = false

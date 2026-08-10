@@ -1,9 +1,14 @@
 <script lang="ts">
+    import { onMount } from "svelte"
     import { Songs } from "../../lib/models/Song"
     import { goBack, menuState, setActivePage, setActivePopup } from "../../lib/state/menu.svelte"
     import storage from "../../lib/storage/StorageManager.svelte"
 
     let songs = $derived(Songs.get(storage.songs))
+
+    onMount(() => {
+        if (!songs.length) setActivePopup("create_song")
+    })
 
     function openSong(songId: string, songName: string) {
         setActivePage("song", songId, songName)

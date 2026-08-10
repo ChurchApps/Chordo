@@ -22,7 +22,15 @@
     }
 </script>
 
-{#if parsed}
+{#if song?.images && song.images.length > 0}
+    <div class="image-song-container">
+        {#each song.images as imageSrc, i}
+            <div class="image-page">
+                <img src={imageSrc} alt={"Page " + (i + 1)} />
+            </div>
+        {/each}
+    </div>
+{:else if parsed}
     <div class="chordpro-container" style="--num-columns: {numColumns};">
         <div class="song-header">
             {#if song?.name}
@@ -97,6 +105,8 @@
         -webkit-column-count: var(--num-columns, 1);
         column-gap: 1.5rem;
         column-fill: auto; /* Fill column 1 to bottom before wrapping to column 2 */
+
+        pointer-events: none;
     }
 
     .song-header {
@@ -168,5 +178,37 @@
     }
     .song-meta .meta-item {
         margin-right: 12px;
+    }
+
+    /* image */
+
+    .image-song-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        pointer-events: none;
+    }
+
+    .image-page {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+        page-break-after: always;
+        break-after: page;
+        flex-shrink: 0;
+    }
+
+    .image-page img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        width: auto;
+        height: auto;
+        display: block;
     }
 </style>

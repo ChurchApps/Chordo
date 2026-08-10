@@ -47,18 +47,20 @@ const fullscreenPages: Pages[] = ["song_live", "song_draw"]
 export function isFullscreenPage(page: Pages): boolean {
     return fullscreenPages.includes(page)
 }
-export function setActivePage(menu: Pages, contentId?: string | null, customTitle?: string | null): void {
+export function setActivePage(menu: Pages, contentId?: string | null, customTitle?: string | null, action: "add" | "replace" | "append" = "add", appendData: any = null): void {
     const currentState = getCurrentState()
 
     const addToHistory = menu !== "home" && menuState.previousPages.at(-1)?.activePage !== menu // && (!contentId || menuState.previousPages.at(-1)?.contentId !== contentId)
 
     function doSet() {
         listEditingState.isEditing = false
+
         menuState.activePage = menu
         menuState.contentId = contentId ?? null
         menuState.customPageTitle = customTitle ?? null
 
-        if (addToHistory) menuState.previousPages.push(currentState)
+        if (action !== "replace" && addToHistory) menuState.previousPages.push(currentState)
+        if (action === "append") menuState.previousPages.push(clone(appendData))
     }
 
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
