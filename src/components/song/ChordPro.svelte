@@ -1,19 +1,36 @@
 <script lang="ts">
     import { parseChordPro } from "../../lib/chords/chordproParser"
+    import { FileSystem } from "../../lib/storage/FileSystem"
     import storage from "../../lib/storage/StorageManager.svelte"
 
     let {
         songId,
         showMeta = false,
-        numColumns = 1
+        numColumns = 1,
+        lightMode = false
     } = $props<{
         songId: string | null
         showMeta?: boolean
         numColumns?: number
+        lightMode?: boolean
     }>()
+
+    // do some optimization to the rendering if light mode
+    console.log(lightMode)
 
     let song = $derived(storage.getSongById(songId, storage.songs))
     let parsed = $derived(parseChordPro(song?.content || ""))
+    let imageWebUrls = $state<string[]>([])
+
+    $effect(() => {
+        if (song?.images && song.images.length > 0) {
+            Promise.all(song.images.map((img) => FileSystem.resolveImageUrl(img))).then((urls) => {
+                imageWebUrls = urls
+            })
+        } else {
+            imageWebUrls = []
+        }
+    })
 
     const metadataDirectiveKeys = ["title", "t", "artist", "a", "subtitle", "st", "key", "k", "tempo", "time", "capo"]
     function isMetadataDirective(key: string | undefined) {
@@ -22,9 +39,9 @@
     }
 </script>
 
-{#if song?.images && song.images.length > 0}
+{#if imageWebUrls.length > 0}
     <div class="image-song-container">
-        {#each song.images as imageSrc, i}
+        {#each imageWebUrls as imageSrc, i}
             <div class="image-page">
                 <img src={imageSrc} alt={"Page " + (i + 1)} />
             </div>

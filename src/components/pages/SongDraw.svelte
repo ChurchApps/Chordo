@@ -75,7 +75,7 @@
     }
 
     /* Horizontal pagination container */
-    :global(.pages-stack) {
+    .slider-viewport :global(.pages-stack) {
         display: flex !important;
         flex-direction: row !important;
         gap: 0 !important;
@@ -85,7 +85,7 @@
     }
 
     /* Individual A-Paper Page */
-    :global(.paper-page) {
+    .slider-viewport :global(.paper-page) {
         --margin-x: 10px;
         --margin-y: 10px;
 
@@ -107,7 +107,6 @@
 
         flex-shrink: 0 !important;
         box-sizing: border-box !important;
-        background: #ffffff !important;
         /* box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important; */
         border-radius: 2px !important;
     }

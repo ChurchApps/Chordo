@@ -3,11 +3,13 @@
 
     let {
         pageIndex,
+        background = "white",
         padding = 20, // mm
         headerText = "",
         children
     } = $props<{
         pageIndex?: number | null
+        background?: string
         padding?: number
         headerText?: string
         children: any
@@ -220,7 +222,7 @@
     })
 </script>
 
-<div class="paper-viewer" bind:this={containerEl}>
+<div class="paper-viewer" bind:this={containerEl} style="--background: {background};">
     <!-- Offscreen Slot Container (used for layout reference & reading DOM nodes) -->
     <div class="source-container" bind:this={sourceEl}>
         {@render children()}
@@ -271,7 +273,7 @@
 
     :global(.paper-page) {
         width: 100%;
-        background: #ffffff;
+        background: var(--background, white);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         border-radius: 2px;
         box-sizing: border-box;

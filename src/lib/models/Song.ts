@@ -1,4 +1,5 @@
 import storage from "../storage/StorageManager.svelte"
+import { FileSystem } from "../storage/FileSystem"
 import { getId, sortByName, type NonFunctionProperties } from "../utils/common"
 
 export class Songs {
@@ -52,17 +53,23 @@ export class Song {
 
     // Images
 
-    addImage(dataUrl: string): void {
+    async addImage(dataUrl: string): Promise<string> {
         if (!this.images) this.images = []
-        this.images.push(dataUrl)
+        const filename = `${this.id}_${Date.now()}_${getId("img")}.png`
+        await FileSystem.saveMedia(filename, dataUrl)
+        this.images.push(filename)
+        return filename
     }
 
     async rotateImage(index: number, degrees: number = 90): Promise<void> {
         if (!this.images || index < 0 || index >= this.images.length) return
-        const imageSrc = this.images[index]
-        if (!imageSrc) return
+        const filename = this.images[index]
+        if (!filename) return
 
-        const rotated = await new Promise<string>((resolve) => {
+        const webUrl = await FileSystem.resolveImageUrl(filename)
+        if (!webUrl) return
+
+        const rotatedDataUrl = await new Promise<string>((resolve) => {
             const img = new Image()
             img.crossOrigin = "anonymous"
             img.onload = () => {
@@ -70,7 +77,7 @@ export class Song {
                 canvas.width = img.height
                 canvas.height = img.width
                 const ctx = canvas.getContext("2d")
-                if (!ctx) return resolve(imageSrc)
+                if (!ctx) return resolve(webUrl)
 
                 ctx.translate(canvas.width / 2, canvas.height / 2)
                 ctx.rotate((degrees * Math.PI) / 180)
@@ -78,11 +85,11 @@ export class Song {
 
                 resolve(canvas.toDataURL("image/png"))
             }
-            img.onerror = () => resolve(imageSrc)
-            img.src = imageSrc
+            img.onerror = () => resolve(webUrl)
+            img.src = webUrl
         })
 
-        this.images[index] = rotated
+        await FileSystem.saveMedia(filename, rotatedDataUrl)
     }
 
     moveImage(fromIndex: number, toIndex: number): void {
@@ -98,9 +105,12 @@ export class Song {
         }
     }
 
-    removeImage(index: number): void {
+    async removeImage(index: number): Promise<void> {
         if (!this.images || index < 0 || index >= this.images.length) return
-        this.images.splice(index, 1)
+        const [filename] = this.images.splice(index, 1)
+        if (filename) {
+            await FileSystem.deleteMedia(filename)
+        }
         if (this.drawings && this.drawings.length > index) {
             this.drawings.splice(index, 1)
         }

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { SongKeys } from "../../lib/models/Song"
     import { Song } from "../../lib/models/Song"
+    import { FileSystem } from "../../lib/storage/FileSystem"
     import { goBack, menuState, updatePageTitle } from "../../lib/state/menu.svelte"
     import storage from "../../lib/storage/StorageManager.svelte"
 
@@ -9,6 +10,17 @@
 
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
+    let imageWebUrls = $state<string[]>([])
+
+    $effect(() => {
+        if (song?.images && song.images.length > 0) {
+            Promise.all(song.images.map((img) => FileSystem.resolveImageUrl(img))).then((urls) => {
+                imageWebUrls = urls
+            })
+        } else {
+            imageWebUrls = []
+        }
+    })
 
     function updateValue(e: Event, key: keyof SongKeys) {
         const value = (e.target as HTMLInputElement).value
@@ -41,9 +53,9 @@
         storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
     }
 
-    function handleRemoveImage(index: number) {
+    async function handleRemoveImage(index: number) {
         if (!song) return
-        song.removeImage(index)
+        await song.removeImage(index)
         storage.persist()
         storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
     }
@@ -64,7 +76,9 @@
         const files = Array.from(input.files)
         try {
             const dataUrls = await Promise.all(files.map((file) => readFileAsDataURL(file)))
-            dataUrls.forEach((url) => song.addImage(url))
+            for (const url of dataUrls) {
+                await song.addImage(url)
+            }
 
             storage.persist()
             storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
@@ -74,25 +88,6 @@
 
         input.value = ""
     }
-
-    // const options = [
-    //     { type: "text", label: "Text (ChordPro)", description: "Any text should work, but ChordPro formatted text works best." },
-    //     { type: "media", label: "Media / Images", description: "JPG, PNG, WEBP, GIF, SVG, etc." },
-    //     { type: "web", label: "Website", description: "Link to any website with the song." }
-    // ] as const
-    // type OptionType = (typeof options)[number]["type"]
-    // let chosenType = $state<OptionType | null>(null)
-
-    // function chooseType(type: OptionType) {
-    //     chosenType = type
-
-    //     if (type === "text") {
-    //         setTimeout(() => {
-    //             const inputField = document.getElementById("song-name-input")
-    //             if (inputField) inputField.focus()
-    //         }, 0)
-    //     }
-    // }
 </script>
 
 <main>
@@ -112,17 +107,6 @@
                 <md-outlined-text-field id="song-tempo-input" label="Tempo" placeholder="e.g. 120" value={song.tempo} oninput={(e: Event) => updateValue(e, "tempo")} style="flex: 1;"> </md-outlined-text-field>
             </div>
 
-            <!-- {#if !song.content && !song.images.length}
-                <div class="list" style="margin-top: 10px;">
-                    {#each options as option}
-                        <md-list-item type="button" onclick={() => chooseType(option.type)}>
-                            <div slot="headline">{option.label}</div>
-                            <div slot="supporting-text">{option.description}</div>
-                            <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-                        </md-list-item>
-                    {/each}
-                </div>
-            {:else} -->
             <md-outlined-text-field
                 type="textarea"
                 label="Content"
@@ -146,7 +130,7 @@
                 </div>
 
                 <div class="images-grid">
-                    {#each song.images as imageSrc, idx}
+                    {#each imageWebUrls as imageSrc, idx}
                         <div class="image-edit-card">
                             <div class="card-header">
                                 <span class="page-badge">Page {idx + 1}</span>

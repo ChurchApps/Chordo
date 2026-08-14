@@ -55,15 +55,22 @@ export class FileSystem {
 
     // --- Binary & Media Operations (Images, PDFs) ---
 
+    private static webUrlCache: Record<string, string> = {}
     static async writeFile(folderName: string, name: string, base64Data: string): Promise<boolean> {
         const path = `${folderName}/${name}`
 
-        // remove any 'data:image/png;base64,' prefix
+        // Ensure data URL prefix is included in web cache
+        let fullDataUrl = base64Data
+        if (!base64Data.startsWith("data:")) {
+            fullDataUrl = `data:image/png;base64,${base64Data}`
+        }
+        this.webUrlCache[path] = fullDataUrl
+
+        // remove any 'data:image/png;base64,' prefix for raw file writing
         const cleanBase64 = base64Data.includes(",") ? base64Data.split(",")[1] : base64Data
 
         try {
             await Filesystem.writeFile({ path, data: cleanBase64, directory: this.DIR_DATA, recursive: true })
-            // return result.uri // Returns the native file path (file://...)
             return true
         } catch (err) {
             console.error(`Failed to write file "${path}":`, err)
@@ -71,19 +78,27 @@ export class FileSystem {
         }
     }
 
-    // static async readFile(folderName: string, name: string): Promise<string | null> {
-    //     const path = `${folderName}/${name}`
-    //     try {
-    //         const file = await Filesystem.readFile({ path, directory: this.DIR_DATA })
-    //         return file.data as string
-    //     } catch (err) {
-    //         console.error(`Failed to read file "${path}":`, err)
-    //         return null
-    //     }
-    // }
-
     static async getFileWebUrl(folderName: string, name: string): Promise<string | null> {
         const path = `${folderName}/${name}`
+
+        // On non-native / browser dev mode, load from cache or read from IndexedDB
+        if (!Capacitor.isNativePlatform()) {
+            if (this.webUrlCache[path]) {
+                return this.webUrlCache[path]
+            }
+
+            try {
+                const file = await Filesystem.readFile({ path, directory: this.DIR_DATA })
+                const data = file.data as string
+                const formatted = data.startsWith("data:") ? data : `data:image/png;base64,${data}`
+                this.webUrlCache[path] = formatted
+                return formatted
+            } catch (err) {
+                console.error(`Failed to read web file "${path}":`, err)
+                return null
+            }
+        }
+
         try {
             const fileInfo = await Filesystem.getUri({ path, directory: this.DIR_DATA })
             // Converts native file:// path to a webview-friendly url (capacitor:// or http://localhost)
@@ -91,6 +106,18 @@ export class FileSystem {
         } catch (err) {
             console.error(`Failed to get web URL for file "${path}":`, err)
             return null
+        }
+    }
+
+    static async deleteFile(folderName: string, name: string): Promise<boolean> {
+        const path = `${folderName}/${name}`
+        delete this.webUrlCache[path]
+        try {
+            await Filesystem.deleteFile({ path, directory: this.DIR_DATA })
+            return true
+        } catch (err) {
+            console.error(`Failed to delete file "${path}":`, err)
+            return false
         }
     }
 
@@ -108,7 +135,20 @@ export class FileSystem {
         return this.writeFile("media", name, base64Data)
     }
 
+    static async resolveImageUrl(imagePathOrDataUrl: string): Promise<string> {
+        if (!imagePathOrDataUrl) return ""
+        if (imagePathOrDataUrl.startsWith("data:") || imagePathOrDataUrl.startsWith("http:") || imagePathOrDataUrl.startsWith("https:") || imagePathOrDataUrl.startsWith("blob:")) {
+            return imagePathOrDataUrl
+        }
+        const webUrl = await this.getMediaWebUrl(imagePathOrDataUrl)
+        return webUrl || imagePathOrDataUrl
+    }
+
     static async getMediaWebUrl(name: string): Promise<string | null> {
         return this.getFileWebUrl("media", name)
+    }
+
+    static async deleteMedia(name: string): Promise<boolean> {
+        return this.deleteFile("media", name)
     }
 }

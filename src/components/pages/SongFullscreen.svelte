@@ -237,10 +237,13 @@
 <main>
     <div class="slider-viewport">
         <div class="slider" bind:this={sliderEl} onpointerdown={pointerDown} onpointermove={pointerMove} onpointerup={pointerUp} onpointercancel={pointerUp} onlostpointercapture={pointerUp} style="touch-action: pan-y;">
-            {#each songs as songId}
+            {#each songs as songId, i}
+                {@const song = storage.getSongById(songId)}
+                {@const hasMedia = !!song?.images.length}
+
                 <div class="slide">
-                    <Paper padding={12} headerText={songId ? storage.getSongById(songId)?.name : ""}>
-                        <ChordPro {songId} numColumns={2} showMeta />
+                    <Paper padding={hasMedia ? 0 : 12} background={hasMedia ? "black" : "white"} headerText={song?.name ?? ""}>
+                        <ChordPro {songId} numColumns={2} showMeta lightMode={Math.abs(i - currentPageIndex) > 1} />
                     </Paper>
                 </div>
             {/each}
@@ -315,7 +318,7 @@
     }
 
     /* Horizontal pagination container */
-    :global(.pages-stack) {
+    .slider-viewport :global(.pages-stack) {
         display: flex !important;
         flex-direction: row !important;
         gap: 0 !important;
@@ -325,7 +328,7 @@
     }
 
     /* Individual A-Paper Page */
-    :global(.paper-page) {
+    .slider-viewport :global(.paper-page) {
         --margin-x: 10px;
         --margin-y: 10px;
 
@@ -347,7 +350,6 @@
 
         flex-shrink: 0 !important;
         box-sizing: border-box !important;
-        background: #ffffff !important;
         /* box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important; */
         border-radius: 2px !important;
     }
