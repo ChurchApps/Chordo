@@ -99,6 +99,8 @@
 
 <style>
     main {
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
     }
 
@@ -106,8 +108,7 @@
         display: flex;
         flex-direction: column;
         flex: 1;
-        gap: 10px;
-        /* padding: 10px; */
+        gap: 20px;
     }
 
     .song-wrapper {

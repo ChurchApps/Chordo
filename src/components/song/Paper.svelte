@@ -300,6 +300,20 @@
         height: auto;
     }
 
+    :global(.paper-page .image-song-container) {
+        height: 100%;
+        gap: 0;
+    }
+
+    :global(.paper-page .image-page) {
+        height: 100%;
+    }
+
+    :global(.paper-page .image-page img) {
+        max-height: 100%;
+        object-fit: contain;
+    }
+
     :global(.page-number) {
         position: absolute;
         bottom: 8mm;

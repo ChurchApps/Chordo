@@ -120,6 +120,23 @@ class StorageManager {
         this.songs.push(song)
         this.save()
     }
+
+    updateSong(song: Song) {
+        this.songs = this.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
+        this.save()
+    }
+
+    refreshSongs() {
+        this.songs = [...this.songs]
+    }
+
+    refreshLists() {
+        this.lists = [...this.lists]
+    }
+
+    refreshFolders() {
+        this.folders = [...this.folders]
+    }
 }
 
 export const storage = new StorageManager()

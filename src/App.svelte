@@ -35,7 +35,7 @@
         flex-direction: column;
 
         height: 100vh;
-        /* width: 100vw; */
+        overflow: hidden;
 
         background-color: var(--background);
         color: var(--on-background);

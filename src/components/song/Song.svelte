@@ -17,16 +17,13 @@
 <style>
     .paper-wrapper {
         width: 100%;
-        height: 100%;
     }
 
     .paper {
         width: 100%;
-        height: 100%;
 
         color: black;
         background-color: white;
-        /* font-family: "Roboto", sans-serif; */
 
         padding: 40px 50px;
         border-radius: 6px;

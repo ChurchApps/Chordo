@@ -7,12 +7,14 @@
         songId,
         showMeta = false,
         numColumns = 1,
-        lightMode = false
+        lightMode = false,
+        fitParent = true
     } = $props<{
         songId: string | null
         showMeta?: boolean
         numColumns?: number
         lightMode?: boolean
+        fitParent?: boolean
     }>()
 
     // do some optimization to the rendering if light mode
@@ -40,9 +42,9 @@
 </script>
 
 {#if imageWebUrls.length > 0}
-    <div class="image-song-container">
+    <div class="image-song-container" class:fitParent>
         {#each imageWebUrls as imageSrc, i}
-            <div class="image-page">
+            <div class="image-page" class:fitParent>
                 <img src={imageSrc} alt={"Page " + (i + 1)} />
             </div>
         {/each}
@@ -201,16 +203,15 @@
 
     .image-song-container {
         width: 100%;
-        height: 100%;
         display: flex;
         flex-direction: column;
+        gap: 16px;
 
         pointer-events: none;
     }
 
     .image-page {
         width: 100%;
-        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -222,10 +223,9 @@
 
     .image-page img {
         max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        width: auto;
         height: auto;
+        width: auto;
+        object-fit: contain;
         display: block;
     }
 </style>

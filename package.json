@@ -24,6 +24,7 @@
         "@capacitor/android": "^8.5.0",
         "@capacitor/core": "^8.5.0",
         "@capacitor/filesystem": "^8.1.2",
-        "@material/web": "^2.5.0"
+        "@material/web": "^2.5.0",
+        "pdfjs-dist": "^6.2.108"
     }
 }

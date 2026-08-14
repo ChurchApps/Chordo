@@ -1,9 +1,10 @@
 <script lang="ts">
     import type { SongKeys } from "../../lib/models/Song"
-    import { Song } from "../../lib/models/Song"
-    import { FileSystem } from "../../lib/storage/FileSystem"
     import { goBack, menuState, updatePageTitle } from "../../lib/state/menu.svelte"
+    import { FileSystem } from "../../lib/storage/FileSystem"
     import storage from "../../lib/storage/StorageManager.svelte"
+    import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "../../lib/utils/mediaManager"
+    import ProgressDialog from "../popups/ProgressDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))
     let name = $derived(song?.name || "")
@@ -11,6 +12,13 @@
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
     let imageWebUrls = $state<string[]>([])
+
+    // PDF Conversion Progress State
+    let isConvertingPdf = $state(false)
+    let conversionMessage = $state("Converting PDF...")
+    let conversionFileName = $state("")
+    let conversionProgress = $state(0)
+    let isIndeterminate = $state(true)
 
     $effect(() => {
         if (song?.images && song.images.length > 0) {
@@ -39,54 +47,39 @@
         }
     }
 
-    async function handleRotateImage(index: number) {
-        if (!song) return
-        await song.rotateImage(index)
-        storage.persist()
-        storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
-    }
-
-    function handleMoveImage(fromIndex: number, toIndex: number) {
-        if (!song) return
-        song.moveImage(fromIndex, toIndex)
-        storage.persist()
-        storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
-    }
-
-    async function handleRemoveImage(index: number) {
-        if (!song) return
-        await song.removeImage(index)
-        storage.persist()
-        storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
-    }
-
-    function readFileAsDataURL(file: File): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-        })
-    }
-
-    async function handleAddImages(e: Event) {
+    async function handleAddMedia(e: Event) {
         const input = e.target as HTMLInputElement
         if (!input.files || input.files.length === 0 || !song) return
 
         const files = Array.from(input.files)
-        try {
-            const dataUrls = await Promise.all(files.map((file) => readFileAsDataURL(file)))
-            for (const url of dataUrls) {
-                await song.addImage(url)
-            }
+        const hasPdf = files.some((f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"))
 
-            storage.persist()
-            storage.songs = storage.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
-        } catch (err) {
-            console.error("Failed to add image files:", err)
+        if (hasPdf) {
+            isConvertingPdf = true
+            conversionMessage = "Preparing PDF..."
+            conversionFileName = files[0].name
+            conversionProgress = 0
+            isIndeterminate = true
         }
 
-        input.value = ""
+        try {
+            await importMediaFilesToSong(song, files, (status) => {
+                isConvertingPdf = true
+                conversionFileName = status.fileName
+                conversionMessage = status.message
+                if (status.totalPages > 0) {
+                    conversionProgress = status.currentPage / status.totalPages
+                    isIndeterminate = false
+                } else {
+                    isIndeterminate = true
+                }
+            })
+        } catch (err) {
+            console.error("Failed to import media files:", err)
+        } finally {
+            isConvertingPdf = false
+            input.value = ""
+        }
     }
 </script>
 
@@ -118,14 +111,14 @@
             >
             </md-outlined-text-field>
 
-            <input type="file" accept="image/*" multiple bind:this={fileInputEl} onchange={handleAddImages} style="display: none;" />
+            <input type="file" accept="image/*,application/pdf,.pdf" multiple bind:this={fileInputEl} onchange={handleAddMedia} style="display: none;" />
 
             {#if song.images && song.images.length > 0}
                 <div class="images-section-header">
-                    <span class="section-title">Image Pages ({song.images.length})</span>
+                    <span class="section-title">Media Pages ({song.images.length})</span>
                     <md-outlined-button type="button" onclick={() => fileInputEl?.click()}>
                         <md-icon slot="icon">add_photo_alternate</md-icon>
-                        Add Images
+                        Add Media / PDF
                     </md-outlined-button>
                 </div>
 
@@ -135,16 +128,16 @@
                             <div class="card-header">
                                 <span class="page-badge">Page {idx + 1}</span>
                                 <div class="card-actions">
-                                    <md-icon-button type="button" onclick={() => handleRotateImage(idx)}>
+                                    <md-icon-button type="button" onclick={() => rotateSongImage(song, idx)}>
                                         <md-icon>rotate_right</md-icon>
                                     </md-icon-button>
-                                    <md-icon-button type="button" disabled={idx === 0} onclick={() => handleMoveImage(idx, idx - 1)}>
+                                    <md-icon-button type="button" disabled={idx === 0} onclick={() => moveSongImage(song, idx, idx - 1)}>
                                         <md-icon>arrow_upward</md-icon>
                                     </md-icon-button>
-                                    <md-icon-button type="button" disabled={idx === song.images.length - 1} onclick={() => handleMoveImage(idx, idx + 1)}>
+                                    <md-icon-button type="button" disabled={idx === song.images.length - 1} onclick={() => moveSongImage(song, idx, idx + 1)}>
                                         <md-icon>arrow_downward</md-icon>
                                     </md-icon-button>
-                                    <md-icon-button type="button" onclick={() => handleRemoveImage(idx)}>
+                                    <md-icon-button type="button" onclick={() => removeSongImage(song, idx)}>
                                         <md-icon>delete</md-icon>
                                     </md-icon-button>
                                 </div>
@@ -159,13 +152,23 @@
                 <div style="margin-top: 10px;">
                     <md-outlined-button type="button" onclick={() => fileInputEl?.click()}>
                         <md-icon slot="icon">add_photo_alternate</md-icon>
-                        Add Image Pages
+                        Add Media / PDF Pages
                     </md-outlined-button>
                 </div>
             {/if}
         {/if}
     </div>
 </main>
+
+<ProgressDialog
+    open={isConvertingPdf}
+    title="Converting PDF"
+    icon="picture_as_pdf"
+    detail={conversionFileName}
+    message={conversionMessage}
+    progress={conversionProgress}
+    indeterminate={isIndeterminate}
+/>
 
 <div class="fab-container">
     <md-fab aria-label="Done" onclick={goBack}>
@@ -193,6 +196,10 @@
         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: 10px;
         margin-top: 8px;
+        max-height: 520px;
+        overflow-y: auto;
+        padding-right: 4px;
+        padding-bottom: 4px;
     }
 
     .image-edit-card {
