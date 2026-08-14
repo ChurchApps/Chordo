@@ -31,6 +31,7 @@ export class Song {
     key: string
     tempo: string
     content: string
+    url: string
     createdAt: number
     drawings: string[]
     images: string[]
@@ -42,6 +43,7 @@ export class Song {
         this.key = data.key ?? ""
         this.tempo = data.tempo ?? ""
         this.content = data.content ?? ""
+        this.url = data.url ?? ""
         this.createdAt = data.createdAt ?? Date.now()
         this.drawings = data.drawings ?? []
         this.images = data.images ?? []

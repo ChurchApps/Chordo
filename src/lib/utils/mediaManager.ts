@@ -1,3 +1,4 @@
+import { convertToChordPro } from "../chords/chordproConverter"
 import { processPdfFile } from "./pdf"
 import { Song, Songs } from "../models/Song"
 import storage from "../storage/StorageManager.svelte"
@@ -25,7 +26,7 @@ export type MediaProgressCallback = (status: MediaProgressStatus) => void
 
 /**
  * Imports media files (images or PDFs) into an existing Song.
- * Converts PDF pages into images and appends extracted text into song content.
+ * Converts PDF pages into images and converts extracted text into ChordPro format.
  */
 export async function importMediaFilesToSong(
     song: Song,
@@ -75,10 +76,11 @@ export async function importMediaFilesToSong(
     }
 
     if (extractedTextCombined.trim()) {
+        const chordProContent = convertToChordPro(extractedTextCombined.trim())
         if (song.content && song.content.trim()) {
-            song.content = song.content.trim() + "\n\n" + extractedTextCombined.trim()
+            song.content = song.content.trim() + "\n\n" + chordProContent
         } else {
-            song.content = extractedTextCombined.trim()
+            song.content = chordProContent
         }
     }
 
