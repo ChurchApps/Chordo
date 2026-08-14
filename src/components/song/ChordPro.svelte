@@ -1,6 +1,7 @@
 <script lang="ts">
     import { convertToChordPro } from "../../lib/chords/chordproConverter"
     import { parseChordPro } from "../../lib/chords/chordproParser"
+    import { ALL_METADATA_ALIASES, METADATA_CONFIGS } from "../../lib/chords/metadata"
     import { calculateTransposeSemitones } from "../../lib/chords/transpose"
     import { FileSystem } from "../../lib/storage/FileSystem"
     import storage from "../../lib/storage/StorageManager.svelte"
@@ -44,7 +45,7 @@
             semitones,
             targetKey,
             lastTransposed: song?.lastTransposed,
-            songKey: song?.key,
+            songKey: song?.getMetadata("key"),
             content: chordProContent
         })
     )
@@ -62,10 +63,9 @@
         }
     })
 
-    const metadataDirectiveKeys = ["title", "t", "artist", "a", "subtitle", "st", "key", "k", "tempo", "time", "capo"]
     function isMetadataDirective(key: string | undefined) {
         if (!key) return false
-        return metadataDirectiveKeys.includes(key.toLowerCase())
+        return ALL_METADATA_ALIASES.has(key.toLowerCase())
     }
 </script>
 
@@ -83,23 +83,14 @@
             {#if song?.name}
                 <div class="song-title">{song.name}</div>
             {/if}
-            <!-- {#if parsed.metadata.title}
-                <div class="song-title">{parsed.metadata.title}</div>
-            {/if} -->
             {#if showMeta}
                 <div class="song-meta">
-                    {#if parsed.metadata.key}
-                        <span class="meta-item">Key: {parsed.metadata.key}</span>
-                    {/if}
-                    {#if parsed.metadata.timeSignature}
-                        <span class="meta-item">Time: {parsed.metadata.timeSignature}</span>
-                    {/if}
-                    {#if parsed.metadata.tempo}
-                        <span class="meta-item">Tempo: {parsed.metadata.tempo}</span>
-                    {/if}
-                    {#if parsed.metadata.capo}
-                        <span class="meta-item">Capo: {parsed.metadata.capo}</span>
-                    {/if}
+                    {#each METADATA_CONFIGS as cfg}
+                        {@const val = parsed.metadata[cfg.key] || song?.getMetadata(cfg.key)}
+                        {#if val}
+                            <span class="meta-item">{cfg.label}: {val}</span>
+                        {/if}
+                    {/each}
                 </div>
             {/if}
         </div>

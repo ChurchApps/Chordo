@@ -1,4 +1,4 @@
-import { convertToChordPro, isChordLine } from "../chords/chordproConverter"
+import { extractAndCleanSongMetadata, isChordLine } from "../chords/chordproConverter"
 import { extractBaseKey } from "../chords/transpose"
 
 export interface PulledSongResult {
@@ -6,6 +6,12 @@ export interface PulledSongResult {
     title?: string
     artist?: string
     key?: string
+    tempo?: string
+    timeSignature?: string
+    album?: string
+    year?: string
+    copyright?: string
+    composer?: string
 }
 
 /**
@@ -20,9 +26,9 @@ export function decodeHtmlEntities(str: string): string {
         .replace(/&rsquo;/g, "'")
         .replace(/&lsquo;/g, "'")
         .replace(/&quot;/g, '"')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
         .replace(/&#039;/g, "'")
         .replace(/&nbsp;/g, " ")
         .replace(/\xa0/g, " ")
@@ -39,7 +45,7 @@ async function fetchHtml(url: string): Promise<string> {
 
     const headers: Record<string, string> = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     }
 
     // In Node / non-browser environments, try direct fetch first
@@ -54,10 +60,7 @@ async function fetchHtml(url: string): Promise<string> {
     }
 
     // In browser / CORS environments, try CORS proxies
-    const proxies = [
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
-    ]
+    const proxies = [`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`]
 
     for (const proxyUrl of proxies) {
         try {
@@ -149,12 +152,19 @@ export function extractStructuredSegmentData(html: string): { title?: string; ar
 
     const titleMatch = html.match(/<h1[^>]*class=["'][^"']*headline[^"']*["'][^>]*>(.*?)<\/h1>/i) || html.match(/<title[^>]*>(.*?)<\/title>/i)
     if (titleMatch) {
-        title = titleMatch[1].replace(/<[^>]+>/g, "").replace(/\s*\|.*$/, "").replace(/chords/i, "").trim()
+        title = titleMatch[1]
+            .replace(/<[^>]+>/g, "")
+            .replace(/\s*\|.*$/, "")
+            .replace(/chords/i, "")
+            .trim()
     }
 
     const artistMatch = html.match(/<p[^>]*class=["']large["'][^>]*>([\s\S]*?)<\/p>/i)
     if (artistMatch) {
-        artist = artistMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+        artist = artistMatch[1]
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
     }
 
     const lines: string[] = []
@@ -168,7 +178,11 @@ export function extractStructuredSegmentData(html: string): { title?: string; ar
             const noteMatch = seg.match(/<div[^>]*class=["']chord-pro-note["'][^>]*>([\s\S]*?)<\/div>/i)
             const lyricMatch = seg.match(/<div[^>]*class=["']chord-pro-lyric["'][^>]*>([\s\S]*?)<\/div>/i)
 
-            const noteRaw = noteMatch ? decodeHtmlEntities(noteMatch[1]).replace(/<[^>]+>/g, " ").trim() : ""
+            const noteRaw = noteMatch
+                ? decodeHtmlEntities(noteMatch[1])
+                      .replace(/<[^>]+>/g, " ")
+                      .trim()
+                : ""
             const lyricRaw = lyricMatch ? decodeHtmlEntities(lyricMatch[1]).replace(/<[^>]+>/g, " ") : ""
 
             if (noteRaw) {
@@ -203,8 +217,7 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
     let rawText = ""
 
     // 1. Extract metadata from OpenGraph or Title tags
-    const titleMatch = htmlString.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i) ||
-                       htmlString.match(/<title[^>]*>(.*?)<\/title>/i)
+    const titleMatch = htmlString.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i) || htmlString.match(/<title[^>]*>(.*?)<\/title>/i)
     if (titleMatch) {
         title = decodeHtmlEntities(titleMatch[1])
             .replace(/\s*[\-\|\@].*$/, "")
@@ -218,9 +231,30 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
 
         // Generic non-content UI elements, headers, sidebars, footers, social share buttons
         const removeSelectors = [
-            "script", "style", "header", "footer", "nav", "aside", "form", "button", "iframe",
-            "noscript", "svg", ".ad", ".banner", ".navigation", ".navbar", ".sidebar", ".widget",
-            ".comments", "#comments", ".related", ".share", ".cookie", ".footer", ".header"
+            "script",
+            "style",
+            "header",
+            "footer",
+            "nav",
+            "aside",
+            "form",
+            "button",
+            "iframe",
+            "noscript",
+            "svg",
+            ".ad",
+            ".banner",
+            ".navigation",
+            ".navbar",
+            ".sidebar",
+            ".widget",
+            ".comments",
+            "#comments",
+            ".related",
+            ".share",
+            ".cookie",
+            ".footer",
+            ".header"
         ]
         removeSelectors.forEach((sel) => doc.querySelectorAll(sel).forEach((el) => el.remove()))
 
@@ -230,7 +264,9 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
             const text = pre.textContent || ""
             if (text.trim()) {
                 let chordLines = 0
-                text.split(/\r?\n/).forEach((l) => { if (isChordLine(l)) chordLines++ })
+                text.split(/\r?\n/).forEach((l) => {
+                    if (isChordLine(l)) chordLines++
+                })
                 if (chordLines >= 1) {
                     rawText = text
                     break
@@ -240,15 +276,15 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
 
         // Check targeted content containers if no valid <pre> found
         if (!rawText) {
-            const contentSelectors = [
-                ".entry-content", "article", ".tabcontent", ".song-content", ".chord-pro-disp", ".tab-content", "#bip", "code"
-            ]
+            const contentSelectors = [".entry-content", "article", ".tabcontent", ".song-content", ".chord-pro-disp", ".tab-content", "#bip", "code"]
             for (const sel of contentSelectors) {
                 const el = doc.querySelector(sel)
                 if (el && el.textContent?.trim()) {
                     const text = el.textContent
                     let chordLines = 0
-                    text.split(/\r?\n/).forEach((l) => { if (isChordLine(l)) chordLines++ })
+                    text.split(/\r?\n/).forEach((l) => {
+                        if (isChordLine(l)) chordLines++
+                    })
                     if (chordLines >= 1) {
                         rawText = text
                         break
@@ -269,7 +305,9 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
                 const cleaned = pre.replace(/<[^>]+>/g, "").trim()
                 if (cleaned) {
                     let chordLines = 0
-                    cleaned.split(/\r?\n/).forEach((l) => { if (isChordLine(l)) chordLines++ })
+                    cleaned.split(/\r?\n/).forEach((l) => {
+                        if (isChordLine(l)) chordLines++
+                    })
                     if (chordLines >= 1) {
                         rawText = cleaned
                         break
@@ -297,7 +335,8 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
         cleanLines.push(l)
     }
 
-    const cleanedText = cleanLines.join("\n")
+    const cleanedText = cleanLines
+        .join("\n")
         .replace(/\r\n/g, "\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim()
@@ -321,7 +360,7 @@ function containsValidChordLines(text: string): boolean {
 }
 
 /**
- * Universal Entry Point: Fetches any web page, runs generic extraction pipeline, and converts to ChordPro.
+ * Universal Entry Point: Fetches any web page, runs generic extraction pipeline, cleans metadata, and converts to ChordPro.
  */
 export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> {
     const html = await fetchHtml(url)
@@ -329,45 +368,65 @@ export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> 
     // Strategy 1: JSON Store Extractor (Ultimate Guitar, etc.)
     const jsonStoreData = extractJsonStoreData(html)
     if (jsonStoreData && jsonStoreData.rawContent && containsValidChordLines(jsonStoreData.rawContent)) {
-        const convertedContent = convertToChordPro(jsonStoreData.rawContent)
-        const key = extractBaseKey(convertedContent, jsonStoreData.key)
+        const { cleanContent, metadata } = extractAndCleanSongMetadata(jsonStoreData.rawContent)
+        const key = extractBaseKey(cleanContent, metadata.key || jsonStoreData.key)
+
         return {
-            content: convertedContent,
-            title: jsonStoreData.title,
-            artist: jsonStoreData.artist,
-            key
+            content: cleanContent,
+            title: metadata.title || jsonStoreData.title,
+            artist: metadata.artist || jsonStoreData.artist,
+            key,
+            tempo: metadata.tempo,
+            timeSignature: metadata.timeSignature,
+            album: metadata.album,
+            year: metadata.year,
+            copyright: metadata.copyright,
+            composer: metadata.composer
         }
     }
 
     // Strategy 2: Structured Segment Extractor (WorshipTogether, etc.)
     const structuredData = extractStructuredSegmentData(html)
     if (structuredData && structuredData.rawContent && containsValidChordLines(structuredData.rawContent)) {
-        const convertedContent = convertToChordPro(structuredData.rawContent)
-        const key = extractBaseKey(convertedContent)
+        const { cleanContent, metadata } = extractAndCleanSongMetadata(structuredData.rawContent)
+        const key = extractBaseKey(cleanContent, metadata.key)
+
         return {
-            content: convertedContent,
-            title: structuredData.title,
-            artist: structuredData.artist,
-            key
+            content: cleanContent,
+            title: metadata.title || structuredData.title,
+            artist: metadata.artist || structuredData.artist,
+            key,
+            tempo: metadata.tempo,
+            timeSignature: metadata.timeSignature,
+            album: metadata.album,
+            year: metadata.year,
+            copyright: metadata.copyright,
+            composer: metadata.composer
         }
     }
 
     // Strategy 3: Embedded Song File Extractor (lovsang.no CDN .txt / .chpro files)
-    const txtUrlMatch =
-        html.match(/initializeSongPage\(["'](https?:\/\/[^"']+)["']\)/i) ||
-        html.match(/(https?:\/\/[^"'\s>]+\.(?:txt|chordpro|chpro))\b/i)
+    const txtUrlMatch = html.match(/initializeSongPage\(["'](https?:\/\/[^"']+)["']\)/i) || html.match(/(https?:\/\/[^"'\s>]+\.(?:txt|chordpro|chpro))\b/i)
 
     if (txtUrlMatch && txtUrlMatch[1]) {
         try {
             const rawSongTxt = await fetchHtml(txtUrlMatch[1])
             if (rawSongTxt && rawSongTxt.trim() && containsValidChordLines(rawSongTxt)) {
-                const convertedContent = convertToChordPro(rawSongTxt.trim())
+                const { cleanContent, metadata } = extractAndCleanSongMetadata(rawSongTxt.trim())
                 const { title } = extractChordsTextFromHtml(html)
-                const key = extractBaseKey(convertedContent)
+                const key = extractBaseKey(cleanContent, metadata.key)
+
                 return {
-                    content: convertedContent,
-                    title,
-                    key
+                    content: cleanContent,
+                    title: metadata.title || title,
+                    artist: metadata.artist,
+                    key,
+                    tempo: metadata.tempo,
+                    timeSignature: metadata.timeSignature,
+                    album: metadata.album,
+                    year: metadata.year,
+                    copyright: metadata.copyright,
+                    composer: metadata.composer
                 }
             }
         } catch {
@@ -382,12 +441,19 @@ export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> 
         throw new Error("No chords or lyrics text found on page.")
     }
 
-    const convertedContent = convertToChordPro(rawText)
-    const key = extractBaseKey(convertedContent)
+    const { cleanContent, metadata } = extractAndCleanSongMetadata(rawText)
+    const key = extractBaseKey(cleanContent, metadata.key)
 
     return {
-        content: convertedContent,
-        title,
-        key
+        content: cleanContent,
+        title: metadata.title || title,
+        artist: metadata.artist,
+        key,
+        tempo: metadata.tempo,
+        timeSignature: metadata.timeSignature,
+        album: metadata.album,
+        year: metadata.year,
+        copyright: metadata.copyright,
+        composer: metadata.composer
     }
 }

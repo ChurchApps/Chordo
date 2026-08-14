@@ -1,6 +1,9 @@
 import storage from "../storage/StorageManager.svelte"
 import { FileSystem } from "../storage/FileSystem"
 import { getId, sortByName, type NonFunctionProperties } from "../utils/common"
+import { METADATA_CONFIGS, type SongMetadata } from "../chords/metadata"
+
+export type { SongMetadata }
 
 export class Songs {
     static get(songs: Song[], listId?: string | null): Song[] {
@@ -27,32 +30,39 @@ export type SongKeys = NonFunctionProperties<Song>
 export class Song {
     id: string
     name: string // title
-    artist: string
-    key: string
-    tempo: string
     content: string
     url: string
     createdAt: number
-    lastTransposed: string
+    lastTransposed?: string
     drawings: string[]
     images: string[]
+    metadata: SongMetadata
 
     constructor(data: Partial<SongKeys> = {}) {
         this.id = data.id ?? getId("song")
         this.name = data.name ?? "Untitled"
-        this.artist = data.artist ?? ""
-        this.key = data.key ?? ""
-        this.tempo = data.tempo ?? ""
         this.content = data.content ?? ""
         this.url = data.url ?? ""
         this.createdAt = data.createdAt ?? Date.now()
-        this.lastTransposed = data.lastTransposed ?? ""
+        this.lastTransposed = data.lastTransposed
         this.drawings = data.drawings ?? []
         this.images = data.images ?? []
+        this.metadata = data.metadata ?? {}
     }
 
     getTitle(): string {
         return this.name || "Untitled"
+    }
+
+    getMetadata(): SongMetadata
+    getMetadata(key: string): string
+    getMetadata(key?: string): string | SongMetadata {
+        if (key) return this.metadata[key] || ""
+        return this.metadata
+    }
+
+    setMetadata(key: string, value: string): void {
+        this.metadata[key] = value
     }
 
     // Images

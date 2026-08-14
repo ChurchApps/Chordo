@@ -9,7 +9,7 @@
     let currentSongIndex = $derived(activeSongContext?.currentSongIndex ?? 0)
 
     // Base original key of the song
-    let originalKey = $derived(extractBaseKey(song?.content, song?.key) || "C")
+    let originalKey = $derived(extractBaseKey(song?.content, song?.getMetadata("key")) || "C")
 
     // Determine whether sharp or flat scale should be displayed based on original key
     let displayedScale = $derived(getScaleForOriginalKey(originalKey))

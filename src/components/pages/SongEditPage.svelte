@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { convertToChordPro } from "../../lib/chords/chordproConverter"
-    import { parseChordPro } from "../../lib/chords/chordproParser"
+    import { extractAndCleanSongMetadata } from "../../lib/chords/chordproConverter"
+    import { METADATA_CONFIGS } from "../../lib/chords/metadata"
     import { extractBaseKey, isValidKey } from "../../lib/chords/transpose"
     import type { SongKeys } from "../../lib/models/Song"
     import { goBack, menuState, updatePageTitle } from "../../lib/state/menu.svelte"
@@ -38,33 +38,44 @@
         }
     })
 
+    function syncMetadataFromText(rawText: string) {
+        if (!song || !rawText.trim()) return
+        const { cleanContent, metadata } = extractAndCleanSongMetadata(rawText)
+
+        if (cleanContent && cleanContent !== song.content) {
+            song.content = cleanContent
+        }
+
+        if (metadata.title && (!song.name || song.name === "Untitled")) {
+            song.name = metadata.title
+            if (currentSongName !== metadata.title) updatePageTitle(metadata.title)
+            currentSongName = metadata.title
+        }
+
+        for (const cfg of METADATA_CONFIGS) {
+            const val = metadata[cfg.key]
+            if (val && !song.getMetadata(cfg.key)) {
+                song.setMetadata(cfg.key, val)
+            }
+        }
+
+        if (!song.getMetadata("key") || !isValidKey(song.getMetadata("key"))) {
+            const detectedKey = extractBaseKey(rawText, metadata.key)
+            if (detectedKey) song.setMetadata("key", detectedKey)
+        }
+    }
+
     function updateValue(e: Event, key: keyof SongKeys) {
         const value = (e.target as HTMLInputElement).value
-        if (!song) return
+        if (!song || !key) return
 
         if (key === "name" && !value.trim()) return
-        if (key === "createdAt" || key === "drawings" || key === "images") return
+        if (key === "createdAt" || key === "drawings" || key === "images" || key === "metadata" || key === "lastTransposed") return
 
         song[key] = value
 
         if (key === "content" && value.trim()) {
-            const raw = value.trim()
-            const chordPro = raw.includes("[") || raw.includes("{") ? raw : convertToChordPro(raw)
-            const parsed = parseChordPro(chordPro, 0)
-            const meta = parsed.metadata
-
-            if (meta.title && (!song.name || song.name === "Untitled")) {
-                song.name = meta.title
-                if (currentSongName !== meta.title) updatePageTitle(meta.title)
-                currentSongName = meta.title
-            }
-            if (meta.artist && !song.artist) {
-                song.artist = meta.artist
-            }
-            if (!song.key || !isValidKey(song.key)) {
-                const detectedKey = extractBaseKey(raw, meta.key)
-                if (detectedKey) song.key = detectedKey
-            }
+            syncMetadataFromText(value)
         }
 
         storage.persist()
@@ -73,6 +84,13 @@
             if (currentSongName !== value) updatePageTitle(value)
             currentSongName = value
         }
+    }
+
+    function updateMetadataValue(e: Event, metaKey: string) {
+        const value = (e.target as HTMLInputElement).value
+        if (!song) return
+        song.setMetadata(metaKey, value)
+        storage.persist()
     }
 
     async function pullWebpageContent() {
@@ -90,13 +108,11 @@
                 song.name = result.title
                 updatePageTitle(result.title)
             }
-            if (result.artist && !song.artist) {
-                song.artist = result.artist
-            }
-            if (!song.key || !isValidKey(song.key)) {
-                const detectedKey = extractBaseKey(result.content, result.key)
-                if (detectedKey) {
-                    song.key = detectedKey
+
+            for (const cfg of METADATA_CONFIGS) {
+                const val = (result as any)[cfg.key]
+                if (val && !song.getMetadata(cfg.key)) {
+                    song.setMetadata(cfg.key, val)
                 }
             }
 
@@ -153,18 +169,17 @@
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <!-- Title -->
                 <md-outlined-text-field id="song-name-input" label="Title" placeholder="e.g. Amazing Grace" value={song.name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;"> </md-outlined-text-field>
-                <!-- Artist -->
-                <md-outlined-text-field id="song-artist-input" label="Artist" placeholder="e.g. John Newton" value={song.artist} oninput={(e: Event) => updateValue(e, "artist")} style="flex: 1;"> </md-outlined-text-field>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <!-- Key -->
-                <md-outlined-text-field id="song-key-input" label="Key" placeholder="e.g. G" value={song.key} oninput={(e: Event) => updateValue(e, "key")} style="flex: 1;"> </md-outlined-text-field>
-                <!-- Tempo -->
-                <md-outlined-text-field id="song-tempo-input" label="Tempo" placeholder="e.g. 120" value={song.tempo} oninput={(e: Event) => updateValue(e, "tempo")} style="flex: 1;"> </md-outlined-text-field>
+            <!-- Dynamic Metadata Inputs Grid (includes Artist, Key, Tempo, Time, Album, Year, Composer, Copyright, Capo) -->
+            <div class="metadata-grid">
+                {#each METADATA_CONFIGS as cfg}
+                    <md-outlined-text-field id={"song-meta-" + cfg.key} label={cfg.label} placeholder={cfg.placeholder} value={song.getMetadata(cfg.key)} oninput={(e: Event) => updateMetadataValue(e, cfg.key)} style="flex: 1; min-width: 140px;">
+                    </md-outlined-text-field>
+                {/each}
             </div>
 
-            <!-- Existing Source URL Display (shown as text link, not textbox) -->
+            <!-- Existing Source URL Display -->
             {#if song.url}
                 <div class="source-url-display">
                     <md-icon style="font-size: 18px; color: #6750a4;">link</md-icon>
@@ -273,6 +288,13 @@
 </div>
 
 <style>
+    .metadata-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
     .source-url-display {
         display: flex;
         align-items: center;

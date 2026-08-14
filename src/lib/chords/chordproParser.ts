@@ -1,4 +1,5 @@
 import { transposeChord } from "./transpose"
+import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
 
 export interface ChordProToken {
     chord: string // Transposed chord text or empty string
@@ -14,29 +15,11 @@ export interface ParsedLine {
 }
 
 export interface ParsedChordPro {
-    metadata: {
+    metadata: SongMetadata & {
         title?: string
         artist?: string
-        key?: string
-        tempo?: string
-        timeSignature?: string
-        capo?: string
     }
     lines: ParsedLine[]
-}
-
-const META_MAP: Record<string, keyof ParsedChordPro["metadata"]> = {
-    title: "title",
-    t: "title",
-    artist: "artist",
-    a: "artist",
-    subtitle: "artist",
-    st: "artist",
-    key: "key",
-    k: "key",
-    tempo: "tempo",
-    time: "timeSignature",
-    capo: "capo"
 }
 
 const COMMENT_PRESETS: Record<string, string> = {
@@ -64,7 +47,7 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
         }
 
         // Matches braced directives `{key: value}` or unbraced headers `Key: Value`
-        const directiveMatch = trimmed.match(/^\{([^:]+)(?::\s*(.*?))?\}$/) || trimmed.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/)
+        const directiveMatch = trimmed.match(/^\{([^:]+)(?::\s*(.*?))?\}$/) || trimmed.match(/^([a-zA-Z0-9_\-\/]+):\s*(.*)$/)
 
         if (directiveMatch) {
             const key = directiveMatch[1].trim().toLowerCase()
@@ -72,8 +55,8 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
 
             if (key === "eoc" || key === "eov") continue
 
-            const metaKey = META_MAP[key]
-            if (metaKey) metadata[metaKey] = value
+            const metaKey = METADATA_ALIAS_MAP[key]
+            if (metaKey) (metadata as any)[metaKey] = value
 
             if (COMMENT_KEYS.has(key)) {
                 parsedLines.push({

@@ -1,4 +1,6 @@
-// Regex for recognizing common chord patterns (A-G, H, Hb, accidentals, qualities, slash chords)
+import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
+
+// Regex for recognizing common chord patterns
 const CHORD_REGEX = /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add)?\d*(\/[A-GH](b|#)?)?$/i
 
 function isChordToken(token: string): boolean {
@@ -14,21 +16,17 @@ export function isChordLine(line: string): boolean {
     const trimmed = line.trim()
     if (!trimmed) return false
 
-    // Skip section headers like "Verse 1:", "Intro:", "Bridge", etc.
     if (/^(verse|chorus|bridge|intro|outro|refreng|mellomspill|pre-chorus|tag|coda|interlude|channel)\b/i.test(trimmed)) {
         return false
     }
 
-    // Split tokens by whitespace or common measure bars
     const tokens = trimmed.split(/[\s|:|,\-\/]+/).filter(Boolean)
     if (tokens.length === 0) return false
 
     let validChords = 0
 
     for (const token of tokens) {
-        // Handle repeated count markers like (x2), x4
         if (/^\(?x?\d+\)?$/i.test(token)) continue
-        // Handle rhythm dots / beats like '.' or '|'
         if (token === "." || token === "|" || token === "/") continue
 
         if (isChordToken(token)) {
@@ -36,12 +34,98 @@ export function isChordLine(line: string): boolean {
         }
     }
 
-    // If at least 50% of tokens (or all non-empty tokens if 1-2 tokens) are valid chords, classify as chord line
     return validChords > 0 && validChords / tokens.length >= 0.5
 }
 
 export interface ConvertOptions {
-    convertScandinavianChords?: boolean // Convert 'H' to 'B' and 'Hb'/'B' to 'Bb'
+    convertScandinavianChords?: boolean
+}
+
+export interface ExtractedSongResult {
+    cleanContent: string
+    metadata: SongMetadata & {
+        title?: string
+        artist?: string
+    }
+}
+
+/**
+ * Extracts metadata header directives and unbraced key-value lines from song text,
+ * removes them from the content body, and converts the remaining text into ChordPro format.
+ */
+export function extractAndCleanSongMetadata(text: string, options: ConvertOptions = {}): ExtractedSongResult {
+    const rawLines = text.split(/\r?\n/)
+    const metadata: ExtractedSongResult["metadata"] = {}
+    const remainingLines: string[] = []
+
+    let i = 0
+    let checkedHeaderLines = 0
+
+    while (i < rawLines.length) {
+        const line = rawLines[i]
+        const trimmed = line.trim()
+
+        if (!trimmed) {
+            if (remainingLines.length > 0) {
+                remainingLines.push(line)
+            }
+            i++
+            continue
+        }
+
+        // 1. Braced directive: {key: val}
+        const bracedMatch = trimmed.match(/^\{([^:]+)(?::\s*(.*?))?\}$/)
+        if (bracedMatch) {
+            const key = bracedMatch[1].trim().toLowerCase()
+            const val = (bracedMatch[2] || "").trim()
+            const targetMetaKey = METADATA_ALIAS_MAP[key]
+
+            if (targetMetaKey) {
+                ;(metadata as any)[targetMetaKey] = val
+            } else {
+                remainingLines.push(line)
+            }
+            i++
+            continue
+        }
+
+        // 2. Unbraced key-value: Key: Value
+        const unbracedMatch = trimmed.match(/^([a-zA-Z0-9_\-\/]+):\s*(.+)$/)
+        if (unbracedMatch) {
+            const key = unbracedMatch[1].trim().toLowerCase()
+            const val = unbracedMatch[2].trim()
+            const targetMetaKey = METADATA_ALIAS_MAP[key]
+
+            if (targetMetaKey) {
+                ;(metadata as any)[targetMetaKey] = val
+                i++
+                continue
+            }
+        }
+
+        // 3. Line 1 = Title, Line 2 = Artist if at top of file before any section/chords
+        if (checkedHeaderLines === 0 && !metadata.title && remainingLines.length === 0) {
+            const nextLine = i + 1 < rawLines.length ? rawLines[i + 1].trim() : ""
+            const isNextArtist = nextLine && !nextLine.includes(":") && !nextLine.includes("[") && !nextLine.includes("{") && !isChordLine(nextLine)
+            if (isNextArtist) {
+                metadata.title = trimmed
+                metadata.artist = nextLine
+                i += 2
+                continue
+            }
+        }
+
+        remainingLines.push(line)
+        checkedHeaderLines++
+        i++
+    }
+
+    const cleanContent = convertToChordPro(remainingLines.join("\n"), options)
+
+    return {
+        cleanContent,
+        metadata
+    }
 }
 
 /**
@@ -51,7 +135,6 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
     const lines = text.split(/\r?\n/)
     const output: string[] = []
     let i = 0
-    let hasTitle = false
 
     while (i < lines.length) {
         const line = lines[i]
@@ -63,80 +146,34 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             continue
         }
 
-        // 1. Check for metadata like "Title: ...", "Key: ...", "Tempo: ..."
-        const metaMatch = trimmed.match(/^(Title|Key|Capo|Tempo|Time|Artist|Composer|Copyright|Album):\s*(.+)$/i)
-        if (metaMatch) {
-            const label = metaMatch[1].toLowerCase()
-            const val = metaMatch[2].trim()
-            if (label === "title") {
-                output.push(`{title: ${val}}`)
-                hasTitle = true
-            } else if (label === "artist") {
-                output.push(`{artist: ${val}}`)
-            } else if (label === "key") {
-                output.push(`{key: ${val}}`)
-            } else if (label === "capo") {
-                output.push(`{capo: ${val}}`)
-            } else if (label === "tempo") {
-                output.push(`{tempo: ${val}}`)
-            } else if (label === "time") {
-                output.push(`{time: ${val}}`)
-            } else {
-                output.push(`${metaMatch[1]}: ${val}`)
-            }
-            i++
-            continue
-        }
-
-        // 2. Check for section headings e.g. "Verse 1", "Verse1", "Intro:", "[Chorus]", "Ref (x2)"
+        // Section headings e.g. "Verse 1", "Verse1", "Intro:", "[Chorus]", "Ref (x2)"
         const sectionMatch = trimmed.match(/^\[?(Verse\s*\d*|Chorus\s*\d*|Bridge\s*\d*|Intro\s*\d*|Outro\s*\d*|Refreng\s*\d*|Ref\s*\(?x?\d*\)?|Mellomspill\s*\d*|Pre-Chorus\s*\d*|Tag\s*\d*|Channel\s*\d*|Alt Chorus\s*\d*)\]?:?$/i)
         if (sectionMatch) {
             let sectionName = sectionMatch[1]
-            // Format "Verse1" -> "Verse 1"
             sectionName = sectionName.replace(/([a-zA-Z]+)(\d+)/, "$1 $2")
             output.push(`{c: ${sectionName}}`)
             i++
             continue
         }
 
-        // 3. First non-empty line title detection (if not already titled and not chords)
-        if (!hasTitle && i === 0 && !isChordLine(line) && !line.includes("[")) {
-            // Check if next line is blank or another section
-            const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : ""
-            if (!nextLine || /^(verse|chorus|bridge|intro|artist|key)\d*\b/i.test(nextLine)) {
-                output.push(`{title: ${trimmed}}`)
-                hasTitle = true
-                i++
-                continue
-            }
-        }
-
-        // 4. Check if current line is already in bracketed ChordPro format
+        // Bracketed ChordPro lines
         if (line.includes("[") && line.includes("]")) {
             output.push(line)
             i++
             continue
         }
 
-        // 5. Check if current line is a chord line
+        // Chord lines
         if (isChordLine(line)) {
             const chordLine = line
             const nextLine = i + 1 < lines.length ? lines[i + 1] : ""
 
-            // If next line exists, is not empty, is not a chord line, and not a section header, merge them
-            if (
-                nextLine &&
-                nextLine.trim() &&
-                !isChordLine(nextLine) &&
-                !/^(verse|chorus|bridge|intro|outro|refreng|mellomspill)\s*\d*/i.test(nextLine.trim()) &&
-                !/^\[?(verse|chorus|bridge|intro|outro|refreng|mellomspill)/i.test(nextLine.trim())
-            ) {
+            if (nextLine && nextLine.trim() && !isChordLine(nextLine) && !/^(verse|chorus|bridge|intro|outro|refreng|mellomspill)\s*\d*/i.test(nextLine.trim()) && !/^\[?(verse|chorus|bridge|intro|outro|refreng|mellomspill)/i.test(nextLine.trim())) {
                 const mergedLine = mergeChordAndLyricLines(chordLine, nextLine, options)
                 output.push(mergedLine)
-                i += 2 // Consumed both chord line and lyric line
+                i += 2
                 continue
             } else {
-                // Standalone chord line (e.g. Intro or Instrumental)
                 const standaloneFormatted = formatStandaloneChordLine(chordLine, options)
                 output.push(standaloneFormatted)
                 i++
@@ -144,17 +181,16 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             }
         }
 
-        // Standard lyric line without chords above it
         output.push(line)
         i++
     }
 
-    return output.join("\n").replace(/\n{3,}/g, "\n\n").trim()
+    return output
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
 }
 
-/**
- * Merges a line containing chords above a line containing lyrics.
- */
 function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: ConvertOptions): string {
     const chordsWithPos: { chord: string; index: number }[] = []
     const chordRegex = /\S+/g
@@ -164,10 +200,8 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
         const rawToken = match[0]
         if (isChordToken(rawToken)) {
             let formattedChord = rawToken
-            if (options.convertScandinavianChords) {
-                if (formattedChord.startsWith("H")) {
-                    formattedChord = "B" + formattedChord.slice(1)
-                }
+            if (options.convertScandinavianChords && formattedChord.startsWith("H")) {
+                formattedChord = "B" + formattedChord.slice(1)
             }
             chordsWithPos.push({
                 chord: formattedChord,
@@ -176,9 +210,7 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
         }
     }
 
-    if (chordsWithPos.length === 0) {
-        return lyricLine
-    }
+    if (chordsWithPos.length === 0) return lyricLine
 
     let result = ""
     let lyricIdx = 0
@@ -207,9 +239,6 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
     return result
 }
 
-/**
- * Formats a standalone chord line (e.g. Intro: D F#m Hm A G) into ChordPro brackets.
- */
 function formatStandaloneChordLine(chordLine: string, options: ConvertOptions): string {
     const tokens = chordLine.split(/(\s+)/)
     let result = ""
