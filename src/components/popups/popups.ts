@@ -1,6 +1,7 @@
 import CreateFolder from "./CreateFolder.svelte"
 import CreateList from "./CreateList.svelte"
 import CreateSong from "./CreateSong.svelte"
+import TransposeDialog from "./TransposeDialog.svelte"
 
 export const popups = {
     create_song: {
@@ -11,5 +12,9 @@ export const popups = {
     },
     create_folder: {
         component: CreateFolder
+    },
+    transpose: {
+        component: TransposeDialog
     }
 }
+

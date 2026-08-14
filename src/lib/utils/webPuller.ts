@@ -1,9 +1,11 @@
 import { convertToChordPro, isChordLine } from "../chords/chordproConverter"
+import { extractBaseKey } from "../chords/transpose"
 
 export interface PulledSongResult {
     content: string
     title?: string
     artist?: string
+    key?: string
 }
 
 /**
@@ -96,7 +98,7 @@ async function fetchHtml(url: string): Promise<string> {
 /**
  * Strategy 1: Extracts embedded JSON data stores (e.g. Ultimate Guitar, SongSelect, SPA page stores)
  */
-export function extractJsonStoreData(html: string): { title?: string; artist?: string; rawContent?: string } | null {
+export function extractJsonStoreData(html: string): { title?: string; artist?: string; key?: string; rawContent?: string } | null {
     const idx = html.indexOf('class="js-store"')
     if (idx === -1) return null
 
@@ -117,6 +119,7 @@ export function extractJsonStoreData(html: string): { title?: string; artist?: s
 
         const title = tabData?.song_name || tabView?.headerMeta?.name
         const artist = tabData?.artist_name
+        const key = tabView?.meta?.tonality_name || tabData?.tonality_name
         const wikiContent = tabView?.wiki_tab?.content
 
         if (wikiContent) {
@@ -126,7 +129,7 @@ export function extractJsonStoreData(html: string): { title?: string; artist?: s
                 .replace(/\[\/tab\]/gi, "")
                 .trim()
 
-            return { title, artist, rawContent: cleaned }
+            return { title, artist, key, rawContent: cleaned }
         }
     } catch {
         return null
@@ -327,10 +330,12 @@ export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> 
     const jsonStoreData = extractJsonStoreData(html)
     if (jsonStoreData && jsonStoreData.rawContent && containsValidChordLines(jsonStoreData.rawContent)) {
         const convertedContent = convertToChordPro(jsonStoreData.rawContent)
+        const key = extractBaseKey(convertedContent, jsonStoreData.key)
         return {
             content: convertedContent,
             title: jsonStoreData.title,
-            artist: jsonStoreData.artist
+            artist: jsonStoreData.artist,
+            key
         }
     }
 
@@ -338,10 +343,12 @@ export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> 
     const structuredData = extractStructuredSegmentData(html)
     if (structuredData && structuredData.rawContent && containsValidChordLines(structuredData.rawContent)) {
         const convertedContent = convertToChordPro(structuredData.rawContent)
+        const key = extractBaseKey(convertedContent)
         return {
             content: convertedContent,
             title: structuredData.title,
-            artist: structuredData.artist
+            artist: structuredData.artist,
+            key
         }
     }
 
@@ -356,9 +363,11 @@ export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> 
             if (rawSongTxt && rawSongTxt.trim() && containsValidChordLines(rawSongTxt)) {
                 const convertedContent = convertToChordPro(rawSongTxt.trim())
                 const { title } = extractChordsTextFromHtml(html)
+                const key = extractBaseKey(convertedContent)
                 return {
                     content: convertedContent,
-                    title
+                    title,
+                    key
                 }
             }
         } catch {
@@ -374,9 +383,11 @@ export async function pullAndConvertUrl(url: string): Promise<PulledSongResult> 
     }
 
     const convertedContent = convertToChordPro(rawText)
+    const key = extractBaseKey(convertedContent)
 
     return {
         content: convertedContent,
-        title
+        title,
+        key
     }
 }

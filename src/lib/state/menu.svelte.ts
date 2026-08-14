@@ -1,6 +1,6 @@
-import { tick } from "svelte"
 import type { pages } from "../../components/pages/pages"
 import type { popups } from "../../components/popups/popups"
+import storage from "../storage/StorageManager.svelte"
 import { clone } from "../utils/common"
 
 /// PAGES ///
@@ -100,3 +100,24 @@ export function setActivePopup(popup: Popups | null): void {
 
 // restore page position when returning from draw
 export const savedFullscreenPosition = $state<{ index: number | null; pageIndex: number | null }>({ index: null, pageIndex: null })
+
+/// HELPERS ///
+
+/**
+ * Returns the currently active song and list item context based on menu and scroll position.
+ */
+export function getCurrentSong() {
+    if (menuState.activePage !== "song" && menuState.activePage !== "song_live") return null
+    const listId = menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null
+    const list = listId ? storage.getListById(listId, storage.lists) : null
+    const currentSongIndex = savedFullscreenPosition.index ?? 0
+
+    let songId = menuState.contentId
+    let listItem = undefined
+    if (list && list.songs.length > 0) {
+        listItem = list.songs[currentSongIndex] ?? list.songs[0]
+        songId = listItem?.songId
+    }
+    const song = storage.getSongById(songId, storage.songs)
+    return { song, listItem, list, currentSongIndex }
+}

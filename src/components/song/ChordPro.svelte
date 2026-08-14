@@ -1,16 +1,22 @@
 <script lang="ts">
+    import { convertToChordPro } from "../../lib/chords/chordproConverter"
     import { parseChordPro } from "../../lib/chords/chordproParser"
+    import { calculateTransposeSemitones } from "../../lib/chords/transpose"
     import { FileSystem } from "../../lib/storage/FileSystem"
     import storage from "../../lib/storage/StorageManager.svelte"
 
     let {
         songId,
+        targetKey,
+        semitones,
         showMeta = false,
         numColumns = 1,
         lightMode = false,
         fitParent = true
     } = $props<{
         songId: string | null
+        targetKey?: string
+        semitones?: number
         showMeta?: boolean
         numColumns?: number
         lightMode?: boolean
@@ -18,10 +24,32 @@
     }>()
 
     // do some optimization to the rendering if light mode
-    console.log(lightMode)
+    lightMode
 
     let song = $derived(storage.getSongById(songId, storage.songs))
-    let parsed = $derived(parseChordPro(song?.content || ""))
+
+    // Ensure rendered content is in ChordPro format without modifying original song content
+    let chordProContent = $derived.by(() => {
+        const raw = song?.content || ""
+        if (!raw) return ""
+        if (raw.includes("[") || raw.includes("{")) {
+            return raw
+        }
+        return convertToChordPro(raw)
+    })
+
+    // Calculate effective semitones to transpose
+    let effectiveSemitones = $derived(
+        calculateTransposeSemitones({
+            semitones,
+            targetKey,
+            lastTransposed: song?.lastTransposed,
+            songKey: song?.key,
+            content: chordProContent
+        })
+    )
+
+    let parsed = $derived(parseChordPro(chordProContent, effectiveSemitones))
     let imageWebUrls = $state<string[]>([])
 
     $effect(() => {

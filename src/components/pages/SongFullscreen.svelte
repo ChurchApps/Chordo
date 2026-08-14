@@ -10,7 +10,7 @@
     // --- State & Derived State ---
     const listId = $derived(menuState.previousPages.find((a) => a.activePage === "list")?.contentId)
     const list = $derived(listId ? storage.getListById(listId, storage.lists) : null)
-    const songs = $derived(list?.songs ?? [menuState.contentId])
+    const songs = $derived(list?.songs ?? (menuState.contentId ? [{ songId: menuState.contentId }] : []))
 
     let actionsVisible = $state(false)
     let hideTimeout: ReturnType<typeof setTimeout> | undefined
@@ -62,7 +62,8 @@
             pageSongMap = pages.map((page) => {
                 const slideEl = page.closest(".slide") as HTMLElement | null
                 const index = slideEl ? slideEls.indexOf(slideEl) : -1
-                return songs[index] ?? null
+                const item = songs[index]
+                return item?.songId ?? null
             })
 
             pageIndexMap = pages.map((page) => {
@@ -75,7 +76,7 @@
                 return slideEl ? slideEls.indexOf(slideEl) : 0
             })
         } else {
-            pageSongMap = songs
+            pageSongMap = songs.map((s) => s?.songId ?? null)
             pageIndexMap = songs.map(() => 0)
             pageSongIndexMap = songs.map((_, i) => i)
         }
@@ -167,7 +168,7 @@
     function detectSongAndPage(index = currentPageIndex) {
         const pageCount = pageSongMap.length
         const globalIndex = pageCount > 0 ? Math.max(0, Math.min(index, pageCount - 1)) : index
-        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : songs[globalIndex]) ?? songs[0] ?? null
+        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : songs[globalIndex]?.songId) ?? songs[0]?.songId ?? null
         const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
@@ -237,13 +238,17 @@
 <main>
     <div class="slider-viewport">
         <div class="slider" bind:this={sliderEl} onpointerdown={pointerDown} onpointermove={pointerMove} onpointerup={pointerUp} onpointercancel={pointerUp} onlostpointercapture={pointerUp} style="touch-action: pan-y;">
-            {#each songs as songId, i}
-                {@const song = storage.getSongById(songId)}
+            {#each songs as songItem, i}
+                {@const songId = songItem?.songId ?? null}
+                {@const song = storage.getSongById(songId, storage.songs)}
+                {@const targetKey = songItem?.transposed || song?.lastTransposed}
                 {@const hasMedia = !!song?.images.length}
 
                 <div class="slide">
                     <Paper padding={hasMedia ? 0 : 12} background={hasMedia ? "black" : "white"} headerText={song?.name ?? ""}>
-                        <ChordPro {songId} numColumns={2} showMeta lightMode={Math.abs(i - currentPageIndex) > 1} />
+                        {#key targetKey + ":" + (song?.lastTransposed ?? "")}
+                            <ChordPro {songId} {targetKey} numColumns={2} showMeta lightMode={Math.abs(i - currentPageIndex) > 1} />
+                        {/key}
                     </Paper>
                 </div>
             {/each}

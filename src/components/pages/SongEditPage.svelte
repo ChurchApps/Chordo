@@ -1,4 +1,7 @@
 <script lang="ts">
+    import { convertToChordPro } from "../../lib/chords/chordproConverter"
+    import { parseChordPro } from "../../lib/chords/chordproParser"
+    import { extractBaseKey, isValidKey } from "../../lib/chords/transpose"
     import type { SongKeys } from "../../lib/models/Song"
     import { goBack, menuState, updatePageTitle } from "../../lib/state/menu.svelte"
     import { FileSystem } from "../../lib/storage/FileSystem"
@@ -8,7 +11,6 @@
     import ProgressDialog from "../popups/ProgressDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))
-    let name = $derived(song?.name || "")
 
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
@@ -45,6 +47,26 @@
 
         song[key] = value
 
+        if (key === "content" && value.trim()) {
+            const raw = value.trim()
+            const chordPro = raw.includes("[") || raw.includes("{") ? raw : convertToChordPro(raw)
+            const parsed = parseChordPro(chordPro, 0)
+            const meta = parsed.metadata
+
+            if (meta.title && (!song.name || song.name === "Untitled")) {
+                song.name = meta.title
+                if (currentSongName !== meta.title) updatePageTitle(meta.title)
+                currentSongName = meta.title
+            }
+            if (meta.artist && !song.artist) {
+                song.artist = meta.artist
+            }
+            if (!song.key || !isValidKey(song.key)) {
+                const detectedKey = extractBaseKey(raw, meta.key)
+                if (detectedKey) song.key = detectedKey
+            }
+        }
+
         storage.persist()
 
         if (key === "name") {
@@ -70,6 +92,12 @@
             }
             if (result.artist && !song.artist) {
                 song.artist = result.artist
+            }
+            if (!song.key || !isValidKey(song.key)) {
+                const detectedKey = extractBaseKey(result.content, result.key)
+                if (detectedKey) {
+                    song.key = detectedKey
+                }
             }
 
             storage.updateSong(song)
@@ -124,7 +152,7 @@
         {#if song}
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <!-- Title -->
-                <md-outlined-text-field id="song-name-input" label="Title" placeholder="e.g. Amazing Grace" value={name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;"> </md-outlined-text-field>
+                <md-outlined-text-field id="song-name-input" label="Title" placeholder="e.g. Amazing Grace" value={song.name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;"> </md-outlined-text-field>
                 <!-- Artist -->
                 <md-outlined-text-field id="song-artist-input" label="Artist" placeholder="e.g. John Newton" value={song.artist} oninput={(e: Event) => updateValue(e, "artist")} style="flex: 1;"> </md-outlined-text-field>
             </div>
@@ -234,25 +262,9 @@
     </div>
 </main>
 
-<ProgressDialog
-    open={isConvertingPdf}
-    title="Converting PDF"
-    icon="picture_as_pdf"
-    detail={conversionFileName}
-    message={conversionMessage}
-    progress={conversionProgress}
-    indeterminate={isIndeterminate}
-/>
+<ProgressDialog open={isConvertingPdf} title="Converting PDF" icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
 
-<ProgressDialog
-    open={isPulling}
-    title="Pulling Song Content"
-    icon="download"
-    detail={urlInput}
-    message="Fetching webpage and converting chords..."
-    progress={0}
-    indeterminate={true}
-/>
+<ProgressDialog open={isPulling} title="Pulling Song Content" icon="download" detail={urlInput} message="Fetching webpage and converting chords..." progress={0} indeterminate={true} />
 
 <div class="fab-container">
     <md-fab aria-label="Done" onclick={goBack}>

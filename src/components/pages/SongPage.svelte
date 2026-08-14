@@ -6,9 +6,11 @@
 
     let mainElement = $state<HTMLElement | null>(null)
 
-    let listId = menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null
-    let list = $derived(listId ? storage.getListById(listId, storage.lists) : null)
-    let songs = $derived(list ? list.songs : [menuState.contentId])
+    let listId = $derived(menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null)
+    let allLists = $derived(storage.lists)
+    let allSongs = $derived(storage.songs)
+    let list = $derived(listId ? storage.getListById(listId, allLists) : null)
+    let songs = $derived(list ? list.songs : menuState.contentId ? [{ songId: menuState.contentId }] : [])
 
     onMount(async () => {
         const targetIndex = savedFullscreenPosition.index
@@ -35,9 +37,11 @@
 
             const itemTop = songItem.offsetTop - offsetTop
             if (scrollTop >= itemTop - 20) {
+                savedFullscreenPosition.index = currentIndex
                 return currentIndex
             }
         }
+        savedFullscreenPosition.index = 0
         return 0
     }
 
@@ -83,9 +87,13 @@
 
 <main bind:this={mainElement} onscroll={scrolling}>
     <div class="songs">
-        {#each songs as songId, idx (idx)}
+        {#each songs as songItem, idx (songItem?.songId ? songItem.songId + "-" + idx : idx)}
+            {@const songId = songItem?.songId ?? null}
+            {@const currentSong = songId ? storage.getSongById(songId, allSongs) : null}
+            {@const targetKey = songItem?.transposed || currentSong?.lastTransposed}
+
             <div class="song-wrapper" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
-                <Song {songId} />
+                <Song {songId} {targetKey} />
             </div>
         {/each}
     </div>

@@ -2,7 +2,15 @@
     import storage from "../../lib/storage/StorageManager.svelte"
     import ChordPro from "./ChordPro.svelte"
 
-    let { songId } = $props<{ songId: string | null }>()
+    let {
+        songId,
+        targetKey,
+        semitones
+    } = $props<{
+        songId: string | null
+        targetKey?: string
+        semitones?: number
+    }>()
 
     let song = $derived(storage.getSongById(songId, storage.songs))
     let hasMedia = $derived(!!song?.images.length)
@@ -10,7 +18,9 @@
 
 <div id={songId} class="paper-wrapper">
     <div class="paper" class:hasMedia>
-        <ChordPro {songId} />
+        {#key targetKey + ":" + semitones + ":" + (song?.lastTransposed ?? "")}
+            <ChordPro {songId} {targetKey} {semitones} />
+        {/key}
     </div>
 </div>
 

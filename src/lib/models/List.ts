@@ -29,11 +29,13 @@ export class Lists {
     }
 }
 
+type ListSongItem = { songId: string; transposed?: string }
+
 type ListKeys = NonFunctionProperties<List>
 export class List {
     id: string
     name: string
-    songs: string[]
+    songs: ListSongItem[]
     createdAt: number
 
     constructor(data: Partial<ListKeys> = {}) {
@@ -44,17 +46,34 @@ export class List {
     }
 
     getSongs(allSongs: Song[]) {
-        const songs = this.songs.map((songId) => allSongs.find((s) => s.id === songId))
+        const songs = this.songs.map((item) => {
+            return allSongs.find((s) => s.id === item.songId)
+        })
         return songs.filter((s): s is Song => s !== undefined)
     }
 
+    getSongItem(index: number): ListSongItem | undefined {
+        return this.songs[index]
+    }
+
+    getTransposedKey(index: number): string | undefined {
+        return this.songs[index]?.transposed
+    }
+
+    setSongTransposed(index: number, transposedKey: string) {
+        if (index < 0 || index >= this.songs.length) return
+        const current = this.songs[index]
+        this.songs[index] = { songId: current.songId, transposed: transposedKey }
+        storage.persist()
+    }
+
     addSong(songId: string) {
-        this.songs.push(songId)
+        this.songs.push({ songId })
         storage.persist()
     }
 
     addSongs(songIds: string[]) {
-        this.songs.push(...songIds)
+        this.songs.push(...songIds.map((songId) => ({ songId })))
         storage.persist()
     }
 
