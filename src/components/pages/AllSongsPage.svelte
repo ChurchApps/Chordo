@@ -1,10 +1,23 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { Songs } from "../../lib/models/Song"
-    import { goBack, menuState, setActivePage, setActivePopup } from "../../lib/state/menu.svelte"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { Songs } from "$lib/models/Song"
+    import { goBack, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
+    import { searchState } from "$lib/state/search.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
 
     let songs = $derived(Songs.get(storage.songs))
+
+    let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
+    let searchQuery = $derived(searchState.query.trim().toLowerCase())
+
+    let filteredSongs = $derived.by(() => {
+        if (!isSearching) return songs
+        return songs.filter(
+            (s) =>
+                s.name.toLowerCase().includes(searchQuery) ||
+                (s.metadata?.artist && s.metadata.artist.toLowerCase().includes(searchQuery))
+        )
+    })
 
     onMount(() => {
         if (!songs.length) setActivePopup("create_song")
@@ -39,13 +52,16 @@
 </script>
 
 <main>
-    {#if songs.length}
+    {#if filteredSongs.length}
         <md-list class="song-list scroll-list">
-            {#each songs as song, idx}
+            {#each filteredSongs as song, idx}
                 {@const selected = addSongsOrder.includes(song.id)}
 
                 <md-list-item type="button" class:selected onclick={() => (listOpened ? toggleSong(song.id) : openSong(song.id, song.name))}>
                     <div slot="headline">{song.name}</div>
+                    {#if song.metadata?.artist}
+                        <div slot="supporting-text">{song.metadata.artist}</div>
+                    {/if}
                     <md-icon slot="start">music_note</md-icon>
                     {#if listOpened && selected}
                         <span slot="end" class="number">{addSongsOrder.indexOf(song.id) + 1}</span>
@@ -57,6 +73,14 @@
                 </md-list-item>
             {/each}
         </md-list>
+    {:else if isSearching}
+        <div class="center">
+            <div class="empty-state">
+                <span class="material-symbols-outlined empty-icon">search_off</span>
+                <h2>No songs found</h2>
+                <p>No songs match "{searchState.query}".</p>
+            </div>
+        </div>
     {:else}
         <div class="center">
             <div class="empty-state">

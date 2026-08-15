@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { extractBaseKey, getNotePitchIndex, getScaleForOriginalKey, transposeNote } from "../../lib/chords/transpose"
-    import { getCurrentSong, setActivePopup } from "../../lib/state/menu.svelte"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { extractBaseKey, getNotePitchIndex, getScaleForOriginalKey, transposeNote } from "$lib/chords/transpose"
+    import { getCurrentSong, setActivePopup } from "$lib/state/menu.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
 
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let song = $derived(activeSongContext?.song ?? null)

@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { Lists } from "../../lib/models/List"
-    import { menuState, setActivePage, setActivePopup } from "../../lib/state/menu.svelte"
-    import { t } from "../../lib/state/i18n.svelte"
+    import { Lists } from "$lib/models/List"
+    import { menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
+    import { t } from "$lib/state/i18n.svelte"
 
     let listName = $state("")
     let folderId = menuState.contentId

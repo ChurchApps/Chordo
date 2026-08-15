@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { extractAndCleanSongMetadata } from "../../lib/chords/chordproConverter"
-    import { METADATA_CONFIGS } from "../../lib/chords/metadata"
-    import { extractBaseKey, isValidKey } from "../../lib/chords/transpose"
-    import type { SongKeys } from "../../lib/models/Song"
-    import { goBack, menuState, updatePageTitle } from "../../lib/state/menu.svelte"
-    import { FileSystem } from "../../lib/storage/FileSystem"
-    import storage from "../../lib/storage/StorageManager.svelte"
-    import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "../../lib/utils/mediaManager"
-    import { pullAndConvertUrl } from "../../lib/utils/webPuller"
+    import { extractAndCleanSongMetadata } from "$lib/chords/chordproConverter"
+    import { METADATA_CONFIGS } from "$lib/chords/metadata"
+    import { extractBaseKey, isValidKey } from "$lib/chords/transpose"
+    import type { SongKeys } from "$lib/models/Song"
+    import { goBack, menuState, updatePageTitle } from "$lib/state/menu.svelte"
+    import { FileSystem } from "$lib/storage/FileSystem"
+    import storage from "$lib/storage/StorageManager.svelte"
+    import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "$lib/utils/mediaManager"
+    import { pullAndConvertUrl } from "$lib/utils/webPuller"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))

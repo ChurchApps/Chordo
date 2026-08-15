@@ -1,13 +1,17 @@
 <script lang="ts">
     import { slide } from "svelte/transition"
-    import { Songs } from "../../lib/models/Song"
-    import { listEditingState, menuState, savedFullscreenPosition, setActivePage } from "../../lib/state/menu.svelte"
-    import storage from "../../lib/storage/StorageManager.svelte"
-    import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, resetDragState, type ReorderState } from "../../lib/utils/rearrange"
+    import { Songs } from "$lib/models/Song"
+    import { listEditingState, menuState, savedFullscreenPosition, setActivePage } from "$lib/state/menu.svelte"
+    import { searchState } from "$lib/state/search.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
+    import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, resetDragState, type ReorderState } from "$lib/utils/rearrange"
 
     let listId = menuState.contentId
     let list = $derived(storage.getListById(listId, storage.lists))
     let songs = $derived(Songs.get(storage.songs, listId))
+
+    let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
+    let searchQuery = $derived(searchState.query.trim().toLowerCase())
 
     let isEditing = $derived(listEditingState.isEditing)
     let selectedIndices = $state<number[]>([])
@@ -47,7 +51,15 @@
         dragOverIdx: null
     })
 
-    let displaySongs = $derived(getDisplayList(songs, reorderState))
+    let displaySongs = $derived.by(() => {
+        const base = getDisplayList(songs, reorderState)
+        if (!isSearching) return base
+        return base.filter(
+            ({ item: song }) =>
+                song.name.toLowerCase().includes(searchQuery) ||
+                (song.metadata?.artist && song.metadata.artist.toLowerCase().includes(searchQuery))
+        )
+    })
 
     function onBatchMove(fromIndices: number[], targetIdx: number) {
         if (!list || fromIndices.length === 0) return
@@ -171,6 +183,14 @@
                 </div>
             {/each}
         </md-list>
+    {:else if isSearching}
+        <div class="center">
+            <div class="empty-state">
+                <span class="material-symbols-outlined empty-icon">search_off</span>
+                <h2>No songs found</h2>
+                <p>No songs match "{searchState.query}".</p>
+            </div>
+        </div>
     {:else}
         <div class="center">
             <div class="empty-state">

@@ -1,12 +1,45 @@
 <script lang="ts">
-    import { Folders } from "../../lib/models/Folder"
-    import { setActivePage, setActivePopup } from "../../lib/state/menu.svelte"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { Folders } from "$lib/models/Folder"
+    import { setActivePage, setActivePopup } from "$lib/state/menu.svelte"
+    import { searchState } from "$lib/state/search.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
 
     let folders = $derived(Folders.get(storage.folders))
 
+    let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
+    let searchQuery = $derived(searchState.query.trim().toLowerCase())
+
+    let matchedFolders = $derived.by(() => {
+        if (!isSearching) return []
+        return storage.folders.filter((f) => f.name.toLowerCase().includes(searchQuery))
+    })
+
+    let matchedLists = $derived.by(() => {
+        if (!isSearching) return []
+        return storage.lists.filter((l) => l.name.toLowerCase().includes(searchQuery))
+    })
+
+    let matchedSongs = $derived.by(() => {
+        if (!isSearching) return []
+        return storage.songs.filter(
+            (s) =>
+                s.name.toLowerCase().includes(searchQuery) ||
+                (s.metadata?.artist && s.metadata.artist.toLowerCase().includes(searchQuery))
+        )
+    })
+
+    let totalResults = $derived(matchedFolders.length + matchedLists.length + matchedSongs.length)
+
     function openFolder(id: string, name: string) {
         setActivePage("folder", id, name)
+    }
+
+    function openList(id: string, name: string) {
+        setActivePage("list", id, name)
+    }
+
+    function openSong(id: string, name: string) {
+        setActivePage("song", id, name)
     }
 
     function openAllSongs() {
@@ -22,44 +55,102 @@
 <!-- TODO: print / share P2P -->
 <!-- TODO: add spotify playback URLs -->
 
-<!-- Main Content: show folders -->
+<!-- Main Content: show folders or search results -->
 <main>
-    <md-list class="folders-list scroll-list">
-        <md-list-item type="button" onclick={() => openAllSongs()}>
-            <div slot="headline">All songs</div>
-            <md-icon slot="start">library_music</md-icon>
-            <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-        </md-list-item>
-    </md-list>
+    {#if isSearching}
+        {#if totalResults > 0}
+            <div class="search-results-container scroll-list">
+                {#if matchedFolders.length > 0}
+                    <div class="search-category-title">Folders ({matchedFolders.length})</div>
+                    <md-list class="folders-list">
+                        {#each matchedFolders as folder}
+                            <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
+                                <div slot="headline">{folder.name}</div>
+                                <md-icon slot="start">folder</md-icon>
+                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                            </md-list-item>
+                        {/each}
+                    </md-list>
+                {/if}
 
-    <hr />
+                {#if matchedLists.length > 0}
+                    <div class="search-category-title">Lists ({matchedLists.length})</div>
+                    <md-list class="folders-list">
+                        {#each matchedLists as list}
+                            <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
+                                <div slot="headline">{list.name}</div>
+                                <md-icon slot="start">list</md-icon>
+                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                            </md-list-item>
+                        {/each}
+                    </md-list>
+                {/if}
 
-    {#if folders.length}
-        <md-list class="folders-list scroll-list">
-            {#each folders as folder}
-                <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
-                    <div slot="headline">{folder.name}</div>
-                    <md-icon slot="start">folder</md-icon>
-                    <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-                </md-list-item>
-            {/each}
-        </md-list>
-    {:else}
-        <div class="center">
-            <div class="empty-state">
-                <span class="material-symbols-outlined empty-icon">folder</span>
-                <h2>No folders yet</h2>
-                <p>Tap the + button in the bottom right to create your first folder to organize your content.</p>
+                {#if matchedSongs.length > 0}
+                    <div class="search-category-title">Songs ({matchedSongs.length})</div>
+                    <md-list class="folders-list">
+                        {#each matchedSongs as song}
+                            <md-list-item type="button" onclick={() => openSong(song.id, song.name)}>
+                                <div slot="headline">{song.name}</div>
+                                {#if song.metadata?.artist}
+                                    <div slot="supporting-text">{song.metadata.artist}</div>
+                                {/if}
+                                <md-icon slot="start">music_note</md-icon>
+                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                            </md-list-item>
+                        {/each}
+                    </md-list>
+                {/if}
             </div>
-        </div>
+        {:else}
+            <div class="center">
+                <div class="empty-state">
+                    <span class="material-symbols-outlined empty-icon">search_off</span>
+                    <h2>No results found</h2>
+                    <p>No folders, lists, or songs match "{searchState.query}".</p>
+                </div>
+            </div>
+        {/if}
+    {:else}
+        <md-list class="folders-list scroll-list">
+            <md-list-item type="button" onclick={() => openAllSongs()}>
+                <div slot="headline">All songs</div>
+                <md-icon slot="start">library_music</md-icon>
+                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+            </md-list-item>
+        </md-list>
+
+        <hr />
+
+        {#if folders.length}
+            <md-list class="folders-list scroll-list">
+                {#each folders as folder}
+                    <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
+                        <div slot="headline">{folder.name}</div>
+                        <md-icon slot="start">folder</md-icon>
+                        <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                    </md-list-item>
+                {/each}
+            </md-list>
+        {:else}
+            <div class="center">
+                <div class="empty-state">
+                    <span class="material-symbols-outlined empty-icon">folder</span>
+                    <h2>No folders yet</h2>
+                    <p>Tap the + button in the bottom right to create your first folder to organize your content.</p>
+                </div>
+            </div>
+        {/if}
     {/if}
 </main>
 
-<div class="fab-container">
-    <md-fab aria-label="Add" onclick={() => setActivePopup("create_folder")}>
-        <span class="material-symbols-outlined" slot="icon">add</span>
-    </md-fab>
-</div>
+{#if !isSearching}
+    <div class="fab-container">
+        <md-fab aria-label="Add" onclick={() => setActivePopup("create_folder")}>
+            <span class="material-symbols-outlined" slot="icon">add</span>
+        </md-fab>
+    </div>
+{/if}
 
 <!-- {#if addMenuOpen}
     <div class="speed-dial-menu" transition:fade={{ duration: 150 }}>
@@ -96,6 +187,23 @@
 </div> -->
 
 <style>
+    .search-results-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+    }
+
+    .search-category-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--md-sys-color-on-primary, #044444);
+        opacity: 0.7;
+        padding: 12px 16px 4px 16px;
+    }
+
     /* FAB Reveal Menu */
     /* .speed-dial-menu {
         position: fixed;

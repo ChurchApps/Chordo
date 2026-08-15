@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { menuState } from "../../lib/state/menu.svelte"
+    import { menuState } from "$lib/state/menu.svelte"
     import { pages } from "./pages"
 </script>
 

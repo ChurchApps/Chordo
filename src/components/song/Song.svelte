@@ -1,5 +1,5 @@
 <script lang="ts">
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
     import ChordPro from "./ChordPro.svelte"
 
     let {

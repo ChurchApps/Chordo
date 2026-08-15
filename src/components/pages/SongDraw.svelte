@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { goBack, menuState } from "../../lib/state/menu.svelte"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { goBack, menuState } from "$lib/state/menu.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
     import Draw from "../draw/Draw.svelte"
     import ChordPro from "../song/ChordPro.svelte"
     import Paper from "../song/Paper.svelte"

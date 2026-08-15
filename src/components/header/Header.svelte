@@ -1,7 +1,8 @@
 <script lang="ts">
-    import { calculateTransposeSemitones, hasTransposableContent } from "../../lib/chords/transpose"
-    import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "../../lib/state/menu.svelte"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { calculateTransposeSemitones, hasTransposableContent } from "$lib/chords/transpose"
+    import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
+    import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
     import { pages } from "../pages/pages"
 
     let headerPath = $derived(
@@ -15,6 +16,28 @@
     let headerTitle = $derived(menuState.customPageTitle ?? pages[menuState.activePage]?.title ?? "")
 
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
+
+    let searchPlaceholder = $derived.by(() => {
+        switch (menuState.activePage) {
+            case "all_songs":
+                return "Search songs..."
+            case "folder":
+                return "Search lists..."
+            case "list":
+                return "Search songs..."
+            case "home":
+            default:
+                return "Search folders, lists, songs..."
+        }
+    })
+
+    let searchInputElement = $state<HTMLInputElement | null>(null)
+
+    $effect(() => {
+        if (searchState.isOpen && searchInputElement) {
+            searchInputElement.focus()
+        }
+    })
 
     // Active song context
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
@@ -36,6 +59,26 @@
 
 {#if isFullscreenPage(menuState.activePage)}
     <!-- don't show any headers -->
+{:else if searchState.isOpen}
+    <header class="top-app-bar search-mode">
+        <div class="search-input-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input
+                bind:this={searchInputElement}
+                type="text"
+                class="search-input"
+                placeholder={searchPlaceholder}
+                bind:value={searchState.query}
+                onkeydown={(e) => {
+                    if (e.key === "Escape") closeSearch()
+                }}
+            />
+        </div>
+
+        <md-icon-button aria-label="Close and clear search" onclick={closeSearch}>
+            <span class="material-symbols-outlined">close</span>
+        </md-icon-button>
+    </header>
 {:else}
     <header class="top-app-bar">
         <div class="top-bar-left">
@@ -82,11 +125,12 @@
                     <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", menuState.contentId, "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
-                {:else}
-                    <md-icon-button aria-label="Search">
+                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder" || menuState.activePage === "list"}
+                    <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>
                 {/if}
+
                 <md-icon-button aria-label="More options">
                     <span class="material-symbols-outlined">more_vert</span>
                 </md-icon-button>
@@ -154,4 +198,39 @@
     /* .badge.negative {
         background: var(--md-sys-color-tertiary, #7d5260);
     } */
+
+    /* search */
+
+    .top-app-bar.search-mode {
+        gap: 8px;
+    }
+
+    .search-input-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .search-icon {
+        color: var(--md-sys-color-on-primary, #044444);
+        opacity: 0.8;
+        font-size: 24px;
+    }
+
+    .search-input {
+        width: 100%;
+        height: 40px;
+        background: transparent;
+        border: none;
+        outline: none;
+        font-size: 1.1rem;
+        font-family: inherit;
+        color: var(--md-sys-color-on-primary, #044444);
+    }
+
+    .search-input::placeholder {
+        color: var(--md-sys-color-on-primary, #044444);
+        opacity: 0.6;
+    }
 </style>

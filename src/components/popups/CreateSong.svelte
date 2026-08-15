@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte"
-    import { Songs } from "../../lib/models/Song"
-    import { t } from "../../lib/state/i18n.svelte"
-    import { menuState, setActivePage, setActivePopup } from "../../lib/state/menu.svelte"
+    import { Songs } from "$lib/models/Song"
+    import { t } from "$lib/state/i18n.svelte"
+    import { menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
 
     let songName = $state("")
 

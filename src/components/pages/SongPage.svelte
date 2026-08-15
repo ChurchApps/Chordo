@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount, tick } from "svelte"
-    import { menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "../../lib/state/menu.svelte"
-    import { enterFullscreen } from "../../lib/utils/fullscreen"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "$lib/state/menu.svelte"
+    import { enterFullscreen } from "$lib/utils/fullscreen"
+    import storage from "$lib/storage/StorageManager.svelte"
     import Song from "../song/Song.svelte"
 
     let mainElement = $state<HTMLElement | null>(null)

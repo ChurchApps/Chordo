@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { convertToChordPro } from "../../lib/chords/chordproConverter"
-    import { parseChordPro } from "../../lib/chords/chordproParser"
-    import { ALL_METADATA_ALIASES, METADATA_CONFIGS } from "../../lib/chords/metadata"
-    import { calculateTransposeSemitones } from "../../lib/chords/transpose"
-    import { FileSystem } from "../../lib/storage/FileSystem"
-    import storage from "../../lib/storage/StorageManager.svelte"
+    import { convertToChordPro } from "$lib/chords/chordproConverter"
+    import { parseChordPro } from "$lib/chords/chordproParser"
+    import { ALL_METADATA_ALIASES, METADATA_CONFIGS } from "$lib/chords/metadata"
+    import { calculateTransposeSemitones } from "$lib/chords/transpose"
+    import { FileSystem } from "$lib/storage/FileSystem"
+    import storage from "$lib/storage/StorageManager.svelte"
 
     let {
         songId,

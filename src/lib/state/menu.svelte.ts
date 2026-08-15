@@ -1,7 +1,8 @@
-import type { pages } from "../../components/pages/pages"
-import type { popups } from "../../components/popups/popups"
-import storage from "../storage/StorageManager.svelte"
-import { clone } from "../utils/common"
+import type { pages } from "$components/pages/pages"
+import type { popups } from "$components/popups/popups"
+import storage from "$lib/storage/StorageManager.svelte"
+import { clone } from "$lib/utils/common"
+import { closeSearch } from "./search.svelte"
 
 /// PAGES ///
 
@@ -54,6 +55,7 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
 
     function doSet() {
         listEditingState.isEditing = false
+        closeSearch()
 
         menuState.activePage = menu
         menuState.contentId = contentId ?? null
@@ -77,6 +79,7 @@ export function goBack(): void {
     const previousState = menuState.previousPages.pop()!
 
     function doSet() {
+        closeSearch()
         menuState.activePage = previousState.activePage
         menuState.contentId = previousState.contentId
         menuState.customPageTitle = previousState.customPageTitle

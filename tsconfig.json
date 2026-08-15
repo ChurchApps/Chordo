@@ -12,7 +12,13 @@
         "allowJs": true,
         "checkJs": true,
         "moduleDetection": "force",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "paths": {
+            "$lib": ["./src/lib"],
+            "$lib/*": ["./src/lib/*"],
+            "$components": ["./src/components"],
+            "$components/*": ["./src/components/*"]
+        }
     },
     "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "src/**/*.d.ts", "src/lang/**/*.json", "config/**/*.ts", "config/**/*.js"]
 }

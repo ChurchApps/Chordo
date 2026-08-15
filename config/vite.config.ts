@@ -15,6 +15,12 @@ export default defineConfig({
         outDir: path.resolve(rootDir, "dist"),
         emptyOutDir: true
     },
+    resolve: {
+        alias: {
+            $lib: path.resolve(rootDir, "src/lib"),
+            $components: path.resolve(rootDir, "src/components")
+        }
+    },
     plugins: [
         svelte({
             configFile: path.resolve(__dirname, "svelte.config.js")

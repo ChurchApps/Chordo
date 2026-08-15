@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { popupState } from "../../lib/state/menu.svelte"
+    import { popupState } from "$lib/state/menu.svelte"
     import { popups } from "./popups"
 </script>
 
