@@ -1,8 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Open%20Sans:wght@400;500;700&display=swap");
+@import "@fontsource/open-sans/400.css";
+@import "@fontsource/open-sans/500.css";
+@import "@fontsource/open-sans/700.css";
+@import "@fontsource/material-symbols-outlined/index.css";
 
 :root {
-    --md-ref-typeface-brand: "Open Sans";
-    --md-ref-typeface-plain: system-ui;
+    --md-ref-typeface-brand: "Open Sans", system-ui, sans-serif;
+    --md-ref-typeface-plain: "Open Sans", system-ui, sans-serif;
+    --md-icon-font: "Material Symbols Outlined";
 
     --md-sys-color-primary-background: #c1e9e9;
 
@@ -86,6 +90,23 @@ main {
 
     margin: 6px;
     margin-top: 0;
+}
+
+.material-symbols-outlined,
+md-icon {
+    font-family: "Material Symbols Outlined", sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
 }
 
 /* center {

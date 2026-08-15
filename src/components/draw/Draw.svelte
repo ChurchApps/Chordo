@@ -326,7 +326,7 @@
         background-color: transparent;
         touch-action: none;
         font-family:
-            Roboto,
+            "Open Sans",
             system-ui,
             -apple-system,
             sans-serif;
