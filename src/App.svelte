@@ -12,13 +12,16 @@
     import "@material/web/menu/menu-item.js"
     import "@material/web/menu/menu.js"
     import "@material/web/textfield/outlined-text-field.js"
+    import { onMount } from "svelte"
     import Header from "./components/header/Header.svelte"
     import Page from "./components/pages/Page.svelte"
     import Popup from "./components/popups/Popup.svelte"
     import PwaReloadPrompt from "./components/header/PwaReloadPrompt.svelte"
+    import { initDialogKeyboardCentering } from "$lib/utils/viewport"
 
-    // DEBUG: clear data
-    // storage.resetAll()
+    onMount(() => {
+        return initDialogKeyboardCentering()
+    })
 </script>
 
 <!-- Material 3 Style -->
