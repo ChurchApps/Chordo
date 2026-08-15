@@ -348,6 +348,7 @@
         position: relative;
         width: 100vw;
         height: 100vh;
+        height: 100dvh;
         overflow: hidden;
     }
 
@@ -361,6 +362,7 @@
         display: flex;
         flex-direction: row;
         height: 100vh;
+        height: 100dvh;
         box-sizing: border-box;
     }
 
@@ -371,6 +373,7 @@
         gap: 0 !important;
         width: auto !important;
         height: 100vh !important;
+        height: 100dvh !important;
         align-items: center !important;
     }
 
@@ -381,7 +384,9 @@
 
         /* Height fills the screen (leaving room for top/bottom margins) */
         height: calc(100vh - var(--margin-y)) !important;
+        height: calc(100dvh - var(--margin-y)) !important;
         max-height: calc(100vh - var(--margin-y)) !important;
+        max-height: calc(100dvh - var(--margin-y)) !important;
 
         /* Width adheres to A4 aspect ratio (210/297), constrained by screen width */
         width: auto !important;
@@ -389,7 +394,7 @@
         aspect-ratio: 210 / 297;
 
         /* Calculate exact rendered paper width */
-        --paper-w: min(calc((100vh - var(--margin-y)) * (210 / 297)), calc(100vw - var(--margin-x)));
+        --paper-w: min(calc((100dvh - var(--margin-y)) * (210 / 297)), calc(100vw - var(--margin-x)));
 
         /* Auto-calculate side margins so total slot footprint = 100vw */
         margin-left: calc((100vw - var(--paper-w)) / 2) !important;

@@ -43,6 +43,7 @@
         flex-direction: column;
 
         height: 100vh;
+        height: 100dvh;
         overflow: hidden;
 
         background-color: var(--background);

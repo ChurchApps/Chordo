@@ -225,6 +225,7 @@
         display: flex;
         flex-direction: column;
         min-height: calc(100vh - 64px - 6px);
+        min-height: calc(100dvh - 64px - 6px);
     }
 
     .song-list {
