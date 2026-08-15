@@ -4,17 +4,20 @@ import type { NonFunctionProperties } from "../utils/common"
 
 export type SettingsKeys = NonFunctionProperties<Settings>
 
+export interface DrawSettings {
+    color?: string
+    brushSize?: number
+}
+
 export class Settings {
     locale?: SupportedLocale
     theme?: SupportedTheme
+    draw?: DrawSettings
 
     constructor(data: Partial<SettingsKeys> = {}) {
-        if (data.locale) {
-            this.locale = data.locale
-        }
-        if (data.theme) {
-            this.theme = data.theme
-        }
+        if (data.locale) this.locale = data.locale
+        if (data.theme) this.theme = data.theme
+        if (data.draw) this.draw = { ...data.draw }
     }
 
     /**
@@ -29,4 +32,3 @@ export class Settings {
         }
     }
 }
-

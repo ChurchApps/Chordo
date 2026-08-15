@@ -36,15 +36,58 @@
     let songPageId = $state("")
     let previousPage = -1
 
-    // --- Actions Header Toggle ---
-    function windowClick(e: MouseEvent) {
-        if (didDrag || (e.target as HTMLElement)?.closest("header")) return
-
+    function toggleActions() {
         actionsVisible = !actionsVisible
         clearTimeout(hideTimeout)
 
         if (actionsVisible) {
             hideTimeout = setTimeout(() => (actionsVisible = false), 3000)
+        }
+    }
+
+    function goToPrevPage() {
+        if (currentPageIndex > 0) {
+            currentPageIndex--
+            setPositionByIndex(true)
+        } else {
+            toggleActions()
+        }
+    }
+
+    function goToNextPage() {
+        if (currentPageIndex < totalPages - 1) {
+            currentPageIndex++
+            setPositionByIndex(true)
+        } else {
+            toggleActions()
+        }
+    }
+
+    // --- Actions Header Toggle & Click Navigation ---
+    function windowClick(e: MouseEvent) {
+        if (didDrag) return
+        const target = e.target as HTMLElement | null
+        if (target?.closest("header") || target?.closest("footer") || target?.closest("md-icon-button")) return
+
+        const screenWidth = window.innerWidth
+        const clickX = e.clientX
+        const ratio = clickX / screenWidth
+
+        // Center 1/5 (40% - 60%) toggles action buttons
+        if (ratio >= 0.4 && ratio <= 0.6) {
+            toggleActions()
+        } else if (ratio < 0.4) {
+            goToPrevPage()
+        } else {
+            goToNextPage()
+        }
+    }
+
+    function handleKeydown(e: KeyboardEvent) {
+        if (e.key === "ArrowLeft") {
+            goToPrevPage()
+        } else if (e.key === "ArrowRight" || e.key === " ") {
+            goToNextPage()
         }
     }
 
@@ -237,7 +280,7 @@
     })
 </script>
 
-<svelte:window onclick={windowClick} />
+<svelte:window onclick={windowClick} onkeydown={handleKeydown} />
 
 {#if actionsVisible}
     <header transition:slide={{ duration: 200, axis: "y" }}>

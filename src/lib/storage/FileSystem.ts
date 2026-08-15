@@ -3,8 +3,9 @@ import { createStore, get, set, del } from "idb-keyval"
 type ConfigNames = "data"
 
 // Dedicated IndexedDB custom stores for sheet-manager
+// idb-keyval createStore creates one store per database, so distinct DB names are required
 const configStore = typeof window !== "undefined" ? createStore("sheet-manager-db", "config-store") : null
-const mediaStore = typeof window !== "undefined" ? createStore("sheet-manager-db", "media-store") : null
+const mediaStore = typeof window !== "undefined" ? createStore("sheet-manager-media-db", "media-store") : null
 
 // Request persistent storage so the browser does not evict data when low on disk
 if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {

@@ -9,6 +9,7 @@
 
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
 
     interface Props {
         /** Enable or disable drawing capabilities (defaults to false) */
@@ -43,9 +44,32 @@
     let canvasRef = $state<HTMLCanvasElement | null>(null)
     let ctx = $state<CanvasRenderingContext2D | null>(null)
     let isDrawing = $state(false)
-    let currentColor = $state("#1d1b20")
-    let brushSize = $state(4)
+    let currentColor = $state(storage.settings.draw?.color || "#1d1b20")
+    let brushSize = $state(storage.settings.draw?.brushSize ?? 4)
     let lastPoint = $state<{ x: number; y: number } | null>(null)
+
+    let initialSyncDone = false
+    $effect(() => {
+        if (!initialSyncDone && storage.settings.draw) {
+            if (storage.settings.draw.color) currentColor = storage.settings.draw.color
+            if (storage.settings.draw.brushSize !== undefined) brushSize = storage.settings.draw.brushSize
+            initialSyncDone = true
+        }
+    })
+
+    $effect(() => {
+        if (editable) {
+            const hasChanged = storage.settings.draw?.color !== currentColor || storage.settings.draw?.brushSize !== brushSize
+            if (hasChanged) {
+                storage.settings.draw = {
+                    ...storage.settings.draw,
+                    color: currentColor,
+                    brushSize: brushSize
+                }
+                storage.persist()
+            }
+        }
+    })
 
     // Function to check if canvas actually contains any drawn pixels
     function isCanvasBlank(): boolean {
@@ -424,13 +448,23 @@
     }
 
     .check-icon {
+        --md-icon-size: 1.125rem;
         font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
     }
 
     .custom-color-wrapper {
         position: relative;
         width: 2rem;
         height: 2rem;
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
         flex-shrink: 0;
         border-radius: 50%;
         border: 1px dashed var(--md-sys-color-on-surface-variant, #49454f);
@@ -440,6 +474,7 @@
         cursor: pointer;
         color: var(--md-sys-color-on-surface-variant, #49454f);
         transition: background-color 0.2s ease;
+        overflow: hidden;
     }
 
     .custom-color-wrapper:hover {
@@ -447,7 +482,14 @@
     }
 
     .palette-icon {
+        --md-icon-size: 1.125rem;
         font-size: 1.125rem;
+        width: 1.125rem;
+        height: 1.125rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
     }
 
     .custom-color-input {
@@ -458,6 +500,9 @@
         cursor: pointer;
         top: 0;
         left: 0;
+        margin: 0;
+        padding: 0;
+        border: none;
     }
 
     .m3-divider {
