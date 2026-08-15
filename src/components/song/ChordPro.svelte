@@ -8,6 +8,7 @@
 
     let {
         songId,
+        song: customSong,
         targetKey,
         semitones,
         showMeta = false,
@@ -15,7 +16,8 @@
         lightMode = false, // do some optimization to the rendering if light mode
         fitParent = true
     } = $props<{
-        songId: string | null
+        songId?: string | null
+        song?: any
         targetKey?: string
         semitones?: number
         showMeta?: boolean
@@ -24,7 +26,10 @@
         fitParent?: boolean
     }>()
 
-    let song = $derived(storage.getSongById(songId, storage.songs))
+    import { Song } from "$lib/models/Song"
+
+    let rawSong = $derived(customSong ?? storage.getSongById(songId ?? null, storage.songs))
+    let song = $derived(rawSong ? (rawSong instanceof Song ? rawSong : new Song(rawSong)) : null)
 
     // Ensure rendered content is in ChordPro format without modifying original song content
     let chordProContent = $derived.by(() => {
@@ -42,7 +47,7 @@
             semitones,
             targetKey,
             lastTransposed: song?.lastTransposed,
-            songKey: song?.getMetadata("key"),
+            songKey: typeof song?.getMetadata === "function" ? song.getMetadata("key") : (song?.metadata?.key ?? ""),
             content: chordProContent
         })
     )
@@ -52,7 +57,7 @@
 
     $effect(() => {
         if (song?.images && song.images.length > 0) {
-            Promise.all(song.images.map((img) => FileSystem.resolveImageUrl(img))).then((urls) => {
+            Promise.all(song.images.map((img: string) => FileSystem.resolveImageUrl(img))).then((urls) => {
                 imageWebUrls = urls
             })
         } else {
@@ -83,7 +88,7 @@
             {#if showMeta}
                 <div class="song-meta">
                     {#each METADATA_CONFIGS as cfg}
-                        {@const val = parsed.metadata[cfg.key] || song?.getMetadata(cfg.key)}
+                        {@const val = parsed.metadata[cfg.key] || (typeof song?.getMetadata === "function" ? song.getMetadata(cfg.key) : song?.metadata?.[cfg.key])}
                         {#if val}
                             <span class="meta-item">{cfg.label}: {val}</span>
                         {/if}

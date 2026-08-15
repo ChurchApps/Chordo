@@ -18,10 +18,34 @@
     import Popup from "./components/popups/Popup.svelte"
     import PwaReloadPrompt from "./components/header/PwaReloadPrompt.svelte"
     import PlaybackBar from "./components/playback/PlaybackBar.svelte"
+    import Toast from "./components/common/Toast.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
+    import { decodeSharePayload, extractSharePayloadFromUrl } from "$lib/share/shareCodec"
+    import { setSharePayload } from "$lib/share/share.svelte"
+    import { setActivePage } from "$lib/state/menu.svelte"
+
+    async function handleIncomingShare() {
+        if (typeof window === "undefined") return
+        const rawPayload = extractSharePayloadFromUrl()
+        if (rawPayload) {
+            const decoded = await decodeSharePayload(rawPayload)
+            if (decoded) {
+                setSharePayload(decoded, rawPayload)
+                const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
+                setActivePage("share_preview", null, title, "replace")
+            }
+        }
+    }
 
     onMount(() => {
-        return initDialogKeyboardCentering()
+        handleIncomingShare()
+        window.addEventListener("hashchange", handleIncomingShare)
+        const cleanupKeyboard = initDialogKeyboardCentering()
+
+        return () => {
+            window.removeEventListener("hashchange", handleIncomingShare)
+            if (cleanupKeyboard) cleanupKeyboard()
+        }
     })
 </script>
 
@@ -36,6 +60,8 @@
     <Popup />
 
     <PwaReloadPrompt />
+
+    <Toast />
 </div>
 
 <style>

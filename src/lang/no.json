@@ -25,7 +25,8 @@
         "all_songs": "Alle sanger",
         "add_songs": "Legg til sanger",
         "song_live": "",
-        "song_draw": ""
+        "song_draw": "",
+        "share_preview": "Importer delt"
     },
     "search": {
         "placeholder_all": "Søk i mapper, lister, sanger...",

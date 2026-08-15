@@ -6,7 +6,8 @@
     import { t } from "$lib/state/i18n.svelte"
 
     let currentSong = $derived(playbackState.songId ? storage.getSongById(playbackState.songId, storage.songs) : null)
-    let playbackUrl = $derived(currentSong?.playbackUrl || currentSong?.spotify || currentSong?.getMetadata("playback") || currentSong?.getMetadata("spotify") || "")
+    let playbackUrl = $derived(playbackState.customPlaybackUrl || currentSong?.playbackUrl || currentSong?.spotify || currentSong?.getMetadata("playback") || currentSong?.getMetadata("spotify") || "")
+    let songDisplayName = $derived(playbackState.customSongName || currentSong?.name || "")
     let info = $derived(parsePlaybackUrl(playbackUrl))
 </script>
 
@@ -27,8 +28,8 @@
                         <span class="provider-name">YouTube</span>
                     {/if}
 
-                    {#if currentSong?.name}
-                        <span class="song-title-badge">{currentSong.name}</span>
+                    {#if songDisplayName}
+                        <span class="song-title-badge">{songDisplayName}</span>
                     {/if}
                 </div>
 

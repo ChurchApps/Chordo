@@ -25,7 +25,8 @@
         "all_songs": "All Songs",
         "add_songs": "Add Songs",
         "song_live": "",
-        "song_draw": ""
+        "song_draw": "",
+        "share_preview": "Import Shared"
     },
     "search": {
         "placeholder_all": "Search folders, lists, songs...",

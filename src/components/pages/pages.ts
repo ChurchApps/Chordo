@@ -6,6 +6,7 @@ import AllSongsPage from "./AllSongsPage.svelte"
 import SongEditPage from "./SongEditPage.svelte"
 import SongFullscreen from "./SongFullscreen.svelte"
 import SongDraw from "./SongDraw.svelte"
+import SharePreviewPage from "./SharePreviewPage.svelte"
 
 export const pages = {
     home: {
@@ -39,5 +40,9 @@ export const pages = {
     song_draw: {
         title: "",
         component: SongDraw
+    },
+    share_preview: {
+        title: "Import Shared",
+        component: SharePreviewPage
     }
 }
