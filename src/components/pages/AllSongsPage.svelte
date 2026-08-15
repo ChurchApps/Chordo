@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import { Songs } from "$lib/models/Song"
+    import { t } from "$lib/state/i18n.svelte"
     import { goBack, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -64,7 +65,7 @@
                         <div slot="supporting-text">
                             {artist || ""}
                             {#if artist && key} • {/if}
-                            {#if key}Key: {key}{/if}
+                            {#if key}{t("common", "key")}: {key}{/if}
                         </div>
                     {/if}
                     <md-icon slot="start">music_note</md-icon>
@@ -82,16 +83,16 @@
         <div class="center">
             <div class="empty-state">
                 <span class="material-symbols-outlined empty-icon">search_off</span>
-                <h2>No songs found</h2>
-                <p>No songs match "{searchState.query}".</p>
+                <h2>{t("search", "no_results")}</h2>
+                <p>{searchState.query}</p>
             </div>
         </div>
     {:else}
         <div class="center">
             <div class="empty-state">
                 <span class="material-symbols-outlined empty-icon">library_music</span>
-                <h2>No songs yet</h2>
-                <p>Tap the + button in the bottom right to add songs.</p>
+                <h2>{t("empty_state", "no_songs_title")}</h2>
+                <p>{t("empty_state", "no_songs_desc")}</p>
             </div>
         </div>
     {/if}
@@ -99,11 +100,11 @@
 
 <div class="fab-container">
     {#if listOpened && addSongsOrder.length > 0}
-        <md-fab aria-label="Done" onclick={addSongs}>
+        <md-fab aria-label={t("common", "done")} onclick={addSongs}>
             <span class="material-symbols-outlined" slot="icon">check</span>
         </md-fab>
     {:else}
-        <md-fab aria-label="Add" onclick={() => setActivePopup("create_song")}>
+        <md-fab aria-label={t("common", "add")} onclick={() => setActivePopup("create_song")}>
             <span class="material-symbols-outlined" slot="icon">add</span>
         </md-fab>
     {/if}

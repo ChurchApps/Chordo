@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { t } from "$lib/state/i18n.svelte"
     import { setActivePopup } from "$lib/state/menu.svelte"
 
     function closeDialog() {
@@ -9,32 +10,32 @@
 <md-dialog open onclosed={closeDialog}>
     <div slot="headline" class="about-headline">
         <span class="material-symbols-outlined about-icon">library_music</span>
-        Chord Sheet Manager
+        {t("about", "title")}
     </div>
 
     <div slot="content" class="about-content">
-        <p class="about-version">Version 0.0.1</p>
+        <p class="about-version">{t("about", "version")}</p>
         <p class="about-desc">
-            An offline-capable Progressive Web Application for managing chord charts, lead sheets, setlists, and live performance chords.
+            {t("about", "desc")}
         </p>
         <div class="features-list">
             <div class="feature-item">
                 <span class="material-symbols-outlined feature-icon">offline_bolt</span>
-                <span>Fully offline capable</span>
+                <span>{t("about", "feature_offline")}</span>
             </div>
             <div class="feature-item">
                 <span class="material-symbols-outlined feature-icon">swap_vert</span>
-                <span>Real-time ChordPro transposing</span>
+                <span>{t("about", "feature_transpose")}</span>
             </div>
             <div class="feature-item">
                 <span class="material-symbols-outlined feature-icon">draw</span>
-                <span>Pen drawings and PDF sheet annotations</span>
+                <span>{t("about", "feature_draw")}</span>
             </div>
         </div>
     </div>
 
     <div slot="actions">
-        <md-filled-button role="button" tabindex="0" onclick={closeDialog}>Close</md-filled-button>
+        <md-filled-button role="button" tabindex="0" onclick={closeDialog}>{t("about", "close")}</md-filled-button>
     </div>
 </md-dialog>
 

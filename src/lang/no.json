@@ -1,7 +1,143 @@
 {
+    "common": {
+        "confirm": "Bekreft",
+        "cancel": "Avbryt",
+        "delete": "Slett",
+        "reset": "Tilbakestill",
+        "close": "Lukk",
+        "done": "Ferdig",
+        "create": "Opprett",
+        "edit": "Rediger",
+        "save": "Lagre",
+        "search": "Søk",
+        "add": "Legg til",
+        "import": "Importer",
+        "export": "Eksporter",
+        "key": "Toneart",
+        "original": "Original"
+    },
+    "pages": {
+        "home": "Akkordark",
+        "folder": "Mappe",
+        "list": "Liste",
+        "song": "Sang",
+        "song_edit": "Rediger sang",
+        "all_songs": "Alle sanger",
+        "add_songs": "Legg til sanger",
+        "song_live": "",
+        "song_draw": ""
+    },
+    "search": {
+        "placeholder_all": "Søk i mapper, lister, sanger...",
+        "placeholder_songs": "Søk i sanger...",
+        "placeholder_lists": "Søk i lister...",
+        "no_results": "Ingen resultater funnet",
+        "category_folders": "Mapper",
+        "category_lists": "Lister",
+        "category_songs": "Sanger"
+    },
+    "empty_state": {
+        "no_folders_title": "Ingen mapper ennå",
+        "no_folders_desc": "Trykk på +-knappen nederst til høyre for å opprette din første mappe.",
+        "no_lists_title": "Ingen lister ennå",
+        "no_lists_desc": "Trykk på +-knappen nederst til høyre for å opprette din første liste for sanger.",
+        "no_songs_title": "Ingen sanger ennå",
+        "no_songs_desc": "Trykk på +-knappen nederst til høyre for å legge til sanger."
+    },
     "new": {
         "folder": "Ny mappe",
         "list": "Ny liste",
-        "song": "Ny sang"
+        "song": "Ny sang",
+        "folder_name_label": "Mappenavn",
+        "folder_name_placeholder": "f.eks. Lovsang",
+        "list_name_label": "Listenavn",
+        "list_name_placeholder": "f.eks. Søndagssett",
+        "song_title_label": "Sangtittel",
+        "song_title_placeholder": "f.eks. Navnet Jesus"
+    },
+    "menu": {
+        "settings": "Innstillinger",
+        "about": "Om appen",
+        "share_song": "Del sang",
+        "delete_song": "Slett sang",
+        "share_list": "Del liste",
+        "delete_list": "Slett liste",
+        "delete_folder": "Slett mappe"
+    },
+    "confirm": {
+        "delete_song_title": "Slette sang?",
+        "delete_song_msg": "Er du sikker på at du vil slette denne sangen? Handlingen kan ikke angres.",
+        "delete_list_title": "Slette liste?",
+        "delete_list_msg": "Er du sikker på at du vil slette denne listen?",
+        "delete_folder_title": "Slette mappe?",
+        "delete_folder_msg": "Er du sikker på at du vil slette denne mappen?"
+    },
+    "song_edit": {
+        "title": "Tittel",
+        "title_placeholder": "f.eks. Navnet Jesus",
+        "source": "Kilde:",
+        "import_url": "Importer fra URL",
+        "import_url_placeholder": "f.eks. https://example.com/song-chords",
+        "pull": "Hent",
+        "pulling": "Henter...",
+        "content": "Innhold",
+        "content_placeholder": "[G]Navnet [G7]Jesus\nhøyere [C]enn alle [G]navn\n...",
+        "media_pages": "Mediasider",
+        "add_media": "Legg til bilde / PDF",
+        "add_media_pages": "Legg til bilde / PDF-sider",
+        "page": "Side",
+        "converting_pdf_title": "Konverterer PDF",
+        "preparing_pdf": "Forbereder PDF...",
+        "pulling_content_title": "Henter sanginnhold",
+        "fetching_webpage": "Henter nettside og konverterer akkorder...",
+        "pull_error_default": "Kunne ikke hente akkorder fra URL-en."
+    },
+    "transpose": {
+        "title": "Transponer",
+        "key": "Toneart",
+        "original": "Original"
+    },
+    "draw": {
+        "clear": "Tøm",
+        "done": "Ferdig",
+        "clear_title": "Tømme lerretet?",
+        "clear_msg": "Er du sikker på at du vil slette tegningen? Handlingen kan ikke angres."
+    },
+    "settings": {
+        "title": "Innstillinger",
+        "language": "Språk",
+        "english": "English",
+        "norwegian": "Norsk",
+        "data_management": "Databehandling",
+        "export_data": "Eksporter all data",
+        "import_data": "Importer data",
+        "reset_data": "Tilbakestill all data",
+        "done": "Ferdig",
+        "import_success": "Data ble importert!",
+        "import_invalid": "Ugyldig sikkerhetskopi.",
+        "import_error": "Feil ved lesing av fil.",
+        "reset_confirm_title": "Tilbakestill all data?",
+        "reset_confirm_msg": "Dette vil slette alle sanger, mapper og lister permanent. Handlingen kan ikke angres.",
+        "reset_confirm_btn": "Tilbakestill",
+        "import_confirm_title": "Importer sikkerhetskopi?",
+        "import_confirm_btn": "Importer"
+    },
+    "about": {
+        "title": "Chord Sheet Manager",
+        "version": "Versjon 0.0.1",
+        "desc": "En offline-støttet app for håndtering av akkordark, sanglister og live-fremføring.",
+        "feature_offline": "Fullt offline-støttet",
+        "feature_transpose": "Sanntids ChordPro-transponering",
+        "feature_draw": "Penntegninger og notater på PDF-ark",
+        "close": "Lukk"
+    },
+    "pwa": {
+        "offline_ready": "Appen er klar til bruk offline",
+        "update_available": "Ny versjon tilgjengelig!",
+        "reload": "Last inn på nytt",
+        "dismiss": "Lukk"
+    },
+    "list": {
+        "deleted": "Slettet"
     }
 }

@@ -8,6 +8,7 @@
     import "@material/web/slider/slider.js"
 
     import { openConfirm } from "$lib/state/confirm.svelte"
+    import { t } from "$lib/state/i18n.svelte"
 
     interface Props {
         /** Enable or disable drawing capabilities (defaults to false) */
@@ -80,9 +81,9 @@
 
     function handleClearRequest() {
         openConfirm({
-            title: "Clear Canvas?",
-            message: "Are you sure you want to clear your current drawing? This action cannot be undone.",
-            confirmLabel: "Clear",
+            title: t("draw", "clear_title"),
+            message: t("draw", "clear_msg"),
+            confirmLabel: t("draw", "clear"),
             isDestructive: true,
             onConfirm: () => {
                 clearCanvas()
@@ -261,7 +262,7 @@
         <header class="m3-top-left-bar">
             <md-filled-tonal-button type="button" onclick={handleClearRequest}>
                 <md-icon slot="icon">delete</md-icon>
-                Clear
+                {t("draw", "clear")}
             </md-filled-tonal-button>
         </header>
 
@@ -301,7 +302,7 @@
             <div class="actions-group">
                 <md-filled-button type="button" onclick={handleFinish}>
                     <md-icon slot="icon">check</md-icon>
-                    Done
+                    {t("draw", "done")}
                 </md-filled-button>
             </div>
         </footer>

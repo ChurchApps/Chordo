@@ -4,6 +4,7 @@
     import type { List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
     import { openConfirm } from "$lib/state/confirm.svelte"
+    import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -18,7 +19,10 @@
         }, "")
     )
 
-    let headerTitle = $derived(menuState.customPageTitle ?? pages[menuState.activePage]?.title ?? "")
+    let headerTitle = $derived(
+        menuState.customPageTitle ??
+            (menuState.activePage in pages ? t("pages", menuState.activePage as keyof typeof pages) : "")
+    )
 
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
     let moreMenuOpen = $state(false)
@@ -26,14 +30,14 @@
     let searchPlaceholder = $derived.by(() => {
         switch (menuState.activePage) {
             case "all_songs":
-                return "Search songs..."
+                return t("search", "placeholder_songs")
             case "folder":
-                return "Search lists..."
+                return t("search", "placeholder_lists")
             case "list":
-                return "Search songs..."
+                return t("search", "placeholder_songs")
             case "home":
             default:
-                return "Search folders, lists, songs..."
+                return t("search", "placeholder_all")
         }
     })
 
@@ -65,9 +69,9 @@
     function confirmDeleteSong(song: Song | null) {
         if (!song) return
         openConfirm({
-            title: "Delete Song?",
+            title: t("confirm", "delete_song_title"),
             message: `Are you sure you want to delete "${song.name}"? This action cannot be undone.`,
-            confirmLabel: "Delete",
+            confirmLabel: t("common", "delete"),
             isDestructive: true,
             onConfirm: async () => {
                 await storage.deleteSong(song.id)
@@ -79,9 +83,9 @@
     function confirmDeleteList(list: List | null) {
         if (!list) return
         openConfirm({
-            title: "Delete List?",
+            title: t("confirm", "delete_list_title"),
             message: `Are you sure you want to delete "${list.name}"?`,
-            confirmLabel: "Delete",
+            confirmLabel: t("common", "delete"),
             isDestructive: true,
             onConfirm: () => {
                 storage.deleteList(list.id)
@@ -93,9 +97,9 @@
     function confirmDeleteFolder(folder: Folder | null) {
         if (!folder) return
         openConfirm({
-            title: "Delete Folder?",
+            title: t("confirm", "delete_folder_title"),
             message: `Are you sure you want to delete folder "${folder.name}"?`,
-            confirmLabel: "Delete",
+            confirmLabel: t("common", "delete"),
             isDestructive: true,
             onConfirm: () => {
                 storage.deleteFolder(folder.id)
@@ -145,7 +149,7 @@
 
             <h1 class="top-bar-title">
                 {#if isEditing}
-                    Edit
+                    {t("common", "edit")}
                 {:else}
                     <span style="font-size: 0.7em;opacity: 0.7;">{headerPath}</span>{headerTitle}
                 {/if}
@@ -192,7 +196,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start">settings</span>
-                                <div slot="headline">Settings</div>
+                                <div slot="headline">{t("menu", "settings")}</div>
                             </md-menu-item>
                             <md-menu-item
                                 onclick={() => {
@@ -201,7 +205,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start">info</span>
-                                <div slot="headline">About</div>
+                                <div slot="headline">{t("menu", "about")}</div>
                             </md-menu-item>
                         {:else if menuState.activePage === "song"}
                             <md-menu-item
@@ -211,7 +215,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start">share</span>
-                                <div slot="headline">Share Song</div>
+                                <div slot="headline">{t("menu", "share_song")}</div>
                             </md-menu-item>
                         {:else if menuState.activePage === "song_edit"}
                             {@const editSong = storage.getSongById(menuState.contentId)}
@@ -222,7 +226,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">Delete Song</div>
+                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_song")}</div>
                             </md-menu-item>
                         {:else if menuState.activePage === "list"}
                             {@const currentList = storage.getListById(menuState.contentId)}
@@ -233,7 +237,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start">share</span>
-                                <div slot="headline">Share List</div>
+                                <div slot="headline">{t("menu", "share_list")}</div>
                             </md-menu-item>
                             <md-menu-item
                                 onclick={() => {
@@ -242,7 +246,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">Delete List</div>
+                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_list")}</div>
                             </md-menu-item>
                         {:else if menuState.activePage === "folder"}
                             {@const currentFolder = storage.getFolderById(menuState.contentId)}
@@ -253,7 +257,7 @@
                                 }}
                             >
                                 <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">Delete Folder</div>
+                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_folder")}</div>
                             </md-menu-item>
                         {/if}
                     </md-menu>

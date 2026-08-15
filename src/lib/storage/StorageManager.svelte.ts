@@ -1,7 +1,7 @@
 import { Folder } from "../models/Folder"
 import { List } from "../models/List"
 import { Song } from "../models/Song"
-import { setLocale } from "../state/i18n.svelte"
+import { Settings } from "../models/Settings"
 import type { NonFunctionProperties } from "../utils/common"
 import { FileSystem } from "./FileSystem"
 
@@ -13,7 +13,7 @@ type PureAppData = PureData<AppData>
 
 type AppData = NonFunctionProperties<InstanceType<typeof StorageManager>>
 class StorageManager {
-    settings = $state<{}>({})
+    settings = $state<Settings>(new Settings())
     folders = $state<Folder[]>([])
     lists = $state<List[]>([])
     songs = $state<Song[]>([])
@@ -32,7 +32,7 @@ class StorageManager {
     }
 
     private DEFAULT_DATA: AppData = {
-        settings: {},
+        settings: new Settings(),
         folders: [],
         lists: [],
         songs: []
@@ -76,10 +76,8 @@ class StorageManager {
         const folders = (parsed.folders || []).map((a) => new Folder(a))
         const lists = (parsed.lists || []).map((a) => new List(a))
 
-        this.settings = parsed.settings || {}
-        if ((this.settings as any).locale) {
-            setLocale((this.settings as any).locale)
-        }
+        this.settings = new Settings(parsed.settings || {})
+        this.settings.apply()
         this.folders = folders
         this.lists = lists
         this.songs = songs
@@ -96,7 +94,8 @@ class StorageManager {
             this.songs = data.songs.map((s) => new Song(s as any))
         }
         if (data.settings) {
-            this.settings = { ...this.settings, ...data.settings }
+            this.settings = new Settings({ ...this.settings, ...data.settings })
+            this.settings.apply()
         }
         this.refreshSongs()
         this.refreshLists()

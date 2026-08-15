@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Lists } from "$lib/models/List"
+    import { t } from "$lib/state/i18n.svelte"
     import { menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -34,16 +35,16 @@
         <div class="center">
             <div class="empty-state">
                 <span class="material-symbols-outlined empty-icon">search_off</span>
-                <h2>No lists found</h2>
-                <p>No lists match "{searchState.query}".</p>
+                <h2>{t("search", "no_results")}</h2>
+                <p>{searchState.query}</p>
             </div>
         </div>
     {:else}
         <div class="center">
             <div class="empty-state">
                 <span class="material-symbols-outlined empty-icon">list</span>
-                <h2>No lists yet</h2>
-                <p>Tap the + button in the bottom right to create your first list where you can add songs.</p>
+                <h2>{t("empty_state", "no_lists_title")}</h2>
+                <p>{t("empty_state", "no_lists_desc")}</p>
             </div>
         </div>
     {/if}

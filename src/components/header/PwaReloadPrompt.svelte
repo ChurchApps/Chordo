@@ -1,5 +1,6 @@
 <script lang="ts">
     import { useRegisterSW } from "virtual:pwa-register/svelte"
+    import { t } from "$lib/state/i18n.svelte"
 
     const { needRefresh, updateServiceWorker, offlineReady } = useRegisterSW({
         onRegistered(r) {
@@ -20,19 +21,19 @@
     <div class="pwa-toast" role="alert">
         <div class="message">
             {#if $offlineReady}
-                <span>App is ready to work offline</span>
+                <span>{t("pwa", "offline_ready")}</span>
             {:else}
-                <span>New version available!</span>
+                <span>{t("pwa", "update_available")}</span>
             {/if}
         </div>
         <div class="actions">
             {#if $needRefresh}
                 <button class="reload-btn" onclick={() => updateServiceWorker(true)}>
-                    Reload
+                    {t("pwa", "reload")}
                 </button>
             {/if}
             <button class="close-btn" onclick={close}>
-                Dismiss
+                {t("pwa", "dismiss")}
             </button>
         </div>
     </div>

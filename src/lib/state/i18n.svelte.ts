@@ -8,12 +8,33 @@ export type SectionKey = keyof TranslationsSchema & string
 // 2. Distribute over S, check that the section is an object, and extract string keys
 export type ItemKey<S extends SectionKey> = S extends SectionKey ? (TranslationsSchema[S] extends Record<string, unknown> ? keyof TranslationsSchema[S] & string : never) : never
 
-export type SupportedLocale = "en" | "no"
+export const SUPPORTED_LANGUAGES = [
+    { code: "en", label: "English", prefixes: ["en"] },
+    { code: "no", label: "Norsk", prefixes: ["no", "nb", "nn"] }
+] as const
+
+export type SupportedLocale = (typeof SUPPORTED_LANGUAGES)[number]["code"]
 
 // Vite glob import for translation modules
 const modules = import.meta.glob<{ default: Record<string, Record<string, string>> }>("../../lang/*.json")
 
-let currentLocale = $state<SupportedLocale>("en")
+function detectDefaultLocale(): SupportedLocale {
+    if (typeof navigator !== "undefined") {
+        const languages = navigator.languages || [navigator.language]
+        for (const lang of languages) {
+            if (!lang) continue
+
+            const code = lang.toLowerCase()
+            const match = SUPPORTED_LANGUAGES.find((item) => item.prefixes.some((prefix) => code.startsWith(prefix)))
+            if (match) return match.code
+        }
+    }
+
+    return SUPPORTED_LANGUAGES[0].code
+}
+
+const initialLocale = detectDefaultLocale()
+let currentLocale = $state<SupportedLocale>(initialLocale)
 let currentTranslations = $state<Record<string, Record<string, string>>>({})
 let isLoaded = $state<boolean>(false)
 
@@ -60,4 +81,4 @@ export function t<S extends SectionKey>(section: S, key: ItemKey<S>): string {
 }
 
 // Initial load for default locale
-loadLocale("en")
+loadLocale(initialLocale)

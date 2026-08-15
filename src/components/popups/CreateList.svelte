@@ -43,7 +43,7 @@
     </div>
 
     <form slot="content" method="dialog" class="dialog-form">
-        <md-outlined-text-field id="list-name-input" label="List Name" placeholder="e.g. Sunday Set" value={listName} oninput={(e: Event) => (listName = (e.target as HTMLInputElement).value)} onkeydown={keydown} required></md-outlined-text-field>
+        <md-outlined-text-field id="list-name-input" label={t("new", "list_name_label")} placeholder={t("new", "list_name_placeholder")} value={listName} oninput={(e: Event) => (listName = (e.target as HTMLInputElement).value)} onkeydown={keydown} required></md-outlined-text-field>
 
         <!-- <label style="margin-top:12px">Folder</label>
         <select style="width:100%; margin-top:4px; padding:8px;" bind:value={folderId}>
@@ -54,8 +54,8 @@
     </form>
 
     <div slot="actions">
-        <md-text-button role="button" tabindex="0" onclick={closeDialog}>Cancel</md-text-button>
-        <md-filled-button role="button" tabindex="0" onclick={createList} disabled={!listName.trim() || !folderId}>Create</md-filled-button>
+        <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "cancel")}</md-text-button>
+        <md-filled-button role="button" tabindex="0" onclick={createList} disabled={!listName.trim() || !folderId}>{t("common", "create")}</md-filled-button>
     </div>
 </md-dialog>
 

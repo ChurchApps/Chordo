@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Folders } from "$lib/models/Folder"
+    import { t } from "$lib/state/i18n.svelte"
     import { setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -61,7 +62,7 @@
         {#if totalResults > 0}
             <div class="search-results-container scroll-list">
                 {#if matchedFolders.length > 0}
-                    <div class="search-category-title">Folders ({matchedFolders.length})</div>
+                    <div class="search-category-title">{t("search", "category_folders")} ({matchedFolders.length})</div>
                     <md-list class="folders-list">
                         {#each matchedFolders as folder}
                             <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
@@ -74,7 +75,7 @@
                 {/if}
 
                 {#if matchedLists.length > 0}
-                    <div class="search-category-title">Lists ({matchedLists.length})</div>
+                    <div class="search-category-title">{t("search", "category_lists")} ({matchedLists.length})</div>
                     <md-list class="folders-list">
                         {#each matchedLists as list}
                             <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
@@ -87,7 +88,7 @@
                 {/if}
 
                 {#if matchedSongs.length > 0}
-                    <div class="search-category-title">Songs ({matchedSongs.length})</div>
+                    <div class="search-category-title">{t("search", "category_songs")} ({matchedSongs.length})</div>
                     <md-list class="folders-list">
                         {#each matchedSongs as song}
                             {@const artist = song.metadata?.artist || (song.getMetadata ? song.getMetadata("artist") : "")}
@@ -98,7 +99,7 @@
                                     <div slot="supporting-text">
                                         {artist || ""}
                                         {#if artist && key} • {/if}
-                                        {#if key}Key: {key}{/if}
+                                        {#if key}{t("common", "key")}: {key}{/if}
                                     </div>
                                 {/if}
                                 <md-icon slot="start">music_note</md-icon>
@@ -112,15 +113,15 @@
             <div class="center">
                 <div class="empty-state">
                     <span class="material-symbols-outlined empty-icon">search_off</span>
-                    <h2>No results found</h2>
-                    <p>No folders, lists, or songs match "{searchState.query}".</p>
+                    <h2>{t("search", "no_results")}</h2>
+                    <p>{searchState.query}</p>
                 </div>
             </div>
         {/if}
     {:else}
         <md-list class="folders-list scroll-list">
             <md-list-item type="button" onclick={() => openAllSongs()}>
-                <div slot="headline">All songs</div>
+                <div slot="headline">{t("pages", "all_songs")}</div>
                 <md-icon slot="start">library_music</md-icon>
                 <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
             </md-list-item>
@@ -142,8 +143,8 @@
             <div class="center">
                 <div class="empty-state">
                     <span class="material-symbols-outlined empty-icon">folder</span>
-                    <h2>No folders yet</h2>
-                    <p>Tap the + button in the bottom right to create your first folder to organize your content.</p>
+                    <h2>{t("empty_state", "no_folders_title")}</h2>
+                    <p>{t("empty_state", "no_folders_desc")}</p>
                 </div>
             </div>
         {/if}

@@ -1,10 +1,11 @@
 <script lang="ts">
     import { openConfirm } from "$lib/state/confirm.svelte"
-    import { getLocale, setLocale, type SupportedLocale } from "$lib/state/i18n.svelte"
+    import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
     import { setActivePopup } from "$lib/state/menu.svelte"
+    import { Settings } from "$lib/models/Settings"
     import storage from "$lib/storage/StorageManager.svelte"
 
-    let currentLanguage = $state<SupportedLocale>(getLocale())
+    let currentLanguage = $derived<SupportedLocale>(getLocale())
     let fileInputRef = $state<HTMLInputElement | null>(null)
     let importStatus = $state<string | null>(null)
 
@@ -13,9 +14,8 @@
     }
 
     function selectLanguage(locale: SupportedLocale) {
-        currentLanguage = locale
-        setLocale(locale)
-        storage.settings = { ...storage.settings, locale }
+        storage.settings = new Settings({ ...storage.settings, locale })
+        storage.settings.apply()
         storage.persist()
     }
 
@@ -52,31 +52,31 @@
             const parsed = JSON.parse(text)
 
             if (!parsed || (typeof parsed !== "object")) {
-                importStatus = "Invalid backup file."
+                importStatus = t("settings", "import_invalid")
                 return
             }
 
             openConfirm({
-                title: "Import Backup?",
+                title: t("settings", "import_confirm_title"),
                 message: `This will import ${parsed.songs?.length || 0} songs, ${parsed.lists?.length || 0} lists, and ${parsed.folders?.length || 0} folders.`,
-                confirmLabel: "Import",
+                confirmLabel: t("settings", "import_confirm_btn"),
                 onConfirm: () => {
                     storage.importData(parsed)
-                    importStatus = "Data imported successfully!"
+                    importStatus = t("settings", "import_success")
                     if (target) target.value = ""
                 }
             })
         } catch (err) {
             console.error("Failed to import file:", err)
-            importStatus = "Error parsing backup file."
+            importStatus = t("settings", "import_error")
         }
     }
 
     function confirmReset() {
         openConfirm({
-            title: "Reset All Data?",
-            message: "This will permanently delete all songs, folders, and lists. This action cannot be undone.",
-            confirmLabel: "Reset",
+            title: t("settings", "reset_confirm_title"),
+            message: t("settings", "reset_confirm_msg"),
+            confirmLabel: t("settings", "reset_confirm_btn"),
             isDestructive: true,
             onConfirm: () => {
                 storage.resetAll()
@@ -89,7 +89,7 @@
 <md-dialog open onclosed={closeDialog}>
     <div slot="headline" class="settings-headline">
         <span class="material-symbols-outlined settings-icon">settings</span>
-        Settings
+        {t("settings", "title")}
     </div>
 
     <div slot="content" class="settings-content">
@@ -97,25 +97,19 @@
         <div class="settings-section">
             <div class="section-title">
                 <span class="material-symbols-outlined section-icon">language</span>
-                Language
+                {t("settings", "language")}
             </div>
             <div class="language-options">
-                <button
-                    type="button"
-                    class="lang-chip"
-                    class:active={currentLanguage === "en"}
-                    onclick={() => selectLanguage("en")}
-                >
-                    English
-                </button>
-                <button
-                    type="button"
-                    class="lang-chip"
-                    class:active={currentLanguage === "no"}
-                    onclick={() => selectLanguage("no")}
-                >
-                    Norsk
-                </button>
+                {#each SUPPORTED_LANGUAGES as lang}
+                    <button
+                        type="button"
+                        class="lang-chip"
+                        class:active={currentLanguage === lang.code}
+                        onclick={() => selectLanguage(lang.code)}
+                    >
+                        {lang.label}
+                    </button>
+                {/each}
             </div>
         </div>
 
@@ -125,7 +119,7 @@
         <div class="settings-section">
             <div class="section-title">
                 <span class="material-symbols-outlined section-icon">database</span>
-                Data Management
+                {t("settings", "data_management")}
             </div>
 
             <input
@@ -139,12 +133,12 @@
             <div class="settings-actions">
                 <md-outlined-button onclick={exportBackup}>
                     <span class="material-symbols-outlined" slot="icon">download</span>
-                    Export All Data
+                    {t("settings", "export_data")}
                 </md-outlined-button>
 
                 <md-outlined-button onclick={triggerImport}>
                     <span class="material-symbols-outlined" slot="icon">upload</span>
-                    Import All Data
+                    {t("settings", "import_data")}
                 </md-outlined-button>
 
                 {#if importStatus}
@@ -153,14 +147,14 @@
 
                 <md-text-button class="danger-btn" onclick={confirmReset}>
                     <span class="material-symbols-outlined" slot="icon">delete_forever</span>
-                    Reset All Data
+                    {t("settings", "reset_data")}
                 </md-text-button>
             </div>
         </div>
     </div>
 
     <div slot="actions">
-        <md-filled-button role="button" tabindex="0" onclick={closeDialog}>Done</md-filled-button>
+        <md-filled-button role="button" tabindex="0" onclick={closeDialog}>{t("settings", "done")}</md-filled-button>
     </div>
 </md-dialog>
 

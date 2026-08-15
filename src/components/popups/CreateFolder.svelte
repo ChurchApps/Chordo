@@ -42,13 +42,13 @@
     </div>
 
     <form slot="content" method="dialog" class="dialog-form">
-        <md-outlined-text-field id="folder-name-input" label="Folder Name" placeholder="e.g. Worship" value={folderName} oninput={(e: Event) => (folderName = (e.target as HTMLInputElement).value)} onkeydown={keydown} required
+        <md-outlined-text-field id="folder-name-input" label={t("new", "folder_name_label")} placeholder={t("new", "folder_name_placeholder")} value={folderName} oninput={(e: Event) => (folderName = (e.target as HTMLInputElement).value)} onkeydown={keydown} required
         ></md-outlined-text-field>
     </form>
 
     <div slot="actions">
-        <md-text-button role="button" tabindex="0" onclick={closeDialog}>Cancel</md-text-button>
-        <md-filled-button role="button" tabindex="0" onclick={createFolder} disabled={!folderName.trim()}>Create</md-filled-button>
+        <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "cancel")}</md-text-button>
+        <md-filled-button role="button" tabindex="0" onclick={createFolder} disabled={!folderName.trim()}>{t("common", "create")}</md-filled-button>
     </div>
 </md-dialog>
 

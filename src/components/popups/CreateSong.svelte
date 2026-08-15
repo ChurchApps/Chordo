@@ -50,15 +50,15 @@
     </div>
 
     <form slot="content" id="song-form" method="dialog" class="dialog-form">
-        <md-outlined-text-field id="song-name-input" label="Song Title" placeholder="e.g. Amazing Grace" value={songName} oninput={(e: Event) => (songName = (e.target as HTMLInputElement).value)} onkeydown={keydown} required>
+        <md-outlined-text-field id="song-name-input" label={t("new", "song_title_label")} placeholder={t("new", "song_title_placeholder")} value={songName} oninput={(e: Event) => (songName = (e.target as HTMLInputElement).value)} onkeydown={keydown} required>
         </md-outlined-text-field>
     </form>
 
     <div slot="actions">
         <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <md-text-button role="button" tabindex="0" onclick={closeDialog}>Cancel</md-text-button>
+        <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "cancel")}</md-text-button>
         <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-        <md-filled-button role="button" tabindex="0" onclick={createSong} disabled={!songName.trim()}>Create</md-filled-button>
+        <md-filled-button role="button" tabindex="0" onclick={createSong} disabled={!songName.trim()}>{t("common", "create")}</md-filled-button>
     </div>
 </md-dialog>
 

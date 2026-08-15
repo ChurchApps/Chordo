@@ -1,5 +1,6 @@
 <script lang="ts">
     import { extractBaseKey, getNotePitchIndex, getScaleForOriginalKey, transposeNote } from "$lib/chords/transpose"
+    import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, setActivePopup } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
@@ -69,7 +70,7 @@
     <div slot="headline">
         <div class="dialog-header">
             <span class="material-symbols-outlined headline-icon">swap_vert</span>
-            <span>Transpose</span>
+            <span>{t("transpose", "title")}</span>
         </div>
     </div>
 
@@ -81,10 +82,10 @@
             </md-filled-tonal-button>
 
             <div class="current-key-display">
-                <span class="key-label">Key</span>
+                <span class="key-label">{t("transpose", "key")}</span>
                 <span class="key-value">{displayedSelectedKey}</span>
                 {#if originalKey && selectedPitchIndex !== originalPitchIndex}
-                    <span class="original-hint">Original: {originalKey}</span>
+                    <span class="original-hint">{t("transpose", "original")}: {originalKey}</span>
                 {/if}
             </div>
 
@@ -107,8 +108,8 @@
     </div>
 
     <div slot="actions">
-        <md-text-button onclick={resetToOriginal}>Reset</md-text-button>
-        <md-filled-button onclick={closeDialog}>Done</md-filled-button>
+        <md-text-button onclick={resetToOriginal}>{t("common", "reset")}</md-text-button>
+        <md-filled-button onclick={closeDialog}>{t("common", "done")}</md-filled-button>
     </div>
 </md-dialog>
 

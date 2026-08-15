@@ -3,6 +3,7 @@
     import { METADATA_CONFIGS } from "$lib/chords/metadata"
     import { extractBaseKey, isValidKey } from "$lib/chords/transpose"
     import type { SongKeys } from "$lib/models/Song"
+    import { t } from "$lib/state/i18n.svelte"
     import { goBack, menuState, updatePageTitle } from "$lib/state/menu.svelte"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -121,7 +122,7 @@
             urlInput = ""
         } catch (err: any) {
             console.error("Failed to pull webpage content:", err)
-            pullError = err?.message || "Could not pull chords from URL."
+            pullError = err?.message || t("song_edit", "pull_error_default")
         } finally {
             isPulling = false
         }
@@ -136,7 +137,7 @@
 
         if (hasPdf) {
             isConvertingPdf = true
-            conversionMessage = "Preparing PDF..."
+            conversionMessage = t("song_edit", "preparing_pdf")
             conversionFileName = files[0].name
             conversionProgress = 0
             isIndeterminate = true
@@ -178,7 +179,7 @@
         {#if song}
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <!-- Title -->
-                <md-outlined-text-field id="song-name-input" label="Title" placeholder="e.g. Amazing Grace" value={song.name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;"> </md-outlined-text-field>
+                <md-outlined-text-field id="song-name-input" label={t("song_edit", "title")} placeholder={t("song_edit", "title_placeholder")} value={song.name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;"> </md-outlined-text-field>
             </div>
 
             <!-- Dynamic Metadata Inputs Grid (includes Artist, Key, Tempo, Time, Album, Year, Composer, Copyright, Capo) -->
@@ -193,7 +194,7 @@
             {#if song.url}
                 <div class="source-url-display">
                     <md-icon style="font-size: 18px; color: #6750a4;">link</md-icon>
-                    <span class="url-label">Source:</span>
+                    <span class="url-label">{t("song_edit", "source")}</span>
                     <a href={song.url} target="_blank" rel="noopener noreferrer" class="url-link">
                         {trimUrl(song.url)}
                         <md-icon style="font-size: 14px; margin-left: 2px;">open_in_new</md-icon>
@@ -206,8 +207,8 @@
                 <div class="url-pull-container">
                     <md-outlined-text-field
                         id="song-url-input"
-                        label="Import from URL"
-                        placeholder="e.g. https://example.com/song-chords"
+                        label={t("song_edit", "import_url")}
+                        placeholder={t("song_edit", "import_url_placeholder")}
                         value={urlInput}
                         oninput={(e: Event) => (urlInput = (e.target as HTMLInputElement).value)}
                         onkeydown={(e: KeyboardEvent) => e.key === "Enter" && pullWebpageContent()}
@@ -218,7 +219,7 @@
 
                     <md-filled-button type="button" onclick={pullWebpageContent} disabled={isPulling || !urlInput.trim()}>
                         <md-icon slot="icon">{isPulling ? "sync" : "download"}</md-icon>
-                        {isPulling ? "Pulling..." : "Pull"}
+                        {isPulling ? t("song_edit", "pulling") : t("song_edit", "pull")}
                     </md-filled-button>
                 </div>
 
@@ -229,8 +230,8 @@
 
             <md-outlined-text-field
                 type="textarea"
-                label="Content"
-                placeholder={"[G]Amazing [G7]grace\nHow [C]sweet the [G]sound\n..."}
+                label={t("song_edit", "content")}
+                placeholder={t("song_edit", "content_placeholder")}
                 rows={8}
                 value={song.content}
                 oninput={(e: Event) => updateValue(e, "content")}
@@ -242,10 +243,10 @@
 
             {#if song.images && song.images.length > 0}
                 <div class="images-section-header">
-                    <span class="section-title">Media Pages ({song.images.length})</span>
+                    <span class="section-title">{t("song_edit", "media_pages")} ({song.images.length})</span>
                     <md-outlined-button type="button" onclick={() => fileInputEl?.click()}>
                         <md-icon slot="icon">add_photo_alternate</md-icon>
-                        Add Media / PDF
+                        {t("song_edit", "add_media")}
                     </md-outlined-button>
                 </div>
 
@@ -253,7 +254,7 @@
                     {#each imageWebUrls as imageSrc, idx}
                         <div class="image-edit-card">
                             <div class="card-header">
-                                <span class="page-badge">Page {idx + 1}</span>
+                                <span class="page-badge">{t("song_edit", "page")} {idx + 1}</span>
                                 <div class="card-actions">
                                     <md-icon-button type="button" onclick={() => rotateSongImage(song, idx)}>
                                         <md-icon>rotate_right</md-icon>
@@ -270,7 +271,7 @@
                                 </div>
                             </div>
                             <div class="card-preview">
-                                <img src={imageSrc} alt={"Page " + (idx + 1)} />
+                                <img src={imageSrc} alt={t("song_edit", "page") + " " + (idx + 1)} />
                             </div>
                         </div>
                     {/each}
@@ -279,7 +280,7 @@
                 <div style="margin-top: 10px;">
                     <md-outlined-button type="button" onclick={() => fileInputEl?.click()}>
                         <md-icon slot="icon">add_photo_alternate</md-icon>
-                        Add Media / PDF Pages
+                        {t("song_edit", "add_media_pages")}
                     </md-outlined-button>
                 </div>
             {/if}
@@ -287,12 +288,12 @@
     </div>
 </main>
 
-<ProgressDialog open={isConvertingPdf} title="Converting PDF" icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
+<ProgressDialog open={isConvertingPdf} title={t("song_edit", "converting_pdf_title")} icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
 
-<ProgressDialog open={isPulling} title="Pulling Song Content" icon="download" detail={urlInput} message="Fetching webpage and converting chords..." progress={0} indeterminate={true} />
+<ProgressDialog open={isPulling} title={t("song_edit", "pulling_content_title")} icon="download" detail={urlInput} message={t("song_edit", "fetching_webpage")} progress={0} indeterminate={true} />
 
 <div class="fab-container">
-    <md-fab aria-label="Done" onclick={goBack}>
+    <md-fab aria-label={t("common", "done")} onclick={goBack}>
         <span class="material-symbols-outlined" slot="icon">check</span>
     </md-fab>
 </div>
