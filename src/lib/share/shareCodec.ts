@@ -29,85 +29,46 @@ export type SharedListData = {
 
 export type SharePayload = { type: "song"; song: SharedSongData } | { type: "list"; list: SharedListData }
 
-/**
- * WIRE SCHEMAS (Version 2 - Positional Tuples)
+/*
+ * WIRE SCHEMAS (Version 1 - Positional Tuples with Base64URL)
  *
  * Song Tuple:
  * [0: name, 1: content, 2: id?, 3: metadata?, 4: playbackUrl?, 5: url?, 6: lastTransposed?, 7: createdAt?]
  *
  * List Item Tuple:
- * [0: songIndexInArray, 1: transposed?]
+ * [0: songIndexInCatalog, 1: transposed?]
  *
  * Full Share Payload:
- * Single Song: [2 (version), "s", SongTuple]
- * List:        [2 (version), "l", id?, name, createdAt?, SongTuple[], ListItemTuple[]]
- *
- * Future Algorithm Note:
- * If further compression is needed, consider Brotli / Zstandard (zstd) via WASM or fflate
- * which can yield an additional 15-30% reduction over deflate-raw.
+ * Single Song: [1, "s", SongTuple]
+ * List:        [1, "l", id?, name, createdAt?, SongTuple[], ListItemTuple[]]
  */
 
-// --- 2. Direct Base64URL Conversion Tables ---
-
-const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-const B64_LOOKUP = new Uint8Array(256)
-for (let i = 0; i < B64_CHARS.length; i++) {
-    B64_LOOKUP[B64_CHARS.charCodeAt(i)] = i
-}
+// --- Base64URL Helpers ---
 
 export function uint8ArrayToBase64Url(bytes: Uint8Array): string {
-    const len = bytes.length
-    let base64url = ""
-    let i = 0
-
-    for (; i + 2 < len; i += 3) {
-        const b0 = bytes[i]
-        const b1 = bytes[i + 1]
-        const b2 = bytes[i + 2]
-        base64url += B64_CHARS[b0 >> 2] + B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)] + B64_CHARS[((b1 & 15) << 2) | (b2 >> 6)] + B64_CHARS[b2 & 63]
+    let binary = ""
+    const len = bytes.byteLength
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i])
     }
-
-    if (i < len) {
-        const b0 = bytes[i]
-        base64url += B64_CHARS[b0 >> 2]
-        if (i + 1 < len) {
-            const b1 = bytes[i + 1]
-            base64url += B64_CHARS[((b0 & 3) << 4) | (b1 >> 4)] + B64_CHARS[(b1 & 15) << 2]
-        } else {
-            base64url += B64_CHARS[(b0 & 3) << 4]
-        }
-    }
-
-    return base64url
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }
 
 export function base64UrlToUint8Array(base64Url: string): Uint8Array {
-    const len = base64Url.length
-    if (len === 0) return new Uint8Array(0)
-
-    let validLen = len
-    const bufferLen = (validLen * 3) >> 2
-    const bytes = new Uint8Array(bufferLen)
-    let byteIdx = 0
-    let i = 0
-
-    while (i < validLen) {
-        const c0 = B64_LOOKUP[base64Url.charCodeAt(i++)]
-        const c1 = i < validLen ? B64_LOOKUP[base64Url.charCodeAt(i++)] : 0
-        const c2 = i < validLen ? B64_LOOKUP[base64Url.charCodeAt(i++)] : 0
-        const c3 = i < validLen ? B64_LOOKUP[base64Url.charCodeAt(i++)] : 0
-
-        bytes[byteIdx++] = (c0 << 2) | (c1 >> 4)
-        if (byteIdx < bufferLen) bytes[byteIdx++] = ((c1 & 15) << 4) | (c2 >> 2)
-        if (byteIdx < bufferLen) bytes[byteIdx++] = ((c2 & 3) << 6) | c3
+    let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
+    while (base64.length % 4 !== 0) {
+        base64 += "="
     }
-
-    return bytes.subarray(0, byteIdx)
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i)
+    }
+    return bytes
 }
 
-// --- 5. URL Prefix & WWW Compression Helpers ---
+// --- URL Normalization & Prefix Stripping ---
 
-// All prefixes defined without protocol or www.
 const URL_PREFIX_MAP: [string, string][] = [
     ["open.spotify.com/track/", "sp:"],
     ["youtube.com/watch?v=", "yt:"],
@@ -120,12 +81,11 @@ const URL_PREFIX_MAP: [string, string][] = [
 
 function compressUrl(url?: string): string | undefined {
     if (!url) return undefined
-    // Strip protocol and www. first
     const normalized = url.trim().replace(/^https?:\/\/(www\.)?/, "")
 
-    for (const [prefixDomain, shortCode] of URL_PREFIX_MAP) {
-        if (normalized.startsWith(prefixDomain)) {
-            return `${shortCode}${normalized.slice(prefixDomain.length)}`
+    for (const [domain, code] of URL_PREFIX_MAP) {
+        if (normalized.startsWith(domain)) {
+            return `${code}${normalized.slice(domain.length)}`
         }
     }
     return normalized
@@ -134,35 +94,33 @@ function compressUrl(url?: string): string | undefined {
 function expandUrl(shortUrl?: string): string | undefined {
     if (!shortUrl) return undefined
 
-    for (const [prefixDomain, shortCode] of URL_PREFIX_MAP) {
-        if (shortUrl.startsWith(shortCode)) {
-            return `https://${prefixDomain}${shortUrl.slice(shortCode.length)}`
+    for (const [domain, code] of URL_PREFIX_MAP) {
+        if (shortUrl.startsWith(code)) {
+            return `https://${domain}${shortUrl.slice(code.length)}`
         }
     }
 
-    // Reconstruct standard HTTPS URL if not starting with a protocol
     if (!shortUrl.startsWith("http://") && !shortUrl.startsWith("https://")) {
         return `https://${shortUrl}`
     }
     return shortUrl
 }
 
-// --- 3. Smart Text Trimming ---
+// --- Chord Content Normalizer ---
 
 export function trimChordContent(content: string): string {
     if (!content) return ""
     return content
         .replace(/\r\n|\r/g, "\n")
-        .replace(/\u00A0/g, " ") // Normalize non-breaking spaces
+        .replace(/\u00A0/g, " ") // Convert non-breaking spaces
         .split("\n")
         .map((line) => line.trimEnd())
         .join("\n")
-        .replace(/\n{3,}/g, "\n\n") // Collapse excessive blank lines
-        .replace(/^\n+/, "")
-        .replace(/\n+$/, "")
+        .replace(/\n{3,}/g, "\n\n") // Collapse excess blank lines
+        .trim()
 }
 
-// --- Compression Streams ---
+// --- Native Compression Streams ---
 
 export async function compressString(input: string): Promise<string> {
     const rawBytes = new TextEncoder().encode(input)
@@ -191,7 +149,7 @@ export async function decompressString(encoded: string): Promise<string> {
     return new TextDecoder().decode(bytes)
 }
 
-// --- 4. Tuple Conversion Helpers ---
+// --- Positional Tuple Mappers ---
 
 type SongTuple = [
     string, // 0: name
@@ -246,7 +204,7 @@ function tupleToSong(tuple: any[]): SharedSongData {
     }
 }
 
-// --- Sharing Encode / Decode ---
+// --- Sharing Encoders & Decoders ---
 
 export async function encodeSongShare(song: Song | SharedSongData): Promise<string> {
     const songData: SharedSongData = {
@@ -260,7 +218,7 @@ export async function encodeSongShare(song: Song | SharedSongData): Promise<stri
         createdAt: song.createdAt
     }
 
-    const payload = [2, "s", songToTuple(songData)]
+    const payload = [1, "s", songToTuple(songData)]
     return compressString(JSON.stringify(payload))
 }
 
@@ -301,7 +259,7 @@ export async function encodeListShare(list: List, allSongs: Song[]): Promise<str
         .filter(Boolean)
 
     // Payload: [version, type, id, name, createdAt, songsCatalog, listItems]
-    const payload = [2, "l", list.id || "", list.name, list.createdAt || 0, catalogTuples, listItems]
+    const payload = [1, "l", list.id || "", list.name, list.createdAt || 0, catalogTuples, listItems]
     return compressString(JSON.stringify(payload))
 }
 
@@ -311,88 +269,37 @@ export async function decodeSharePayload(encoded: string): Promise<SharePayload 
         const jsonStr = await decompressString(encoded.trim())
         const data = JSON.parse(jsonStr)
 
-        // Version 2 decoding (Tuple format)
-        if (Array.isArray(data) && data[0] === 2) {
-            const [, type] = data
+        // Tuple decoding
+        const [, type] = data
 
-            if (type === "s" && Array.isArray(data[2])) {
-                return {
-                    type: "song",
-                    song: tupleToSong(data[2])
-                }
-            }
-
-            if (type === "l") {
-                const [, , id, name, createdAt, rawSongs, rawItems] = data
-                const songs = (rawSongs || []).map(tupleToSong)
-
-                const listItems: SharedListSongItem[] = (rawItems || []).map((item: any[]) => {
-                    const songIndex = item[0]
-                    const targetSong = songs[songIndex]
-                    return {
-                        songId: targetSong ? targetSong.id || `song-${songIndex}` : "",
-                        transposed: item[1] || undefined
-                    }
-                })
-
-                return {
-                    type: "list",
-                    list: {
-                        id: id || undefined,
-                        name: name || "Untitled List",
-                        createdAt: createdAt || undefined,
-                        songs,
-                        listItems
-                    }
-                }
+        if (type === "s" && Array.isArray(data[2])) {
+            return {
+                type: "song",
+                song: tupleToSong(data[2])
             }
         }
 
-        // Backward compatibility for Version 1 payloads
-        if (data && typeof data === "object") {
-            if (data.t === "s" && data.s) {
+        if (type === "l") {
+            const [, , id, name, createdAt, rawSongs, rawItems] = data
+            const songs = (rawSongs || []).map(tupleToSong)
+
+            const listItems: SharedListSongItem[] = (rawItems || []).map((item: any[]) => {
+                const songIndex = item[0]
+                const targetSong = songs[songIndex]
                 return {
-                    type: "song",
-                    song: {
-                        id: data.s.i,
-                        name: data.s.n || "Untitled",
-                        content: data.s.c || "",
-                        metadata: data.s.m || {},
-                        playbackUrl: data.s.p,
-                        url: data.s.u,
-                        lastTransposed: data.s.k,
-                        createdAt: data.s.d
-                    }
+                    songId: targetSong ? targetSong.id || `song-${songIndex}` : "",
+                    transposed: item[1] || undefined
                 }
-            }
+            })
 
-            if (data.t === "l" && Array.isArray(data.s)) {
-                const songs = data.s.map((compact: any) => ({
-                    id: compact.i,
-                    name: compact.n || "Untitled",
-                    content: compact.c || "",
-                    metadata: compact.m || {},
-                    playbackUrl: compact.p,
-                    url: compact.u,
-                    lastTransposed: compact.k,
-                    createdAt: compact.d
-                }))
-
-                const listItems: SharedListSongItem[] = (data.li || []).map((arr: any) => ({
-                    songId: Array.isArray(arr) ? arr[0] : arr.songId,
-                    transposed: (Array.isArray(arr) ? arr[1] : arr.transposed) || undefined,
-                    lastKnownName: (Array.isArray(arr) ? arr[2] : arr.lastKnownName) || undefined
-                }))
-
-                return {
-                    type: "list",
-                    list: {
-                        id: data.i,
-                        name: data.n || "Untitled List",
-                        createdAt: data.d,
-                        songs,
-                        listItems
-                    }
+            return {
+                type: "list",
+                list: {
+                    id: id || undefined,
+                    name: name || "Untitled List",
+                    createdAt: createdAt || undefined,
+                    songs,
+                    listItems
                 }
             }
         }
