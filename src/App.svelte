@@ -17,6 +17,7 @@
     import Page from "./components/pages/Page.svelte"
     import Popup from "./components/popups/Popup.svelte"
     import PwaReloadPrompt from "./components/header/PwaReloadPrompt.svelte"
+    import PlaybackBar from "./components/playback/PlaybackBar.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
 
     onMount(() => {
@@ -29,6 +30,8 @@
     <Header />
 
     <Page />
+
+    <PlaybackBar />
 
     <Popup />
 

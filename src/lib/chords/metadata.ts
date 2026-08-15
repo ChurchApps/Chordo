@@ -8,6 +8,7 @@ export interface SongMetadata {
     copyright?: string
     composer?: string
     capo?: string
+    spotify?: string
     [key: string]: string | undefined
 }
 
@@ -78,11 +79,21 @@ export const METADATA_CONFIGS: MetadataConfig[] = [
 // Central mapping of any alias/directive/unbraced key to standard SongMetadata key
 export const METADATA_ALIAS_MAP: Record<string, Extract<keyof SongMetadata, string> | "title"> = {
     title: "title",
-    t: "title"
+    t: "title",
+    playback: "playback",
+    playback_url: "playback",
+    playbackurl: "playback",
+    spotify: "playback",
+    spotify_url: "playback",
+    spotifyurl: "playback",
+    youtube: "playback",
+    youtube_url: "playback",
+    youtubeurl: "playback",
+    audio: "playback"
 }
 
 export const ALL_METADATA_ALIASES = new Set<string>([
-    "title", "t"
+    "title", "t", "playback", "playback_url", "playbackurl", "spotify", "spotify_url", "spotifyurl", "youtube", "youtube_url", "youtubeurl", "audio"
 ])
 
 for (const cfg of METADATA_CONFIGS) {

@@ -7,6 +7,8 @@
     import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
+    import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
+    import { parsePlaybackUrl } from "$lib/utils/playback"
     import storage from "$lib/storage/StorageManager.svelte"
     import { shareList, shareSong } from "$lib/utils/share"
     import { pages } from "../pages/pages"
@@ -163,6 +165,27 @@
                 </md-icon-button>
             {:else}
                 {#if menuState.activePage === "song"}
+                    {@const activePlaybackUrl = currentSong?.playbackUrl || currentSong?.spotify || currentSong?.getMetadata("playback") || currentSong?.getMetadata("spotify")}
+                    {@const activePlaybackInfo = parsePlaybackUrl(activePlaybackUrl)}
+                    {#if activePlaybackInfo && currentSong}
+                        <md-icon-button
+                            aria-label={t("song_edit", "play")}
+                            title={t("song_edit", "play")}
+                            onclick={() => togglePlayback(currentSong.id)}
+                        >
+                            {#if activePlaybackInfo.provider === "spotify"}
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill={playbackState.isOpen ? "#1DB954" : "currentColor"}>
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"/>
+                                </svg>
+                            {:else if activePlaybackInfo.provider === "youtube"}
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill={playbackState.isOpen ? "#FF0000" : "currentColor"}>
+                                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                </svg>
+                            {:else}
+                                <span class="material-symbols-outlined" style={playbackState.isOpen ? "color: var(--md-sys-color-primary, #6750a4);" : ""}>play_circle</span>
+                            {/if}
+                        </md-icon-button>
+                    {/if}
                     <div class="action-btn-wrapper">
                         <md-icon-button aria-label="Transpose" disabled={!canTranspose} onclick={() => setActivePopup("transpose")}>
                             <span class="material-symbols-outlined">swap_vert</span>

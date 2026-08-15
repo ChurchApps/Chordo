@@ -1,6 +1,7 @@
 import storage from "../storage/StorageManager.svelte"
 import { FileSystem } from "../storage/FileSystem"
 import { getId, sortByName, type NonFunctionProperties } from "../utils/common"
+import { cleanPlaybackUrl } from "../utils/playback"
 import { METADATA_CONFIGS, type SongMetadata } from "../chords/metadata"
 
 export type { SongMetadata }
@@ -32,6 +33,8 @@ export class Song {
     name: string // title
     content: string
     url: string
+    playbackUrl?: string
+    spotify?: string
     createdAt: number
     lastTransposed?: string
     drawings: string[]
@@ -43,6 +46,9 @@ export class Song {
         this.name = data.name ?? "Untitled"
         this.content = data.content ?? ""
         this.url = data.url ?? ""
+        const rawPlayback = data.playbackUrl ?? data.spotify ?? data.metadata?.playback ?? data.metadata?.spotify ?? ""
+        this.playbackUrl = cleanPlaybackUrl(rawPlayback)
+        this.spotify = this.playbackUrl
         this.createdAt = data.createdAt ?? Date.now()
         this.lastTransposed = data.lastTransposed
         this.drawings = data.drawings ?? []
@@ -57,11 +63,21 @@ export class Song {
     getMetadata(): SongMetadata
     getMetadata(key: string): string
     getMetadata(key?: string): string | SongMetadata {
+        if (key === "playback" || key === "playbackUrl") return this.playbackUrl || this.metadata.playback || this.metadata.playbackUrl || this.spotify || ""
+        if (key === "spotify") return this.playbackUrl || this.spotify || this.metadata.spotify || ""
         if (key) return this.metadata[key] || ""
         return this.metadata
     }
 
     setMetadata(key: string, value: string): void {
+        if (key === "playback" || key === "playbackUrl" || key === "spotify" || key === "youtube") {
+            const cleaned = cleanPlaybackUrl(value)
+            this.playbackUrl = cleaned
+            this.spotify = cleaned
+            this.metadata[key] = cleaned
+            this.metadata.playback = cleaned
+            return
+        }
         this.metadata[key] = value
     }
 

@@ -90,7 +90,11 @@
         "preparing_pdf": "Forbereder PDF...",
         "pulling_content_title": "Henter sanginnhold",
         "fetching_webpage": "Henter nettside og konverterer akkorder...",
-        "pull_error_default": "Kunne ikke hente akkorder fra URL-en."
+        "pull_error_default": "Kunne ikke hente akkorder fra URL-en.",
+        "playback_url": "Avspillings-URL",
+        "playback_url_placeholder": "f.eks. Spotify- eller YouTube-lenke...",
+        "play": "Spill av",
+        "open_external": "Åpne i ekstern app"
     },
     "transpose": {
         "title": "Transponer",

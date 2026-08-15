@@ -8,10 +8,13 @@
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
     import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "$lib/utils/mediaManager"
+    import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))
+    let playbackUrlValue = $derived(song?.playbackUrl || song?.spotify || song?.getMetadata("playback") || song?.getMetadata("spotify") || "")
+    let playbackInfo = $derived(parsePlaybackUrl(playbackUrlValue))
 
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
@@ -60,6 +63,14 @@
             }
         }
 
+        const rawPlayback = metadata.playback || metadata.spotify || metadata.youtube
+        if (rawPlayback && !song.playbackUrl) {
+            const cleaned = cleanPlaybackUrl(rawPlayback)
+            song.playbackUrl = cleaned
+            song.spotify = cleaned
+            song.setMetadata("playback", cleaned)
+        }
+
         if (!song.getMetadata("key") || !isValidKey(song.getMetadata("key"))) {
             const detectedKey = extractBaseKey(rawText, metadata.key)
             if (detectedKey) song.setMetadata("key", detectedKey)
@@ -90,7 +101,26 @@
     function updateMetadataValue(e: Event, metaKey: string) {
         const value = (e.target as HTMLInputElement).value
         if (!song) return
-        song.setMetadata(metaKey, value)
+        const cleaned = metaKey === "playback" || metaKey === "spotify" ? cleanPlaybackUrl(value) : value
+        song.setMetadata(metaKey, cleaned)
+        if (metaKey === "playback" || metaKey === "spotify") {
+            song.playbackUrl = cleaned
+            song.spotify = cleaned
+        }
+        storage.persist()
+    }
+
+    function updatePlaybackValue(e: Event) {
+        const input = e.target as HTMLInputElement
+        const value = input.value
+        if (!song) return
+        const cleaned = cleanPlaybackUrl(value)
+        if (cleaned && cleaned !== value && parsePlaybackUrl(value)) {
+            input.value = cleaned
+        }
+        song.playbackUrl = cleaned
+        song.spotify = cleaned
+        song.setMetadata("playback", cleaned)
         storage.persist()
     }
 
@@ -115,6 +145,14 @@
                 if (val && !song.getMetadata(cfg.key)) {
                     song.setMetadata(cfg.key, val)
                 }
+            }
+
+            const rawPlayback = (result as any).playback || (result as any).spotify
+            if (rawPlayback && !song.playbackUrl) {
+                const cleaned = cleanPlaybackUrl(rawPlayback)
+                song.playbackUrl = cleaned
+                song.spotify = cleaned
+                song.setMetadata("playback", cleaned)
             }
 
             storage.updateSong(song)
@@ -188,6 +226,41 @@
                     <md-outlined-text-field id={"song-meta-" + cfg.key} label={cfg.label} placeholder={cfg.placeholder} value={song.getMetadata(cfg.key)} oninput={(e: Event) => updateMetadataValue(e, cfg.key)} style="flex: 1; min-width: 140px;">
                     </md-outlined-text-field>
                 {/each}
+            </div>
+
+            <!-- Playback URL Section -->
+            <div class="playback-section">
+                <div class="playback-input-row">
+                    <md-outlined-text-field
+                        id="song-playback-input"
+                        label={t("song_edit", "playback_url")}
+                        placeholder={t("song_edit", "playback_url_placeholder")}
+                        value={playbackUrlValue}
+                        oninput={updatePlaybackValue}
+                        style="flex: 1;"
+                    >
+                        <span slot="leading-icon" style="display: inline-flex; align-items: center; justify-content: center;">
+                            {#if playbackInfo?.provider === "spotify"}
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DB954">
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"/>
+                                </svg>
+                            {:else if playbackInfo?.provider === "youtube"}
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#FF0000">
+                                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                </svg>
+                            {:else}
+                                <md-icon>play_circle</md-icon>
+                            {/if}
+                        </span>
+                    </md-outlined-text-field>
+
+                    {#if playbackUrlValue.trim()}
+                        <md-outlined-button type="button" onclick={() => openExternalPlayback(playbackUrlValue)} title={t("song_edit", "open_external")}>
+                            <md-icon slot="icon">open_in_new</md-icon>
+                            {playbackInfo?.provider === "spotify" ? "Spotify" : playbackInfo?.provider === "youtube" ? "YouTube" : "Link"}
+                        </md-outlined-button>
+                    {/if}
+                </div>
             </div>
 
             <!-- Existing Source URL Display -->
@@ -304,6 +377,19 @@
         flex-wrap: wrap;
         gap: 10px;
         margin-top: 10px;
+    }
+
+    .playback-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .playback-input-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
     .source-url-display {

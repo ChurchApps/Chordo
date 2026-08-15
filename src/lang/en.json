@@ -90,7 +90,11 @@
         "preparing_pdf": "Preparing PDF...",
         "pulling_content_title": "Pulling Song Content",
         "fetching_webpage": "Fetching webpage and converting chords...",
-        "pull_error_default": "Could not pull chords from URL."
+        "pull_error_default": "Could not pull chords from URL.",
+        "playback_url": "Playback URL",
+        "playback_url_placeholder": "e.g. Spotify or YouTube link...",
+        "play": "Play",
+        "open_external": "Open link in external app"
     },
     "transpose": {
         "title": "Transpose",
