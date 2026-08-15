@@ -508,12 +508,6 @@
         flex-shrink: 0;
     }
 
-    /* Dialog interaction override for transparent backdrop container */
-    .m3-dialog {
-        pointer-events: auto;
-        z-index: 1000;
-    }
-
     /* Responsive adjustments for narrow screens */
     @media (max-width: 480px) {
         .m3-bottom-app-bar {

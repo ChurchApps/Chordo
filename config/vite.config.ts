@@ -13,7 +13,19 @@ export default defineConfig({
     publicDir: path.resolve(rootDir, "public"),
     build: {
         outDir: path.resolve(rootDir, "dist"),
-        emptyOutDir: true
+        emptyOutDir: true,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes("node_modules/@material/web")) {
+                        return "material-web"
+                    }
+                    if (id.includes("node_modules/pdfjs-dist")) {
+                        return "pdfjs"
+                    }
+                }
+            }
+        }
     },
     resolve: {
         alias: {

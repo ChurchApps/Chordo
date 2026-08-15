@@ -1,4 +1,4 @@
-import enJson from "../../lang/en.json"
+import type enJson from "../../lang/en.json"
 
 export type TranslationsSchema = typeof enJson
 

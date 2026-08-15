@@ -279,7 +279,7 @@
 
 <main>
     <div class="slider-viewport">
-        <div class="slider" bind:this={sliderEl} onpointerdown={pointerDown} onpointermove={pointerMove} onpointerup={pointerUp} onpointercancel={pointerUp} onlostpointercapture={pointerUp} style="touch-action: pan-y;">
+        <div class="slider" role="region" aria-label="Song carousel" bind:this={sliderEl} onpointerdown={pointerDown} onpointermove={pointerMove} onpointerup={pointerUp} onpointercancel={pointerUp} onlostpointercapture={pointerUp} style="touch-action: pan-y;">
             {#each songs as songItem, i}
                 {@const songId = songItem?.songId ?? null}
                 {@const song = storage.getSongById(songId, storage.songs)}

@@ -12,7 +12,7 @@
         semitones,
         showMeta = false,
         numColumns = 1,
-        lightMode = false,
+        lightMode = false, // do some optimization to the rendering if light mode
         fitParent = true
     } = $props<{
         songId: string | null
@@ -23,9 +23,6 @@
         lightMode?: boolean
         fitParent?: boolean
     }>()
-
-    // do some optimization to the rendering if light mode
-    lightMode
 
     let song = $derived(storage.getSongById(songId, storage.songs))
 

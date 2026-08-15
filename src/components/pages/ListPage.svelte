@@ -133,6 +133,7 @@
                 {@const artist = songItem.song?.metadata?.artist || (songItem.song?.getMetadata ? songItem.song.getMetadata("artist") : "")}
                 {@const key = songItem.transposed || songItem.song?.metadata?.key || (songItem.song?.getMetadata ? songItem.song.getMetadata("key") : "")}
                 <div
+                    role="listitem"
                     class="song-item-wrapper"
                     class:ghost={isGhost}
                     transition:slide={{ duration: 250 }}
