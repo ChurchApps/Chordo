@@ -1,6 +1,7 @@
 import { Folder } from "../models/Folder"
 import { List } from "../models/List"
 import { Song } from "../models/Song"
+import { setLocale } from "../state/i18n.svelte"
 import type { NonFunctionProperties } from "../utils/common"
 import { FileSystem } from "./FileSystem"
 
@@ -76,14 +77,39 @@ class StorageManager {
         const lists = (parsed.lists || []).map((a) => new List(a))
 
         this.settings = parsed.settings || {}
+        if ((this.settings as any).locale) {
+            setLocale((this.settings as any).locale)
+        }
         this.folders = folders
         this.lists = lists
         this.songs = songs
     }
 
+    importData(data: Partial<AppData>) {
+        if (data.folders && Array.isArray(data.folders)) {
+            this.folders = data.folders.map((f) => new Folder(f as any))
+        }
+        if (data.lists && Array.isArray(data.lists)) {
+            this.lists = data.lists.map((l) => new List(l as any))
+        }
+        if (data.songs && Array.isArray(data.songs)) {
+            this.songs = data.songs.map((s) => new Song(s as any))
+        }
+        if (data.settings) {
+            this.settings = { ...this.settings, ...data.settings }
+        }
+        this.refreshSongs()
+        this.refreshLists()
+        this.refreshFolders()
+        this.save()
+    }
+
     // DEBUG
     resetAll() {
         Object.assign(this, this.DEFAULT_DATA)
+        this.refreshSongs()
+        this.refreshLists()
+        this.refreshFolders()
         this.save()
     }
 
@@ -101,23 +127,27 @@ class StorageManager {
 
     getSongById(songId: string | null, _updater: any = null): Song | null {
         if (!songId) return null
-        return this.songs.find((s) => s.id === songId) || null
+        const song = this.songs.find((s) => s.id === songId) || null
+        if (song && !(song instanceof Song)) {
+            return new Song(song as any)
+        }
+        return song
     }
 
     ///
 
     addFolder(folder: Folder) {
-        this.folders.push(folder)
+        this.folders.push(folder instanceof Folder ? folder : new Folder(folder as any))
         this.save()
     }
 
     addList(list: List) {
-        this.lists.push(list)
+        this.lists.push(list instanceof List ? list : new List(list as any))
         this.save()
     }
 
     addSong(song: Song) {
-        this.songs.push(song)
+        this.songs.push(song instanceof Song ? song : new Song(song as any))
         this.save()
     }
 
@@ -126,16 +156,56 @@ class StorageManager {
         this.save()
     }
 
+    updateList(list: List) {
+        this.lists = this.lists.map((l) => (l.id === list.id ? new List(l as any) : l))
+        this.save()
+    }
+
+    updateFolder(folder: Folder) {
+        this.folders = this.folders.map((f) => (f.id === folder.id ? new Folder(f as any) : f))
+        this.save()
+    }
+
+    async deleteSong(songId: string) {
+        const song = this.getSongById(songId)
+        if (song && song.images && song.images.length > 0) {
+            for (const img of song.images) {
+                await FileSystem.deleteMedia(img)
+            }
+        }
+
+        // Remove from songs array
+        this.songs = this.songs.filter((s) => s.id !== songId)
+        this.save()
+    }
+
+    deleteList(listId: string) {
+        this.lists = this.lists.filter((l) => l.id !== listId)
+
+        // Remove from parent folders
+        for (const folder of this.folders) {
+            folder.lists = folder.lists.filter((id) => id !== listId)
+        }
+        this.folders = [...this.folders]
+
+        this.save()
+    }
+
+    deleteFolder(folderId: string) {
+        this.folders = this.folders.filter((f) => f.id !== folderId)
+        this.save()
+    }
+
     refreshSongs() {
-        this.songs = [...this.songs]
+        this.songs = this.songs.map((s) => new Song(s as any))
     }
 
     refreshLists() {
-        this.lists = [...this.lists]
+        this.lists = this.lists.map((l) => new List(l as any))
     }
 
     refreshFolders() {
-        this.folders = [...this.folders]
+        this.folders = this.folders.map((f) => new Folder(f as any))
     }
 }
 

@@ -19,7 +19,7 @@ export class Songs {
         const song = new Song(data)
 
         const list = storage.getListById(listId)
-        if (list) list.addSong(song.id)
+        if (list) list.addSong(song.id, song.name)
 
         storage.addSong(song)
         return song

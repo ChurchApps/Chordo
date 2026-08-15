@@ -37,7 +37,7 @@
         }
     }
     async function addSongs() {
-        let list = storage.getListById(menuState.contentId)
+        const list = storage.getListById(menuState.contentId)
         if (!list) return
 
         // go back first so we get the slide in animation in the list
@@ -46,7 +46,6 @@
         // wait for page navigation animation
         setTimeout(() => {
             list.addSongs(addSongsOrder)
-            storage.lists = [...storage.lists]
         }, 80)
     }
 </script>
@@ -56,11 +55,17 @@
         <md-list class="song-list scroll-list">
             {#each filteredSongs as song, idx}
                 {@const selected = addSongsOrder.includes(song.id)}
+                {@const artist = song.metadata?.artist || (song.getMetadata ? song.getMetadata("artist") : "")}
+                {@const key = song.metadata?.key || (song.getMetadata ? song.getMetadata("key") : "")}
 
                 <md-list-item type="button" class:selected onclick={() => (listOpened ? toggleSong(song.id) : openSong(song.id, song.name))}>
                     <div slot="headline">{song.name}</div>
-                    {#if song.metadata?.artist}
-                        <div slot="supporting-text">{song.metadata.artist}</div>
+                    {#if artist || key}
+                        <div slot="supporting-text">
+                            {artist || ""}
+                            {#if artist && key} • {/if}
+                            {#if key}Key: {key}{/if}
+                        </div>
                     {/if}
                     <md-icon slot="start">music_note</md-icon>
                     {#if listOpened && selected}

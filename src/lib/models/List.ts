@@ -29,7 +29,19 @@ export class Lists {
     }
 }
 
-type ListSongItem = { songId: string; transposed?: string }
+export type ListSongItem = {
+    songId: string
+    lastKnownName?: string
+    transposed?: string
+}
+
+export type ListSongDisplayItem = {
+    songId: string
+    name: string
+    isDeleted: boolean
+    song?: Song
+    transposed?: string
+}
 
 type ListKeys = NonFunctionProperties<List>
 export class List {
@@ -41,7 +53,7 @@ export class List {
     constructor(data: Partial<ListKeys> = {}) {
         this.id = data.id ?? getId("list")
         this.name = data.name ?? "Untitled"
-        this.songs = data.songs ?? []
+        this.songs = data.songs ? [...data.songs] : []
         this.createdAt = data.createdAt ?? Date.now()
     }
 
@@ -50,6 +62,22 @@ export class List {
             return allSongs.find((s) => s.id === item.songId)
         })
         return songs.filter((s): s is Song => s !== undefined)
+    }
+
+    getListItems(allSongs: Song[]): ListSongDisplayItem[] {
+        return this.songs.map((item) => {
+            const song = allSongs.find((s) => s.id === item.songId)
+            if (song && song.name && item.lastKnownName !== song.name) {
+                item.lastKnownName = song.name
+            }
+            return {
+                songId: item.songId,
+                name: song?.name ?? item.lastKnownName ?? "Deleted Song",
+                isDeleted: !song,
+                song,
+                transposed: item.transposed
+            }
+        })
     }
 
     getSongItem(index: number): ListSongItem | undefined {
@@ -63,17 +91,27 @@ export class List {
     setSongTransposed(index: number, transposedKey: string) {
         if (index < 0 || index >= this.songs.length) return
         const current = this.songs[index]
-        this.songs[index] = { songId: current.songId, transposed: transposedKey }
+        const updated = [...this.songs]
+        updated[index] = { ...current, transposed: transposedKey }
+        this.songs = updated
+        storage.refreshLists()
         storage.persist()
     }
 
-    addSong(songId: string) {
-        this.songs.push({ songId })
+    addSong(songId: string, songName?: string) {
+        const name = songName ?? storage.getSongById(songId)?.name
+        this.songs = [...this.songs, { songId, lastKnownName: name }]
+        storage.refreshLists()
         storage.persist()
     }
 
     addSongs(songIds: string[]) {
-        this.songs.push(...songIds.map((songId) => ({ songId })))
+        const newItems = songIds.map((songId) => ({
+            songId,
+            lastKnownName: storage.getSongById(songId)?.name
+        }))
+        this.songs = [...this.songs, ...newItems]
+        storage.refreshLists()
         storage.persist()
     }
 
@@ -81,15 +119,19 @@ export class List {
         if (fromIndex < 0 || fromIndex >= this.songs.length) return false
         if (toIndex < 0 || toIndex >= this.songs.length) return false
         if (fromIndex === toIndex) return true
-        const [moved] = this.songs.splice(fromIndex, 1)
-        this.songs.splice(toIndex, 0, moved)
+        const next = [...this.songs]
+        const [moved] = next.splice(fromIndex, 1)
+        next.splice(toIndex, 0, moved)
+        this.songs = next
+        storage.refreshLists()
         storage.persist()
         return true
     }
 
     removeSong(index: number): boolean {
         if (index < 0 || index >= this.songs.length) return false
-        this.songs.splice(index, 1)
+        this.songs = this.songs.filter((_, i) => i !== index)
+        storage.refreshLists()
         storage.persist()
         return true
     }

@@ -84,6 +84,8 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
     }
 }
 
+let isInternalHistoryNavigating = false
+
 export function internalGoBack(): void {
     if (menuState.previousPages.length === 0) return
 
@@ -123,10 +125,10 @@ export function goBack(): void {
     }
 
     if (menuState.previousPages.length > 0) {
+        internalGoBack()
         if (typeof window !== "undefined") {
+            isInternalHistoryNavigating = true
             history.back()
-        } else {
-            internalGoBack()
         }
     }
 }
@@ -136,19 +138,7 @@ export function goBack(): void {
 type Popups = keyof typeof popups
 export const popupState = $state<{ popupId: Popups | null }>({ popupId: null })
 export function setActivePopup(popup: Popups | null): void {
-    if (popup !== null) {
-        if (typeof window !== "undefined") {
-            history.pushState({ type: "popup", popupId: popup }, "")
-        }
-        popupState.popupId = popup
-    } else {
-        if (popupState.popupId !== null) {
-            popupState.popupId = null
-            if (typeof window !== "undefined" && history.state?.type === "popup") {
-                history.back()
-            }
-        }
-    }
+    popupState.popupId = popup
 }
 
 // restore page position when returning from draw
@@ -182,6 +172,11 @@ if (typeof window !== "undefined") {
     history.replaceState({ type: "page", activePage: menuState.activePage, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
 
     window.addEventListener("popstate", () => {
+        if (isInternalHistoryNavigating) {
+            isInternalHistoryNavigating = false
+            return
+        }
+
         // 1. If popup is open, close it
         if (popupState.popupId !== null) {
             popupState.popupId = null

@@ -7,6 +7,8 @@
     import "@material/web/icon/icon.js"
     import "@material/web/slider/slider.js"
 
+    import { openConfirm } from "$lib/state/confirm.svelte"
+
     interface Props {
         /** Enable or disable drawing capabilities (defaults to false) */
         editable?: boolean
@@ -43,28 +45,54 @@
     let currentColor = $state("#1d1b20")
     let brushSize = $state(4)
     let lastPoint = $state<{ x: number; y: number } | null>(null)
-    let showClearConfirm = $state(false)
+
+    // Function to check if canvas actually contains any drawn pixels
+    function isCanvasBlank(): boolean {
+        if (!canvasRef || !ctx) return true
+        const w = canvasRef.width
+        const h = canvasRef.height
+        if (w === 0 || h === 0) return true
+
+        // Read pixel buffer
+        const imgData = ctx.getImageData(0, 0, w, h)
+        const data = new Uint32Array(imgData.data.buffer)
+        for (let i = 0; i < data.length; i++) {
+            if (data[i] !== 0) return false
+        }
+        return true
+    }
 
     // Export helper: get current drawing as Base64 Data URL
     export function getDrawingData(): string {
-        return canvasRef ? canvasRef.toDataURL("image/png") : ""
+        if (!canvasRef || isCanvasBlank()) return ""
+        return canvasRef.toDataURL("image/png")
     }
 
     // Export helper: clear canvas
     export function clearCanvas() {
         if (!ctx || !canvasRef) return
+        ctx.save()
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
+        ctx.restore()
         notifyChange()
     }
 
-    function confirmClear() {
-        clearCanvas()
-        showClearConfirm = false
+    function handleClearRequest() {
+        openConfirm({
+            title: "Clear Canvas?",
+            message: "Are you sure you want to clear your current drawing? This action cannot be undone.",
+            confirmLabel: "Clear",
+            isDestructive: true,
+            onConfirm: () => {
+                clearCanvas()
+            }
+        })
     }
 
     function notifyChange() {
         if (onChange && canvasRef) {
-            onChange(canvasRef.toDataURL("image/png"))
+            onChange(getDrawingData())
         }
     }
 
@@ -75,24 +103,37 @@
         }
     }
 
+    // Load image data onto canvas
     function loadInitialData(dataUrl: string) {
-        if (!ctx || !canvasRef || !dataUrl) return
+        if (!ctx || !canvasRef) return
+        if (!dataUrl) {
+            ctx.save()
+            ctx.setTransform(1, 0, 0, 1, 0, 0)
+            ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
+            ctx.restore()
+            return
+        }
         const img = new Image()
         img.crossOrigin = "anonymous"
         img.onload = () => {
             if (!ctx || !canvasRef) return
+            ctx.save()
+            ctx.setTransform(1, 0, 0, 1, 0, 0)
             ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
-            ctx.drawImage(img, 0, 0, canvasRef.width / window.devicePixelRatio, canvasRef.height / window.devicePixelRatio)
+            ctx.drawImage(img, 0, 0, canvasRef.width, canvasRef.height)
+            ctx.restore()
         }
         img.src = dataUrl
     }
+
+    let loadedDataProp: string | undefined = undefined
 
     // Canvas Lifecycle & High-DPI Scaling Effect
     $effect(() => {
         if (!canvasRef) return
 
         const canvas = canvasRef
-        const context = canvas.getContext("2d")
+        const context = canvas.getContext("2d", { willReadFrequently: true })
         if (!context) return
         ctx = context
 
@@ -102,29 +143,36 @@
 
             const rect = parent.getBoundingClientRect()
             const dpr = window.devicePixelRatio || 1
+            const newWidth = rect.width * dpr
+            const newHeight = rect.height * dpr
 
-            // Save existing drawing before resize
+            if (canvas.width === newWidth && canvas.height === newHeight) return
+
+            const hasContent = !isCanvasBlank() && canvas.width > 0 && canvas.height > 0
             const tempCanvas = document.createElement("canvas")
             tempCanvas.width = canvas.width
             tempCanvas.height = canvas.height
             const tempCtx = tempCanvas.getContext("2d")
-            if (tempCtx && canvas.width > 0 && canvas.height > 0) {
+            if (tempCtx && hasContent) {
                 tempCtx.drawImage(canvas, 0, 0)
             }
 
-            // Adjust physical pixel dimensions for high-DPI screens
-            canvas.width = rect.width * dpr
-            canvas.height = rect.height * dpr
+            // Adjust physical pixel dimensions
+            canvas.width = newWidth
+            canvas.height = newHeight
 
-            // Scale rendering context
-            context.scale(dpr, dpr)
+            // Set styling / transformation on context
             context.lineCap = "round"
             context.lineJoin = "round"
+            context.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-            // Restore drawing or load initial data
-            if (tempCanvas.width > 0 && tempCanvas.height > 0) {
-                context.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, rect.width, rect.height)
-            } else if (initialData) {
+            if (hasContent) {
+                context.save()
+                context.setTransform(1, 0, 0, 1, 0, 0)
+                context.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height)
+                context.restore()
+            } else if (loadedDataProp === undefined && initialData) {
+                loadedDataProp = initialData
                 loadInitialData(initialData)
             }
         }
@@ -141,10 +189,12 @@
         }
     })
 
-    // Load updated initialData if prop changes
+    // Load updated initialData if prop changes from outside
     $effect(() => {
-        if (initialData && ctx) {
-            loadInitialData(initialData)
+        const data = initialData
+        if (ctx && data !== loadedDataProp) {
+            loadedDataProp = data
+            loadInitialData(data)
         }
     })
 
@@ -209,7 +259,7 @@
     {#if editable}
         <!-- Top Left Toolbar (Clear Action) -->
         <header class="m3-top-left-bar">
-            <md-filled-tonal-button type="button" onclick={() => (showClearConfirm = true)}>
+            <md-filled-tonal-button type="button" onclick={handleClearRequest}>
                 <md-icon slot="icon">delete</md-icon>
                 Clear
             </md-filled-tonal-button>
@@ -255,16 +305,6 @@
                 </md-filled-button>
             </div>
         </footer>
-
-        <!-- M3 Clear Confirmation Dialog -->
-        <md-dialog open={showClearConfirm} onclosed={() => (showClearConfirm = false)} class="m3-dialog">
-            <div slot="headline">Clear Canvas?</div>
-            <div slot="content">Are you sure you want to clear your current drawing? This action cannot be undone.</div>
-            <div slot="actions">
-                <md-text-button type="button" onclick={() => (showClearConfirm = false)}>Cancel</md-text-button>
-                <md-text-button type="button" onclick={confirmClear}>Clear</md-text-button>
-            </div>
-        </md-dialog>
     {/if}
 </div>
 

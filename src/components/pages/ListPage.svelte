@@ -1,14 +1,14 @@
 <script lang="ts">
     import { slide } from "svelte/transition"
-    import { Songs } from "$lib/models/Song"
+    import type { ListSongDisplayItem } from "$lib/models/List"
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, resetDragState, type ReorderState } from "$lib/utils/rearrange"
 
-    let listId = menuState.contentId
+    let listId = $derived(menuState.contentId)
     let list = $derived(storage.getListById(listId, storage.lists))
-    let songs = $derived(Songs.get(storage.songs, listId))
+    let listItems = $derived(list ? list.getListItems(storage.songs) : [])
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
     let searchQuery = $derived(searchState.query.trim().toLowerCase())
@@ -24,7 +24,6 @@
             list.removeSong(idx)
         }
 
-        // WIP should we not do .map((s) => (s.id === list.id ? new List(s as any) : s)) ?
         storage.lists = [...storage.lists]
         selectedIndices = []
         listEditingState.isEditing = false
@@ -32,17 +31,11 @@
 
     $effect(() => {
         if (isEditing) {
-            if (typeof window !== "undefined" && history.state?.type !== "edit") {
-                history.pushState({ type: "edit" }, "")
-            }
             listEditingState.onDeleteSelected = removeSelectedSongs
-            if (selectedIndices.length === 0 && songs.length > 0) {
+            if (selectedIndices.length === 0 && listItems.length > 0) {
                 selectedIndices = [0]
             }
         } else {
-            if (typeof window !== "undefined" && history.state?.type === "edit") {
-                history.back()
-            }
             listEditingState.onDeleteSelected = undefined
             selectedIndices = []
         }
@@ -58,12 +51,12 @@
     })
 
     let displaySongs = $derived.by(() => {
-        const base = getDisplayList(songs, reorderState)
+        const base = getDisplayList(listItems, reorderState)
         if (!isSearching) return base
         return base.filter(
-            ({ item: song }) =>
-                song.name.toLowerCase().includes(searchQuery) ||
-                (song.metadata?.artist && song.metadata.artist.toLowerCase().includes(searchQuery))
+            ({ item: songItem }) =>
+                songItem.name.toLowerCase().includes(searchQuery) ||
+                (songItem.song?.metadata?.artist && songItem.song.metadata.artist.toLowerCase().includes(searchQuery))
         )
     })
 
@@ -104,7 +97,7 @@
         }
     }
 
-    function handleItemClick(songId: string, songName: string, originalIdx: number) {
+    function handleItemClick(item: ListSongDisplayItem, originalIdx: number) {
         if (longPressed) {
             longPressed = false
             return
@@ -118,35 +111,27 @@
             }
             return
         }
+        if (item.isDeleted) return
+
         savedFullscreenPosition.index = originalIdx
-        setActivePage("song", songId, songName)
+        setActivePage("song", item.songId, item.name)
     }
 
     function applyMove(from: number, to: number) {
         if (!list) return
         list.moveSong(from, to)
-        // if (storage.save) storage.save()
         storage.lists = [...storage.lists]
     }
-
-    // function removeSong(e: MouseEvent, originalIdx: number) {
-    //     e.stopPropagation()
-    //     if (!list) return
-    //     list.removeSong(originalIdx)
-    //     // if (storage.save) storage.save()
-    //     storage.lists = [...storage.lists]
-    //     if (list.songs.length === 0) {
-    //         listEditingState.isEditing = false
-    //     }
-    // }
 </script>
 
 <main>
-    {#if songs.length}
-        <md-list class="song-list scroll-list" ondragover={(e: DragEvent) => handleContainerDragOver(e, songs.length, reorderState)} ondrop={(e: DragEvent) => handleContainerDrop(e, songs.length, reorderState, onBatchMove)}>
-            {#each displaySongs as { item: song, originalIdx }, idx (song.id + "-" + originalIdx)}
+    {#if listItems.length}
+        <md-list class="song-list scroll-list" ondragover={(e: DragEvent) => handleContainerDragOver(e, listItems.length, reorderState)} ondrop={(e: DragEvent) => handleContainerDrop(e, listItems.length, reorderState, onBatchMove)}>
+            {#each displaySongs as { item: songItem, originalIdx }, idx (songItem.songId + "-" + originalIdx)}
                 {@const isGhost = reorderState.draggedIdx !== null && (reorderState.draggedIndices.length > 0 ? reorderState.draggedIndices.includes(originalIdx) : originalIdx === reorderState.draggedIdx)}
                 {@const isSelected = isEditing && selectedIndices.includes(originalIdx)}
+                {@const artist = songItem.song?.metadata?.artist || (songItem.song?.getMetadata ? songItem.song.getMetadata("artist") : "")}
+                {@const key = songItem.transposed || songItem.song?.metadata?.key || (songItem.song?.getMetadata ? songItem.song.getMetadata("key") : "")}
                 <div
                     class="song-item-wrapper"
                     class:ghost={isGhost}
@@ -160,29 +145,42 @@
                     <md-list-item
                         type="button"
                         class:selected={isSelected}
+                        class:deleted-item={songItem.isDeleted}
+                        disabled={songItem.isDeleted && !isEditing}
                         onpointerdown={(e: PointerEvent) => startPress(e, originalIdx)}
                         onpointerup={endPress}
                         onpointerleave={endPress}
                         oncontextmenu={(e: MouseEvent) => handleContextMenu(e, originalIdx)}
-                        onclick={() => handleItemClick(song.id, song.name, originalIdx)}
+                        onclick={() => handleItemClick(songItem, originalIdx)}
                     >
                         {#if isEditing}
                             <div slot="start" class="drag-handle-container" title="Drag to reorder">
                                 <span class="material-symbols-outlined drag-handle">drag_handle</span>
                             </div>
+                        {:else if songItem.isDeleted}
+                            <md-icon slot="start" style="opacity: 0.4;">music_off</md-icon>
                         {:else}
                             <md-icon slot="start">music_note</md-icon>
                         {/if}
 
-                        <div slot="headline">{song.name}</div>
+                        <div slot="headline" class="song-headline" class:deleted={songItem.isDeleted}>
+                            {songItem.name}
+                            {#if songItem.isDeleted}
+                                <span class="deleted-tag">Deleted</span>
+                            {/if}
+                        </div>
+
+                        {#if !songItem.isDeleted && (artist || key)}
+                            <div slot="supporting-text">
+                                {artist || ""}
+                                {#if artist && key} • {/if}
+                                {#if key}Key: {key}{/if}
+                            </div>
+                        {/if}
 
                         {#if isEditing}
-                            <div slot="end" class="song-controls">
-                                <!-- <md-icon-button onclick={(e: MouseEvent) => removeSong(e, originalIdx)} aria-label="Remove Song">
-                                    <span class="material-symbols-outlined" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                </md-icon-button> -->
-                            </div>
-                        {:else}
+                            <div slot="end" class="song-controls"></div>
+                        {:else if !songItem.isDeleted}
                             <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                         {/if}
                     </md-list-item>
@@ -249,7 +247,6 @@
     }
     md-list-item {
         min-height: 56px;
-        height: 56px;
     }
     md-list-item.selected {
         background-color: rgb(0 0 0 / 0.08);
@@ -272,8 +269,25 @@
         justify-content: center;
         height: 48px;
     }
-    /* .song-controls md-icon-button {
-        --md-icon-button-state-layer-width: 40px;
-        --md-icon-button-state-layer-height: 40px;
-    } */
+
+    .song-headline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .song-headline.deleted {
+        opacity: 0.5;
+        font-style: italic;
+    }
+
+    .deleted-tag {
+        font-size: 0.7rem;
+        font-style: normal;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.08);
+        color: var(--md-sys-color-error, #ba1a1a);
+        font-weight: 500;
+    }
 </style>

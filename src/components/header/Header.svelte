@@ -1,8 +1,13 @@
 <script lang="ts">
     import { calculateTransposeSemitones, hasTransposableContent } from "$lib/chords/transpose"
+    import type { Folder } from "$lib/models/Folder"
+    import type { List } from "$lib/models/List"
+    import type { Song } from "$lib/models/Song"
+    import { openConfirm } from "$lib/state/confirm.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { shareList, shareSong } from "$lib/utils/share"
     import { pages } from "../pages/pages"
 
     let headerPath = $derived(
@@ -16,6 +21,7 @@
     let headerTitle = $derived(menuState.customPageTitle ?? pages[menuState.activePage]?.title ?? "")
 
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
+    let moreMenuOpen = $state(false)
 
     let searchPlaceholder = $derived.by(() => {
         switch (menuState.activePage) {
@@ -55,6 +61,48 @@
             content: currentSong.content
         })
     })
+
+    function confirmDeleteSong(song: Song | null) {
+        if (!song) return
+        openConfirm({
+            title: "Delete Song?",
+            message: `Are you sure you want to delete "${song.name}"? This action cannot be undone.`,
+            confirmLabel: "Delete",
+            isDestructive: true,
+            onConfirm: async () => {
+                await storage.deleteSong(song.id)
+                goBack()
+            }
+        })
+    }
+
+    function confirmDeleteList(list: List | null) {
+        if (!list) return
+        openConfirm({
+            title: "Delete List?",
+            message: `Are you sure you want to delete "${list.name}"?`,
+            confirmLabel: "Delete",
+            isDestructive: true,
+            onConfirm: () => {
+                storage.deleteList(list.id)
+                goBack()
+            }
+        })
+    }
+
+    function confirmDeleteFolder(folder: Folder | null) {
+        if (!folder) return
+        openConfirm({
+            title: "Delete Folder?",
+            message: `Are you sure you want to delete folder "${folder.name}"?`,
+            confirmLabel: "Delete",
+            isDestructive: true,
+            onConfirm: () => {
+                storage.deleteFolder(folder.id)
+                goBack()
+            }
+        })
+    }
 </script>
 
 {#if isFullscreenPage(menuState.activePage)}
@@ -130,9 +178,86 @@
                     </md-icon-button>
                 {/if}
 
-                <md-icon-button aria-label="More options">
-                    <span class="material-symbols-outlined">more_vert</span>
-                </md-icon-button>
+                <div class="more-menu-wrapper">
+                    <md-icon-button id="more-options-btn" aria-label="More options" onclick={() => (moreMenuOpen = !moreMenuOpen)}>
+                        <span class="material-symbols-outlined">more_vert</span>
+                    </md-icon-button>
+
+                    <md-menu id="more-options-menu" anchor="more-options-btn" open={moreMenuOpen} onclosed={() => (moreMenuOpen = false)} quick>
+                        {#if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    setActivePopup("settings")
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start">settings</span>
+                                <div slot="headline">Settings</div>
+                            </md-menu-item>
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    setActivePopup("about")
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start">info</span>
+                                <div slot="headline">About</div>
+                            </md-menu-item>
+                        {:else if menuState.activePage === "song"}
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    if (currentSong) shareSong(currentSong)
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start">share</span>
+                                <div slot="headline">Share Song</div>
+                            </md-menu-item>
+                        {:else if menuState.activePage === "song_edit"}
+                            {@const editSong = storage.getSongById(menuState.contentId)}
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    confirmDeleteSong(editSong)
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">Delete Song</div>
+                            </md-menu-item>
+                        {:else if menuState.activePage === "list"}
+                            {@const currentList = storage.getListById(menuState.contentId)}
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    if (currentList) shareList(currentList, storage.songs)
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start">share</span>
+                                <div slot="headline">Share List</div>
+                            </md-menu-item>
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    confirmDeleteList(currentList)
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">Delete List</div>
+                            </md-menu-item>
+                        {:else if menuState.activePage === "folder"}
+                            {@const currentFolder = storage.getFolderById(menuState.contentId)}
+                            <md-menu-item
+                                onclick={() => {
+                                    moreMenuOpen = false
+                                    confirmDeleteFolder(currentFolder)
+                                }}
+                            >
+                                <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                                <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">Delete Folder</div>
+                            </md-menu-item>
+                        {/if}
+                    </md-menu>
+                </div>
             {/if}
         </div>
     </header>
@@ -172,11 +297,20 @@
         gap: 4px;
     }
 
-    .action-btn-wrapper {
+    .action-btn-wrapper,
+    .more-menu-wrapper {
         position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+    }
+
+    md-menu {
+        min-width: 180px;
+    }
+
+    md-menu-item {
+        white-space: nowrap;
     }
 
     .badge {

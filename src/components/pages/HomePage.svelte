@@ -90,10 +90,16 @@
                     <div class="search-category-title">Songs ({matchedSongs.length})</div>
                     <md-list class="folders-list">
                         {#each matchedSongs as song}
+                            {@const artist = song.metadata?.artist || (song.getMetadata ? song.getMetadata("artist") : "")}
+                            {@const key = song.metadata?.key || (song.getMetadata ? song.getMetadata("key") : "")}
                             <md-list-item type="button" onclick={() => openSong(song.id, song.name)}>
                                 <div slot="headline">{song.name}</div>
-                                {#if song.metadata?.artist}
-                                    <div slot="supporting-text">{song.metadata.artist}</div>
+                                {#if artist || key}
+                                    <div slot="supporting-text">
+                                        {artist || ""}
+                                        {#if artist && key} • {/if}
+                                        {#if key}Key: {key}{/if}
+                                    </div>
                                 {/if}
                                 <md-icon slot="start">music_note</md-icon>
                                 <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>

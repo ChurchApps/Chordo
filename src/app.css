@@ -215,7 +215,11 @@ hr {
     -webkit-font-smoothing: antialiased;
 } */
 
-md-dialog {
+md-dialog:not([open]) {
+    display: none !important;
+}
+
+md-dialog[open] {
     /* on top */
     display: flex;
     z-index: 200;
@@ -223,6 +227,24 @@ md-dialog {
 md-dialog div,
 md-dialog form {
     background-color: var(--md-sys-color-primary-container);
+}
+
+md-menu {
+    min-width: 180px;
+}
+
+md-menu-item,
+md-menu-item [slot="headline"],
+md-menu-item [slot="start"],
+md-menu-item [slot="end"] {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+md-list-item [slot="headline"] {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .center {
