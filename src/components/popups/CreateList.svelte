@@ -64,11 +64,11 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        color: #2b2930;
+        color: var(--md-sys-color-on-surface, #2b2930);
         font-size: 1.35rem;
     }
     .headline-icon {
-        color: #2b2930;
+        color: var(--md-sys-color-primary);
     }
     .dialog-form {
         display: flex;
@@ -78,6 +78,6 @@
         max-width: 500px;
     }
     md-outlined-text-field {
-        width: 400px;
+        width: 100%;
     }
 </style>

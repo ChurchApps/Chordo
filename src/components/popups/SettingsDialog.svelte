@@ -1,11 +1,13 @@
 <script lang="ts">
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
+    import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import { setActivePopup } from "$lib/state/menu.svelte"
     import { Settings } from "$lib/models/Settings"
     import storage from "$lib/storage/StorageManager.svelte"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
+    let currentTheme = $derived<SupportedTheme>(getTheme())
     let fileInputRef = $state<HTMLInputElement | null>(null)
     let importStatus = $state<string | null>(null)
 
@@ -15,6 +17,12 @@
 
     function selectLanguage(locale: SupportedLocale) {
         storage.settings = new Settings({ ...storage.settings, locale })
+        storage.settings.apply()
+        storage.persist()
+    }
+
+    function selectTheme(theme: SupportedTheme) {
+        storage.settings = new Settings({ ...storage.settings, theme })
         storage.settings.apply()
         storage.persist()
     }
@@ -51,7 +59,7 @@
             const text = await file.text()
             const parsed = JSON.parse(text)
 
-            if (!parsed || (typeof parsed !== "object")) {
+            if (!parsed || typeof parsed !== "object") {
                 importStatus = t("settings", "import_invalid")
                 return
             }
@@ -93,6 +101,33 @@
     </div>
 
     <div slot="content" class="settings-content">
+        <!-- Theme Color Section -->
+        <div class="settings-section">
+            <div class="section-title">
+                <span class="material-symbols-outlined section-icon">palette</span>
+                {t("settings", "theme")}
+            </div>
+            <div class="theme-circles">
+                {#each SUPPORTED_THEMES as themeOption}
+                    <button
+                        type="button"
+                        class="color-circle"
+                        class:active={currentTheme === themeOption.id}
+                        style="background-color: {themeOption.color};"
+                        aria-label={themeOption.labelKey}
+                        title={themeOption.labelKey}
+                        onclick={() => selectTheme(themeOption.id)}
+                    >
+                        {#if currentTheme === themeOption.id}
+                            <span class="material-symbols-outlined check-icon">check</span>
+                        {/if}
+                    </button>
+                {/each}
+            </div>
+        </div>
+
+        <hr class="section-divider" />
+
         <!-- Language Section -->
         <div class="settings-section">
             <div class="section-title">
@@ -101,12 +136,7 @@
             </div>
             <div class="language-options">
                 {#each SUPPORTED_LANGUAGES as lang}
-                    <button
-                        type="button"
-                        class="lang-chip"
-                        class:active={currentLanguage === lang.code}
-                        onclick={() => selectLanguage(lang.code)}
-                    >
+                    <button type="button" class="lang-chip" class:active={currentLanguage === lang.code} onclick={() => selectLanguage(lang.code)}>
                         {lang.label}
                     </button>
                 {/each}
@@ -122,13 +152,7 @@
                 {t("settings", "data_management")}
             </div>
 
-            <input
-                bind:this={fileInputRef}
-                type="file"
-                accept=".json,application/json"
-                style="display: none;"
-                onchange={handleFileImport}
-            />
+            <input bind:this={fileInputRef} type="file" accept=".json,application/json" style="display: none;" onchange={handleFileImport} />
 
             <div class="settings-actions">
                 <md-outlined-button onclick={exportBackup}>
@@ -163,10 +187,11 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        color: var(--md-sys-color-on-surface, #1d1b20);
     }
 
     .settings-icon {
-        color: var(--md-sys-color-primary, #67b6b6);
+        color: var(--md-sys-color-primary);
         font-size: 28px;
     }
 
@@ -174,8 +199,10 @@
         display: flex;
         flex-direction: column;
         gap: 16px;
-        color: var(--md-sys-color-on-primary, #044444);
+        color: var(--md-sys-color-on-surface, #1d1b20);
         min-width: 280px;
+        max-height: 70vh;
+        overflow-y: auto;
     }
 
     .settings-section {
@@ -190,18 +217,62 @@
         gap: 8px;
         font-size: 0.95rem;
         font-weight: 600;
+        color: var(--md-sys-color-on-surface, #1d1b20);
         opacity: 0.85;
     }
 
     .section-icon {
         font-size: 20px;
-        color: var(--md-sys-color-primary, #67b6b6);
+        color: var(--md-sys-color-primary);
     }
 
     .section-divider {
         border: none;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        border-top: 1px solid var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.08));
         margin: 2px 0;
+    }
+
+    .theme-circles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        padding: 4px 0;
+    }
+
+    .color-circle {
+        position: relative;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+            transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+            box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
+        padding: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .color-circle:hover {
+        transform: scale(1.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .color-circle.active {
+        transform: scale(1.08);
+        box-shadow:
+            0 0 0 2.5px var(--md-sys-color-surface, #ffffff),
+            0 0 0 4.5px var(--md-sys-color-primary);
+    }
+
+    .color-circle .check-icon {
+        font-size: 20px;
+        color: var(--md-sys-color-on-primary, #044444);
+        font-weight: bold;
     }
 
     .language-options {
@@ -214,18 +285,22 @@
         padding: 8px 16px;
         border-radius: 8px;
         border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
-        background: transparent;
-        color: inherit;
+        background: var(--md-sys-color-surface-container-low, transparent);
+        color: var(--md-sys-color-on-surface, inherit);
         font-size: 0.9rem;
         font-weight: 500;
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
+    .lang-chip:hover {
+        background: var(--md-sys-color-surface-container-high, rgba(0, 0, 0, 0.04));
+    }
+
     .lang-chip.active {
-        background: var(--md-sys-color-primary, #67b6b6);
-        color: var(--md-sys-color-on-primary, #ffffff);
-        border-color: var(--md-sys-color-primary, #67b6b6);
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        border-color: var(--md-sys-color-primary);
     }
 
     .settings-actions {

@@ -1,14 +1,19 @@
 import { setLocale, type SupportedLocale } from "../state/i18n.svelte"
+import { setTheme, type SupportedTheme } from "../state/theme.svelte"
 import type { NonFunctionProperties } from "../utils/common"
 
 export type SettingsKeys = NonFunctionProperties<Settings>
 
 export class Settings {
     locale?: SupportedLocale
+    theme?: SupportedTheme
 
     constructor(data: Partial<SettingsKeys> = {}) {
         if (data.locale) {
             this.locale = data.locale
+        }
+        if (data.theme) {
+            this.theme = data.theme
         }
     }
 
@@ -19,5 +24,9 @@ export class Settings {
         if (this.locale) {
             setLocale(this.locale)
         }
+        if (this.theme) {
+            setTheme(this.theme)
+        }
     }
 }
+

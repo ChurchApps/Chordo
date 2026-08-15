@@ -49,7 +49,7 @@
         height: 100dvh;
         overflow: hidden;
 
-        background-color: var(--background);
-        color: var(--on-background);
+        background-color: var(--md-sys-color-primary-background);
+        color: var(--md-sys-color-on-primary-container);
     }
 </style>

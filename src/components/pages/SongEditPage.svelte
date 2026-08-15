@@ -266,7 +266,7 @@
             <!-- Existing Source URL Display -->
             {#if song.url}
                 <div class="source-url-display">
-                    <md-icon style="font-size: 18px; color: #6750a4;">link</md-icon>
+                    <md-icon style="font-size: 18px; color: var(--md-sys-color-primary);">link</md-icon>
                     <span class="url-label">{t("song_edit", "source")}</span>
                     <a href={song.url} target="_blank" rel="noopener noreferrer" class="url-link">
                         {trimUrl(song.url)}
@@ -398,19 +398,19 @@
         gap: 6px;
         margin-top: 10px;
         font-size: 0.85rem;
-        color: #49454f;
+        color: var(--md-sys-color-on-surface-variant, #49454f);
         padding: 4px 0;
     }
 
     .url-label {
         font-weight: 600;
-        color: #2b2930;
+        color: var(--md-sys-color-on-surface, #2b2930);
     }
 
     .url-link {
         display: inline-flex;
         align-items: center;
-        color: #6750a4;
+        color: var(--md-sys-color-primary, #6750a4);
         text-decoration: none;
         word-break: break-all;
     }
@@ -427,7 +427,7 @@
     }
 
     .pull-error {
-        color: #b3261e;
+        color: var(--md-sys-color-error, #b3261e);
         font-size: 0.85rem;
         margin-top: 4px;
         padding-left: 4px;
@@ -444,7 +444,7 @@
     .section-title {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #2b2930;
+        color: var(--md-sys-color-on-surface, #2b2930);
     }
 
     .images-grid {
@@ -459,8 +459,8 @@
     }
 
     .image-edit-card {
-        background: #f7f2fa;
-        border: 1px solid #e7e0ec;
+        background: var(--md-sys-color-surface-container-high, #f7f2fa);
+        border: 1px solid var(--md-sys-color-outline-variant, #e7e0ec);
         border-radius: 12px;
         padding: 10px;
         display: flex;
@@ -477,7 +477,7 @@
     .page-badge {
         font-size: 0.8rem;
         font-weight: 700;
-        color: #6750a4;
+        color: var(--md-sys-color-primary, #6750a4);
         text-transform: uppercase;
     }
 
@@ -493,13 +493,13 @@
     .card-preview {
         width: 100%;
         height: 200px;
-        background: #ffffff;
+        background: var(--md-sys-color-surface, #ffffff);
         border-radius: 6px;
         overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #ddd;
+        border: 1px solid var(--md-sys-color-outline-variant, #ddd);
     }
 
     .card-preview img {
@@ -508,3 +508,4 @@
         object-fit: contain;
     }
 </style>
+

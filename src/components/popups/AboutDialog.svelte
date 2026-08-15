@@ -44,10 +44,11 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        color: var(--md-sys-color-on-surface, #1d1b20);
     }
 
     .about-icon {
-        color: var(--md-sys-color-primary, #67b6b6);
+        color: var(--md-sys-color-primary);
         font-size: 28px;
     }
 
@@ -55,7 +56,7 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
-        color: var(--md-sys-color-on-primary, #044444);
+        color: var(--md-sys-color-on-surface, #1d1b20);
     }
 
     .about-version {
@@ -85,6 +86,6 @@
 
     .feature-icon {
         font-size: 20px;
-        color: var(--md-sys-color-primary, #67b6b6);
+        color: var(--md-sys-color-primary);
     }
 </style>

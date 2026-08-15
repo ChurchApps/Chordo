@@ -118,12 +118,12 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        color: #2b2930;
+        color: var(--md-sys-color-on-surface, #2b2930);
         font-size: 1.35rem;
     }
 
     .headline-icon {
-        color: #2b2930;
+        color: var(--md-sys-color-primary);
     }
 
     .dialog-content {
@@ -153,7 +153,7 @@
     .key-label {
         font-size: 0.75rem;
         text-transform: uppercase;
-        color: #79747e;
+        color: var(--md-sys-color-outline, #79747e);
         letter-spacing: 0.5px;
     }
 
@@ -166,7 +166,7 @@
 
     .original-hint {
         font-size: 0.75rem;
-        color: #79747e;
+        color: var(--md-sys-color-outline, #79747e);
     }
 
     .keys-grid {

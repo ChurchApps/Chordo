@@ -2,22 +2,17 @@
 @import "@fontsource/open-sans/500.css";
 @import "@fontsource/open-sans/700.css";
 @import "@fontsource/material-symbols-outlined/index.css";
+@import "./themes.css";
 
 :root {
-    --md-ref-typeface-brand: "Open Sans", system-ui, sans-serif;
-    --md-ref-typeface-plain: "Open Sans", system-ui, sans-serif;
-    --md-icon-font: "Material Symbols Outlined";
-
-    --md-sys-color-primary-background: #c1e9e9;
-
-    --md-sys-color-primary: #67b6b6;
-    --md-sys-color-on-primary: #044444;
-    --md-sys-color-primary-container: #dcfcfc;
-    --md-sys-color-on-primary-container: #002020;
-
     --md-fab-container-color: var(--md-sys-color-primary);
     --md-fab-icon-color: var(--md-sys-color-on-primary);
-    --md-fab-container-shadow-color: var(--md-sys-color-on-primary);
+    --md-fab-hover-icon-color: var(--md-sys-color-on-primary);
+    --md-fab-pressed-icon-color: var(--md-sys-color-on-primary);
+    --md-fab-focus-icon-color: var(--md-sys-color-on-primary);
+    --md-fab-hover-state-layer-color: var(--md-sys-color-on-primary);
+    --md-fab-pressed-state-layer-color: var(--md-sys-color-on-primary);
+    --md-fab-container-shadow-color: #000000;
 
     --md-icon-button-icon-color: var(--md-sys-color-on-primary);
     --md-list-container-color: transparent;
@@ -28,31 +23,8 @@
     --md-sys-color-surface-container-high: var(--md-sys-color-primary-container);
 }
 
-/* TODO: support dark mode */
-
-/* :root {
-    --primary: #d0bcff;
-    --on-primary: #381e72;
-    --primary-container: #4f378b;
-    --on-primary-container: #eaddff;
-    --surface: #141218;
-    --on-surface: #e6e0e9;
-    --surface-variant: #49454f;
-    --on-surface-variant: #cac4d0;
-    --outline: #938f99;
-    --background: #141218;
-    --on-background: #e6e0e9;
-} */
-
-/* this breaks the material style */
-/* * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-} */
-
 body,
-s h1,
+h1,
 h2,
 h3,
 h4,
@@ -65,13 +37,8 @@ p {
 
 body {
     font-family: "Open Sans", sans-serif;
-    /* background-color: var(--background); */
-    /* color: var(--on-background); */
-    /* min-height: 100vh; */
-    /* overflow-x: hidden; */
-
     background: var(--md-sys-color-primary-background);
-    color: var(--md-sys-color-on-primary);
+    color: var(--md-sys-color-on-primary-container);
 }
 
 main {
@@ -118,9 +85,9 @@ md-icon {
 hr {
     margin: 4px 0;
     /* border-color: rgb(0 0 0 / 0.2); */
-    border-color: var(--md-sys-color-on-primary);
+    border-color: var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.15));
     border-style: dashed;
-    opacity: 0.2;
+    opacity: 0.5;
 }
 
 /* Page navigation transitions */
@@ -295,29 +262,29 @@ md-list-item [slot="headline"] {
     flex-direction: column;
 
     text-align: center;
-    color: var(--md-sys-color-on-primary);
+    color: var(--md-sys-color-on-primary-container);
     max-width: 360px;
     gap: 12px;
 }
 
 .empty-icon {
     font-size: 64px;
-    color: var(--md-sys-color-on-primary);
+    color: var(--md-sys-color-on-primary-container);
     opacity: 0.7;
 }
 
 .empty-state h2 {
     font-size: 1.5rem;
     font-weight: 400;
-    color: var(--md-sys-color-on-primary);
-    opacity: 0.7;
+    color: var(--md-sys-color-on-primary-container);
+    opacity: 0.85;
 }
 
 .empty-state p {
     font-size: 0.95rem;
     line-height: 1.4;
-    color: var(--md-sys-color-on-primary);
-    opacity: 0.6;
+    color: var(--md-sys-color-on-primary-container);
+    opacity: 0.7;
 }
 
 /* Floating Action Button (FAB) */

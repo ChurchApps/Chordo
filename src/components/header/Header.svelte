@@ -316,6 +316,7 @@
         font-size: 1.25rem;
         font-weight: 500;
         letter-spacing: 0.15px;
+        color: var(--md-sys-color-on-primary-container);
     }
 
     .top-bar-actions {
@@ -379,11 +380,11 @@
         outline: none;
         font-size: 1.1rem;
         font-family: inherit;
-        color: var(--md-sys-color-on-primary, #044444);
+        color: var(--md-sys-color-on-primary-container, #002020);
     }
 
     .search-input::placeholder {
-        color: var(--md-sys-color-on-primary, #044444);
+        color: var(--md-sys-color-on-primary-container, #002020);
         opacity: 0.6;
     }
 </style>

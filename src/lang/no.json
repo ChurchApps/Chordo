@@ -112,6 +112,7 @@
         "language": "Språk",
         "english": "English",
         "norwegian": "Norsk",
+        "theme": "Temafarge",
         "data_management": "Databehandling",
         "export_data": "Eksporter all data",
         "import_data": "Importer data",

@@ -63,12 +63,12 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        color: #2b2930;
+        color: var(--md-sys-color-on-surface, #2b2930);
         font-size: 1.35rem;
     }
 
     .headline-icon {
-        color: #6750a4;
+        color: var(--md-sys-color-primary);
     }
 
     .dialog-content {
@@ -98,7 +98,7 @@
     .detail-text {
         font-weight: 600;
         font-size: 0.95rem;
-        color: #1d1b20;
+        color: var(--md-sys-color-on-surface, #1d1b20);
         max-width: 300px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -108,7 +108,7 @@
 
     .message-text {
         font-size: 0.875rem;
-        color: #49454f;
+        color: var(--md-sys-color-on-surface-variant, #49454f);
     }
 
     .linear-bar {
