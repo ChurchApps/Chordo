@@ -32,11 +32,17 @@
 
     $effect(() => {
         if (isEditing) {
+            if (typeof window !== "undefined" && history.state?.type !== "edit") {
+                history.pushState({ type: "edit" }, "")
+            }
             listEditingState.onDeleteSelected = removeSelectedSongs
             if (selectedIndices.length === 0 && songs.length > 0) {
                 selectedIndices = [0]
             }
         } else {
+            if (typeof window !== "undefined" && history.state?.type === "edit") {
+                history.back()
+            }
             listEditingState.onDeleteSelected = undefined
             selectedIndices = []
         }

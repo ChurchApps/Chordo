@@ -2,7 +2,7 @@ import type { pages } from "$components/pages/pages"
 import type { popups } from "$components/popups/popups"
 import storage from "$lib/storage/StorageManager.svelte"
 import { clone } from "$lib/utils/common"
-import { closeSearch } from "./search.svelte"
+import { closeSearch, searchState } from "./search.svelte"
 
 /// PAGES ///
 
@@ -48,20 +48,31 @@ const fullscreenPages: Pages[] = ["song_live", "song_draw"]
 export function isFullscreenPage(page: Pages): boolean {
     return fullscreenPages.includes(page)
 }
+
 export function setActivePage(menu: Pages, contentId?: string | null, customTitle?: string | null, action: "add" | "replace" | "append" = "add", appendData: any = null): void {
     const currentState = getCurrentState()
 
-    const addToHistory = menu !== "home" && menuState.previousPages.at(-1)?.activePage !== menu // && (!contentId || menuState.previousPages.at(-1)?.contentId !== contentId)
+    const addToHistory = menu !== "home" && menuState.previousPages.at(-1)?.activePage !== menu
 
     function doSet() {
         listEditingState.isEditing = false
-        closeSearch()
+        searchState.isOpen = false
+        searchState.query = ""
 
         menuState.activePage = menu
         menuState.contentId = contentId ?? null
         menuState.customPageTitle = customTitle ?? null
 
-        if (action !== "replace" && addToHistory) menuState.previousPages.push(currentState)
+        if (action !== "replace" && addToHistory) {
+            menuState.previousPages.push(currentState)
+            if (typeof window !== "undefined") {
+                history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+            }
+        } else if (action === "replace") {
+            if (typeof window !== "undefined") {
+                history.replaceState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+            }
+        }
         if (action === "append") menuState.previousPages.push(clone(appendData))
     }
 
@@ -73,13 +84,15 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
     }
 }
 
-export function goBack(): void {
+export function internalGoBack(): void {
     if (menuState.previousPages.length === 0) return
 
     const previousState = menuState.previousPages.pop()!
 
     function doSet() {
-        closeSearch()
+        searchState.isOpen = false
+        searchState.query = ""
+        listEditingState.isEditing = false
         menuState.activePage = previousState.activePage
         menuState.contentId = previousState.contentId
         menuState.customPageTitle = previousState.customPageTitle
@@ -93,12 +106,49 @@ export function goBack(): void {
     }
 }
 
+export function goBack(): void {
+    if (popupState.popupId !== null) {
+        setActivePopup(null)
+        return
+    }
+
+    if (searchState.isOpen) {
+        closeSearch()
+        return
+    }
+
+    if (listEditingState.isEditing) {
+        listEditingState.isEditing = false
+        return
+    }
+
+    if (menuState.previousPages.length > 0) {
+        if (typeof window !== "undefined") {
+            history.back()
+        } else {
+            internalGoBack()
+        }
+    }
+}
+
 /// POPUPS ///
 
 type Popups = keyof typeof popups
 export const popupState = $state<{ popupId: Popups | null }>({ popupId: null })
 export function setActivePopup(popup: Popups | null): void {
-    popupState.popupId = popup
+    if (popup !== null) {
+        if (typeof window !== "undefined") {
+            history.pushState({ type: "popup", popupId: popup }, "")
+        }
+        popupState.popupId = popup
+    } else {
+        if (popupState.popupId !== null) {
+            popupState.popupId = null
+            if (typeof window !== "undefined" && history.state?.type === "popup") {
+                history.back()
+            }
+        }
+    }
 }
 
 // restore page position when returning from draw
@@ -123,4 +173,37 @@ export function getCurrentSong() {
     }
     const song = storage.getSongById(songId, storage.songs)
     return { song, listItem, list, currentSongIndex }
+}
+
+/// BROWSER / ANDROID BACK BUTTON LISTENER ///
+
+if (typeof window !== "undefined") {
+    // Initialize current history state
+    history.replaceState({ type: "page", activePage: menuState.activePage, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+
+    window.addEventListener("popstate", () => {
+        // 1. If popup is open, close it
+        if (popupState.popupId !== null) {
+            popupState.popupId = null
+            return
+        }
+
+        // 2. If search is open, close it
+        if (searchState.isOpen) {
+            searchState.isOpen = false
+            searchState.query = ""
+            return
+        }
+
+        // 3. If list editing is active, exit editing mode
+        if (listEditingState.isEditing) {
+            listEditingState.isEditing = false
+            return
+        }
+
+        // 4. If there are previous pages, navigate back
+        if (menuState.previousPages.length > 0) {
+            internalGoBack()
+        }
+    })
 }

@@ -61,8 +61,11 @@
     <!-- don't show any headers -->
 {:else if searchState.isOpen}
     <header class="top-app-bar search-mode">
+        <md-icon-button aria-label="Close search" onclick={closeSearch}>
+            <span class="material-symbols-outlined">arrow_back</span>
+        </md-icon-button>
+
         <div class="search-input-container">
-            <span class="material-symbols-outlined search-icon">search</span>
             <input
                 bind:this={searchInputElement}
                 type="text"
@@ -74,10 +77,6 @@
                 }}
             />
         </div>
-
-        <md-icon-button aria-label="Close and clear search" onclick={closeSearch}>
-            <span class="material-symbols-outlined">close</span>
-        </md-icon-button>
     </header>
 {:else}
     <header class="top-app-bar">
@@ -209,13 +208,6 @@
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 12px;
-    }
-
-    .search-icon {
-        color: var(--md-sys-color-on-primary, #044444);
-        opacity: 0.8;
-        font-size: 24px;
     }
 
     .search-input {
