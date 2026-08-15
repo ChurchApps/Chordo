@@ -20,7 +20,7 @@
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let currentSong = $derived(activeSongContext?.song ?? null)
 
-    let canTranspose = $derived(currentSong ? hasTransposableContent(currentSong.content, currentSong.key, currentSong.images) : false)
+    let canTranspose = $derived(currentSong ? hasTransposableContent(currentSong.content, currentSong.getMetadata("key"), currentSong.images) : false)
 
     // Semitone distance / count from base key
     let transposeCount = $derived.by(() => {
@@ -28,7 +28,7 @@
         return calculateTransposeSemitones({
             targetKey: activeSongContext?.listItem?.transposed,
             lastTransposed: currentSong.lastTransposed,
-            songKey: currentSong.key,
+            songKey: currentSong.getMetadata("key"),
             content: currentSong.content
         })
     })

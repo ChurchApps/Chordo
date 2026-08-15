@@ -3,6 +3,8 @@
     import { slide } from "svelte/transition"
     import { goBack, menuState, setActivePage, savedFullscreenPosition } from "../../lib/state/menu.svelte"
     import storage from "../../lib/storage/StorageManager.svelte"
+    import { requestWakeLock, releaseWakeLock } from "../../lib/utils/wakeLock"
+    import { enterFullscreen, exitFullscreen, toggleFullscreen, isFullscreenActive } from "../../lib/utils/fullscreen"
     import ChordPro from "../song/ChordPro.svelte"
     import Paper from "../song/Paper.svelte"
     import Draw from "../draw/Draw.svelte"
@@ -186,9 +188,33 @@
         }
     }
 
+    let isNativeFullscreen = $state(false)
+
+    async function handleToggleFullscreen() {
+        await toggleFullscreen()
+        isNativeFullscreen = isFullscreenActive()
+    }
+
+    async function handleGoBack() {
+        if (isFullscreenActive()) {
+            await exitFullscreen()
+        }
+        goBack()
+    }
+
     // --- Lifecycle & DOM Observation ---
     onMount(() => {
         let observer: MutationObserver | null = null
+        requestWakeLock()
+        enterFullscreen().then(() => {
+            isNativeFullscreen = isFullscreenActive()
+        })
+
+        const onFsChange = () => {
+            isNativeFullscreen = isFullscreenActive()
+        }
+        document.addEventListener("fullscreenchange", onFsChange)
+        document.addEventListener("webkitfullscreenchange", onFsChange)
 
         tick().then(() => {
             if (sliderEl) {
@@ -199,7 +225,15 @@
             setPositionByIndex(false)
         })
 
-        return () => observer?.disconnect()
+        return () => {
+            releaseWakeLock()
+            if (isFullscreenActive()) {
+                exitFullscreen()
+            }
+            document.removeEventListener("fullscreenchange", onFsChange)
+            document.removeEventListener("webkitfullscreenchange", onFsChange)
+            observer?.disconnect()
+        }
     })
 </script>
 
@@ -208,11 +242,18 @@
 {#if actionsVisible}
     <header transition:slide={{ duration: 200, axis: "y" }}>
         <div style="display:flex;align-items:center;gap:12px;width:100%;padding: 0 20px;">
-            <md-icon-button onclick={goBack}>
+            <md-icon-button onclick={handleGoBack} aria-label="Go back">
                 <md-icon>arrow_back</md-icon>
             </md-icon-button>
 
             <div style="flex:1"></div>
+
+            <!-- <md-icon-button
+                onclick={handleToggleFullscreen}
+                aria-label="Toggle Fullscreen"
+            >
+                <md-icon>{isNativeFullscreen ? "fullscreen_exit" : "fullscreen"}</md-icon>
+            </md-icon-button> -->
 
             <md-icon-button
                 onclick={() => {
@@ -220,6 +261,7 @@
                     savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
                     setActivePage("song_draw", songPageId)
                 }}
+                aria-label="Draw"
             >
                 <md-icon>draw</md-icon>
             </md-icon-button>

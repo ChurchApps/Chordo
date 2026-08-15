@@ -161,6 +161,16 @@
             input.value = ""
         }
     }
+
+    function trimUrl(url: string): string {
+        try {
+            const parsedUrl = new URL(url)
+            const hostname = parsedUrl.hostname.replace(/^www\./, "")
+            return hostname + parsedUrl.pathname
+        } catch {
+            return url
+        }
+    }
 </script>
 
 <main>
@@ -185,7 +195,7 @@
                     <md-icon style="font-size: 18px; color: #6750a4;">link</md-icon>
                     <span class="url-label">Source:</span>
                     <a href={song.url} target="_blank" rel="noopener noreferrer" class="url-link">
-                        {song.url}
+                        {trimUrl(song.url)}
                         <md-icon style="font-size: 14px; margin-left: 2px;">open_in_new</md-icon>
                     </a>
                 </div>

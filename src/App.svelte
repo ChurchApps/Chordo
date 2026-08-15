@@ -13,6 +13,7 @@
     import Header from "./components/header/Header.svelte"
     import Page from "./components/pages/Page.svelte"
     import Popup from "./components/popups/Popup.svelte"
+    import PwaReloadPrompt from "./components/header/PwaReloadPrompt.svelte"
 
     // DEBUG: clear data
     // storage.resetAll()
@@ -25,6 +26,8 @@
     <Page />
 
     <Popup />
+
+    <PwaReloadPrompt />
 </div>
 
 <style>

@@ -1,127 +1,165 @@
-import { Filesystem, Directory, Encoding } from "@capacitor/filesystem"
-import { Capacitor } from "@capacitor/core"
+import { createStore, get, set, del } from "idb-keyval"
 
 type ConfigNames = "data"
 
-export class FileSystem {
-    // deleted on uninstall
-    private static DIR_DATA = Directory.Data
+// Dedicated IndexedDB custom stores for sheet-manager
+const configStore = typeof window !== "undefined" ? createStore("sheet-manager-db", "config-store") : null
+const mediaStore = typeof window !== "undefined" ? createStore("sheet-manager-db", "media-store") : null
 
-    private static getJSONFilePath(folderName: string, name: string): string {
-        return name.endsWith(".json") ? `${folderName}/${name}` : `${folderName}/${name}.json`
+// Request persistent storage so the browser does not evict data when low on disk
+if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {
+    navigator.storage
+        .persist()
+        .then((persistent) => {
+            if (persistent) {
+                console.log("IndexedDB persistent storage granted")
+            }
+        })
+        .catch(() => {})
+}
+
+export class FileSystem {
+    private static webUrlCache: Record<string, string> = {}
+
+    private static getKey(folderName: string, name: string): string {
+        const cleanName = name.replace(/\\/g, "/")
+        return `${folderName}/${cleanName}`
     }
 
-    // --- JSON ---
+    // --- JSON & Config Storage ---
 
     static async writeJSONFile<T extends object>(folderName: string, name: string, data: T): Promise<boolean> {
-        const path = this.getJSONFilePath(folderName, name)
-        let dataString: string
+        const key = this.getKey(folderName, name)
+        let jsonString: string
         try {
-            dataString = JSON.stringify(data, null, 2) // Pretty-print JSON with 2 spaces indentation
+            // Svelte 5 state proxies and class methods cannot be structured-cloned directly by IndexedDB,
+            // so we stringify into clean JSON.
+            jsonString = JSON.stringify(data)
         } catch (err) {
-            console.error(`Failed to stringify data for file "${path}":`, err)
+            console.error(`Failed to stringify JSON for "${key}":`, err)
             return false
         }
 
         try {
-            await Filesystem.writeFile({ path, data: dataString, directory: this.DIR_DATA, encoding: Encoding.UTF8, recursive: true })
+            if (configStore) {
+                await set(key, jsonString, configStore)
+            } else if (typeof localStorage !== "undefined") {
+                localStorage.setItem(`sm_${key}`, jsonString)
+            }
+            return true
         } catch (err) {
-            console.error(`Failed to write file "${path}":`, err)
+            console.error(`Failed to write JSON for "${key}":`, err)
+            // Fallback to localStorage if IndexedDB encounters an issue
+            try {
+                if (typeof localStorage !== "undefined") {
+                    localStorage.setItem(`sm_${key}`, jsonString)
+                    return true
+                }
+            } catch (fallbackErr) {
+                console.error(`LocalStorage fallback failed for "${key}":`, fallbackErr)
+            }
             return false
         }
-
-        return true
     }
 
     static async readJSONFile<T extends object>(folderName: string, name: string): Promise<T | null> {
-        const path = this.getJSONFilePath(folderName, name)
-        let file: any
+        const key = this.getKey(folderName, name)
         try {
-            file = await Filesystem.readFile({ path, directory: this.DIR_DATA, encoding: Encoding.UTF8 })
-        } catch (err: any) {
-            if (!err.message || !err.message.includes("File does not exist")) {
-                console.error(`Failed to read file "${path}":`, err)
+            let raw: any = undefined
+            if (configStore) {
+                raw = await get<any>(key, configStore)
             }
-            return null
-        }
-
-        try {
-            return JSON.parse(file.data as string)
+            if (raw === undefined && typeof localStorage !== "undefined") {
+                raw = localStorage.getItem(`sm_${key}`)
+            }
+            if (raw === undefined || raw === null) {
+                return null
+            }
+            if (typeof raw === "string") {
+                return JSON.parse(raw) as T
+            }
+            return raw as T
         } catch (err) {
-            console.error(`Failed to parse JSON from file "${path}":`, err)
+            console.error(`Failed to read JSON for "${key}":`, err)
             return null
         }
     }
 
     // --- Binary & Media Operations (Images, PDFs) ---
 
-    private static webUrlCache: Record<string, string> = {}
     static async writeFile(folderName: string, name: string, base64Data: string): Promise<boolean> {
-        const path = `${folderName}/${name}`
+        const key = this.getKey(folderName, name)
 
-        // Ensure data URL prefix is included in web cache
+        // Ensure data URL prefix is included in memory cache
         let fullDataUrl = base64Data
         if (!base64Data.startsWith("data:")) {
             fullDataUrl = `data:image/png;base64,${base64Data}`
         }
-        this.webUrlCache[path] = fullDataUrl
-
-        // remove any 'data:image/png;base64,' prefix for raw file writing
-        const cleanBase64 = base64Data.includes(",") ? base64Data.split(",")[1] : base64Data
+        this.webUrlCache[key] = fullDataUrl
 
         try {
-            await Filesystem.writeFile({ path, data: cleanBase64, directory: this.DIR_DATA, recursive: true })
+            if (mediaStore) {
+                await set(key, fullDataUrl, mediaStore)
+            } else if (typeof localStorage !== "undefined") {
+                localStorage.setItem(`sm_media_${key}`, fullDataUrl)
+            }
             return true
         } catch (err) {
-            console.error(`Failed to write file "${path}":`, err)
+            console.error(`Failed to write media for "${key}":`, err)
             return false
         }
     }
 
     static async getFileWebUrl(folderName: string, name: string): Promise<string | null> {
-        const path = `${folderName}/${name}`
+        const key = this.getKey(folderName, name)
 
-        // On non-native / browser dev mode, load from cache or read from IndexedDB
-        if (!Capacitor.isNativePlatform()) {
-            if (this.webUrlCache[path]) {
-                return this.webUrlCache[path]
-            }
-
-            try {
-                const file = await Filesystem.readFile({ path, directory: this.DIR_DATA })
-                const data = file.data as string
-                const formatted = data.startsWith("data:") ? data : `data:image/png;base64,${data}`
-                this.webUrlCache[path] = formatted
-                return formatted
-            } catch (err) {
-                console.error(`Failed to read web file "${path}":`, err)
-                return null
-            }
+        if (this.webUrlCache[key]) {
+            return this.webUrlCache[key]
         }
 
         try {
-            const fileInfo = await Filesystem.getUri({ path, directory: this.DIR_DATA })
-            // Converts native file:// path to a webview-friendly url (capacitor:// or http://localhost)
-            return Capacitor.convertFileSrc(fileInfo.uri)
+            if (mediaStore) {
+                const data = await get<string>(key, mediaStore)
+                if (data) {
+                    const formatted = data.startsWith("data:") ? data : `data:image/png;base64,${data}`
+                    this.webUrlCache[key] = formatted
+                    return formatted
+                }
+            }
+            if (typeof localStorage !== "undefined") {
+                const data = localStorage.getItem(`sm_media_${key}`)
+                if (data) {
+                    const formatted = data.startsWith("data:") ? data : `data:image/png;base64,${data}`
+                    this.webUrlCache[key] = formatted
+                    return formatted
+                }
+            }
+            return null
         } catch (err) {
-            console.error(`Failed to get web URL for file "${path}":`, err)
+            console.error(`Failed to read web media "${key}":`, err)
             return null
         }
     }
 
     static async deleteFile(folderName: string, name: string): Promise<boolean> {
-        const path = `${folderName}/${name}`
-        delete this.webUrlCache[path]
+        const key = this.getKey(folderName, name)
+        delete this.webUrlCache[key]
+
         try {
-            await Filesystem.deleteFile({ path, directory: this.DIR_DATA })
+            if (mediaStore) {
+                await del(key, mediaStore)
+            }
+            if (typeof localStorage !== "undefined") {
+                localStorage.removeItem(`sm_media_${key}`)
+            }
             return true
         } catch (err) {
-            console.error(`Failed to delete file "${path}":`, err)
+            console.error(`Failed to delete media "${key}":`, err)
             return false
         }
     }
 
-    ///
+    // --- Helpers ---
 
     static async saveConfig<T extends object>(config: ConfigNames, data: T): Promise<boolean> {
         return this.writeJSONFile<T>("config", config, data)
