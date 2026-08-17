@@ -39,6 +39,25 @@ export default defineConfig({
         }
     },
     plugins: [
+        // Serve the Cloudflare Worker at /api/proxy during dev, so localhost matches production.
+        // Without this Vite's SPA fallback answers /api/proxy with index.html and a 200.
+        {
+            name: "dev-proxy-worker",
+            configureServer(server) {
+                server.middlewares.use("/api/proxy", async (req, res) => {
+                    try {
+                        const worker = (await server.ssrLoadModule("/workers/proxy.ts")).default
+                        const response = await worker.fetch(new Request(`http://localhost${req.originalUrl}`))
+                        res.statusCode = response.status
+                        res.setHeader("Content-Type", response.headers.get("Content-Type") ?? "text/plain")
+                        res.end(await response.text())
+                    } catch (err: any) {
+                        res.statusCode = 502
+                        res.end(`Proxy error: ${err?.message || err}`)
+                    }
+                })
+            }
+        },
         svelte({
             configFile: path.resolve(__dirname, "svelte.config.js")
         }),
