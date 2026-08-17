@@ -1,5 +1,7 @@
 # Chordo: Chords Manager
 
+![Chordo: Chords Manager](./public/og-image.jpg)
+
 > Organize, transpose, annotate, and view chord sheets
 
 ### Features
