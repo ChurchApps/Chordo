@@ -314,7 +314,7 @@ export async function decodeSharePayload(encoded: string): Promise<SharePayload 
 
 export function getShareBaseUrl(): string {
     if (typeof window !== "undefined") return window.location.origin
-    return "https://chordo.netlify.app"
+    return "https://chordo.org"
 }
 
 export function createShareUrl(encodedPayload: string): string {
