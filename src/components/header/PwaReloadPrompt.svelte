@@ -49,9 +49,9 @@
         border-radius: 12px;
         z-index: 9999;
         text-align: left;
-        box-shadow: 0 4px 16px rgba(0, 32, 32, 0.25);
-        background-color: var(--md-sys-color-primary-container, #dcfcfc);
-        color: var(--md-sys-color-on-primary-container, #002020);
+        box-shadow: 0 4px 16px rgba(74, 34, 0, 0.2);
+        background-color: var(--md-sys-color-primary-container, #fff0e2);
+        color: var(--md-sys-color-on-primary-container, #2e1500);
         display: flex;
         align-items: center;
         gap: 16px;
@@ -81,8 +81,8 @@
     }
 
     .reload-btn {
-        background-color: var(--md-sys-color-primary, #67b6b6);
-        color: var(--md-sys-color-on-primary, #044444);
+        background-color: var(--md-sys-color-primary, #f5aa67);
+        color: var(--md-sys-color-on-primary, #4a2200);
         border: none;
         padding: 6px 12px;
         border-radius: 6px;
@@ -92,7 +92,7 @@
 
     .close-btn {
         background: transparent;
-        border: 1px solid rgba(0, 32, 32, 0.2);
+        border: 1px solid rgba(74, 34, 0, 0.2);
         color: inherit;
         padding: 6px 12px;
         border-radius: 6px;

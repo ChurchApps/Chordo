@@ -17,15 +17,12 @@
         "original": "Original"
     },
     "pages": {
-        "home": "Akkordark",
         "folder": "Mappe",
         "list": "Liste",
         "song": "Sang",
         "song_edit": "Rediger sang",
         "all_songs": "Alle sanger",
         "add_songs": "Legg til sanger",
-        "song_live": "",
-        "song_draw": "",
         "share_preview": "Importer delt"
     },
     "search": {
@@ -129,12 +126,9 @@
         "import_confirm_btn": "Importer"
     },
     "about": {
-        "title": "Chord Sheet Manager",
-        "version": "Versjon 0.0.1",
-        "desc": "En offline-støttet app for håndtering av akkordark, sanglister og live-fremføring.",
-        "feature_offline": "Fullt offline-støttet",
-        "feature_transpose": "Sanntids ChordPro-transponering",
-        "feature_draw": "Penntegninger og notater på PDF-ark",
+        "title": "Chordo: Chords Manager",
+        "version": "Versjon",
+        "desc": "Organiser, transponer, annoter og vis akkordark.",
         "close": "Lukk"
     },
     "pwa": {

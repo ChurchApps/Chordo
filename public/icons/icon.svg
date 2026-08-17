@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4ea8a8"/>
-      <stop offset="100%" stop-color="#2a7575"/>
+      <stop offset="0%" stop-color="#f5aa67"/>
+      <stop offset="100%" stop-color="#d97828"/>
     </linearGradient>
     <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#002020" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#4a2200" flood-opacity="0.3"/>
     </filter>
   </defs>
   
@@ -17,19 +17,19 @@
     <rect x="110" y="80" width="292" height="352" rx="20" fill="#ffffff"/>
     
     <!-- Top folded corner -->
-    <path d="M342 80 L402 140 L342 140 Z" fill="#dcfcfc"/>
+    <path d="M342 80 L402 140 L342 140 Z" fill="#fff0e2"/>
     <path d="M342 80 L402 140 L342 140 Z" fill="#000000" fill-opacity="0.08"/>
     
     <!-- Sheet Chord Lines -->
-    <rect x="150" y="140" width="160" height="12" rx="6" fill="#67b6b6"/>
-    <rect x="150" y="165" width="212" height="8" rx="4" fill="#a0c2c2"/>
+    <rect x="150" y="140" width="160" height="12" rx="6" fill="#f5aa67"/>
+    <rect x="150" y="165" width="212" height="8" rx="4" fill="#f7c99e"/>
     
     <!-- Music Note Icon / Symbol in center -->
-    <path d="M220 230 L320 205 L320 300 A28 28 0 1 1 292 272 L292 245 L248 256 L248 320 A28 28 0 1 1 220 292 Z" fill="#044444"/>
+    <path d="M220 230 L320 205 L320 300 A28 28 0 1 1 292 272 L292 245 L248 256 L248 320 A28 28 0 1 1 220 292 Z" fill="#4a2200"/>
     
     <!-- Lower Chord Lines -->
-    <rect x="150" y="360" width="90" height="10" rx="5" fill="#67b6b6"/>
-    <rect x="260" y="360" width="102" height="10" rx="5" fill="#67b6b6"/>
-    <rect x="150" y="385" width="212" height="8" rx="4" fill="#a0c2c2"/>
+    <rect x="150" y="360" width="90" height="10" rx="5" fill="#f5aa67"/>
+    <rect x="260" y="360" width="102" height="10" rx="5" fill="#f5aa67"/>
+    <rect x="150" y="385" width="212" height="8" rx="4" fill="#f7c99e"/>
   </g>
 </svg>

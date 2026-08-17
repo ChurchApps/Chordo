@@ -10,7 +10,7 @@ import SharePreviewPage from "./SharePreviewPage.svelte"
 
 export const pages = {
     home: {
-        title: "Chord Sheet Manager",
+        title: "Chordo",
         component: HomePage
     },
     folder: {

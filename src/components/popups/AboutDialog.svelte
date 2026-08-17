@@ -5,6 +5,8 @@
     function closeDialog() {
         setActivePopup(null)
     }
+
+    const appVersion = __APP_VERSION__
 </script>
 
 <md-dialog open onclosed={closeDialog}>
@@ -14,11 +16,12 @@
     </div>
 
     <div slot="content" class="about-content">
-        <p class="about-version">{t("about", "version")}</p>
+        <p class="about-version">{t("about", "version")} {appVersion}</p>
         <p class="about-desc">
             {t("about", "desc")}
         </p>
-        <div class="features-list">
+
+        <!-- <div class="features-list">
             <div class="feature-item">
                 <span class="material-symbols-outlined feature-icon">offline_bolt</span>
                 <span>{t("about", "feature_offline")}</span>
@@ -31,7 +34,7 @@
                 <span class="material-symbols-outlined feature-icon">draw</span>
                 <span>{t("about", "feature_draw")}</span>
             </div>
-        </div>
+        </div> -->
     </div>
 
     <div slot="actions">
@@ -70,22 +73,20 @@
         line-height: 1.4;
     }
 
-    .features-list {
+    /* .features-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
         margin-top: 8px;
     }
-
     .feature-item {
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 0.9rem;
     }
-
     .feature-icon {
         font-size: 20px;
         color: var(--md-sys-color-primary);
-    }
+    } */
 </style>

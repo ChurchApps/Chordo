@@ -1,14 +1,19 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte"
-import { defineConfig } from "vite"
-import { VitePWA } from "vite-plugin-pwa"
+import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { defineConfig } from "vite"
+import { VitePWA } from "vite-plugin-pwa"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, "..")
+const pkg = JSON.parse(fs.readFileSync(path.resolve(rootDir, "package.json"), "utf-8"))
 
 // https://vite.dev/config/
 export default defineConfig({
+    define: {
+        __APP_VERSION__: JSON.stringify(pkg.version || "0.0.0")
+    },
     root: rootDir,
     publicDir: path.resolve(rootDir, "public"),
     build: {
@@ -41,11 +46,11 @@ export default defineConfig({
             registerType: "autoUpdate",
             includeAssets: ["icons/icon.svg", "icons/maskable-icon.svg"],
             manifest: {
-                name: "Chord Sheet Manager",
-                short_name: "Sheets",
-                description: "Organize, transpose, annotate, and view chord sheets offline",
-                theme_color: "#67b6b6",
-                background_color: "#c1e9e9",
+                name: "Chordo: Chords Manager",
+                short_name: "Chordo",
+                description: "Organize, transpose, annotate, and view chord sheets",
+                theme_color: "#f5aa67",
+                background_color: "#feddc2",
                 display: "standalone",
                 orientation: "any",
                 start_url: "/",

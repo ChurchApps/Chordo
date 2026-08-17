@@ -1,6 +1,6 @@
 {
-    "name": "sheet-manager",
-    "version": "0.0.1",
+    "name": "chordo",
+    "version": "0.1.0",
     "type": "module",
     "scripts": {
         "dev": "vite --config config/vite.config.ts",

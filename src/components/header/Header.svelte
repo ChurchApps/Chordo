@@ -22,7 +22,15 @@
         }, "")
     )
 
-    let headerTitle = $derived(menuState.customPageTitle ?? (menuState.activePage in pages ? t("pages", menuState.activePage as keyof typeof pages) : ""))
+    const nonTranslatablePages = ["home", "song_live", "song_draw"] as const
+
+    let headerTitle = $derived.by(() => {
+        if (menuState.customPageTitle) return menuState.customPageTitle
+        if (nonTranslatablePages.includes(menuState.activePage as any)) {
+            return pages[menuState.activePage]?.title ?? ""
+        }
+        return t("pages", menuState.activePage as any)
+    })
 
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
     let moreMenuOpen = $state(false)

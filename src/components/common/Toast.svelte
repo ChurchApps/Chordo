@@ -63,7 +63,7 @@
     }
 
     .toast-item.info .icon {
-        color: var(--md-sys-color-primary, #67b6b6);
+        color: var(--md-sys-color-primary, #f5aa67);
     }
 
     .icon {
