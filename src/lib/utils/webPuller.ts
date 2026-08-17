@@ -83,10 +83,12 @@ async function fetchHtml(url: string): Promise<string> {
         } catch {}
     }
 
-    // 4. Fallback CORS proxies
+    // 4. Fallback public CORS proxies (prioritized by reliability)
     const rawProxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.org/?url=${encodeURIComponent(targetUrl)}`,
+        `https://cors.eu.org/${targetUrl}`,
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
     ]
 
@@ -95,7 +97,14 @@ async function fetchHtml(url: string): Promise<string> {
             const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) })
             if (res.ok) {
                 const html = await res.text()
-                if (html.trim() && !html.includes("Server-side requests are not allowed") && !html.includes("Oops... Request Timeout")) {
+                if (
+                    html.trim() &&
+                    html.length > 150 &&
+                    !html.includes("Server-side requests are not allowed") &&
+                    !html.includes("Oops... Request Timeout") &&
+                    !html.includes("403 Forbidden") &&
+                    !html.includes("Access Denied")
+                ) {
                     return html
                 }
             }
@@ -108,7 +117,7 @@ async function fetchHtml(url: string): Promise<string> {
         const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) })
         if (res.ok) {
             const data = await res.json()
-            if (data.contents && typeof data.contents === "string" && data.contents.trim()) {
+            if (data.contents && typeof data.contents === "string" && data.contents.trim().length > 150) {
                 return data.contents
             }
         }
