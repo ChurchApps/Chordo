@@ -24,6 +24,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
+      # Worker first: if this fails the job stops before S3 gets a frontend pointing at a missing /api/proxy.
+      - name: Deploy proxy worker
+        run: npx --yes wrangler@4 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
       - run: aws s3 sync dist/ s3://chordo.org --delete
 
       - name: Purge Cloudflare cache

@@ -60,11 +60,11 @@ async function fetchHtml(url: string): Promise<string> {
         } catch {}
     }
 
-    // 2. In browser (both Vite dev and Netlify production), use first-party proxy endpoint
+    // 2. In browser, use first-party proxy endpoint (Cloudflare Worker; absent in Vite dev, falls through)
     if (typeof window !== "undefined") {
         try {
-            const netlifyProxyUrl = `/.netlify/functions/proxy?url=${encodeURIComponent(targetUrl)}`
-            const res = await fetch(netlifyProxyUrl, { signal: AbortSignal.timeout(8000) })
+            const firstPartyProxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`
+            const res = await fetch(firstPartyProxyUrl, { signal: AbortSignal.timeout(8000) })
             if (res.ok) {
                 const html = await res.text()
                 if (html.trim() && !html.startsWith("Proxy error:")) return html

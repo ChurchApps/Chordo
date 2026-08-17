@@ -1,0 +1,6 @@
+name = "chordo-proxy"
+main = "workers/proxy.ts"
+account_id = "af93c0963a09be64f5078f4d44f29ac8"
+compatibility_date = "2026-08-01"
+
+routes = [{ pattern = "chordo.org/api/proxy", zone_name = "chordo.org" }]
