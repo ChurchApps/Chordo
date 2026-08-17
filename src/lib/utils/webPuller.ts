@@ -48,7 +48,31 @@ async function fetchHtml(url: string): Promise<string> {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     }
 
-    // In Node / non-browser environments, try direct fetch first
+    // 1. If target is a static text file or known open CDN, try direct fetch first
+    const isDirectCdnOrFile = /\.(?:txt|chordpro|chpro)\b/i.test(targetUrl) || /cdn\.prod\.website-files\.com|raw\.githubusercontent\.com|gist\.githubusercontent\.com/i.test(targetUrl)
+    if (isDirectCdnOrFile) {
+        try {
+            const res = await fetch(targetUrl, { signal: AbortSignal.timeout(4000) })
+            if (res.ok) {
+                const text = await res.text()
+                if (text.trim()) return text
+            }
+        } catch {}
+    }
+
+    // 2. In browser (both Vite dev and Netlify production), use first-party proxy endpoint
+    if (typeof window !== "undefined") {
+        try {
+            const netlifyProxyUrl = `/.netlify/functions/proxy?url=${encodeURIComponent(targetUrl)}`
+            const res = await fetch(netlifyProxyUrl, { signal: AbortSignal.timeout(8000) })
+            if (res.ok) {
+                const html = await res.text()
+                if (html.trim() && !html.startsWith("Proxy error:")) return html
+            }
+        } catch {}
+    }
+
+    // 3. In Node / non-browser environments, try direct fetch
     if (typeof window === "undefined") {
         try {
             const res = await fetch(targetUrl, { headers, signal: AbortSignal.timeout(6000) })
@@ -59,22 +83,26 @@ async function fetchHtml(url: string): Promise<string> {
         } catch {}
     }
 
-    // In browser / CORS environments, try CORS proxies
-    const proxies = [`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`]
+    // 4. Fallback CORS proxies
+    const rawProxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+    ]
 
-    for (const proxyUrl of proxies) {
+    for (const proxyUrl of rawProxies) {
         try {
             const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) })
             if (res.ok) {
                 const html = await res.text()
-                if (html.trim() && !html.includes("Server-side requests are not allowed")) {
+                if (html.trim() && !html.includes("Server-side requests are not allowed") && !html.includes("Oops... Request Timeout")) {
                     return html
                 }
             }
         } catch {}
     }
 
-    // Proxy fallback: Allorigins
+    // 5. JSON-wrapping Proxy fallback: Allorigins get
     try {
         const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`
         const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) })
@@ -86,7 +114,7 @@ async function fetchHtml(url: string): Promise<string> {
         }
     } catch {}
 
-    // Final fallback: Direct fetch
+    // 6. Final fallback: Direct fetch (for local dev or CORS-friendly targets)
     try {
         const res = await fetch(targetUrl, { headers, signal: AbortSignal.timeout(6000) })
         if (res.ok) {
@@ -345,10 +373,22 @@ export function extractChordsTextFromHtml(htmlString: string): { rawText: string
 }
 
 /**
- * Validates if an extracted raw text actually contains musical chord lines.
+ * Validates if an extracted raw text actually contains musical chords, ChordPro markup, or lyrics.
  */
 function containsValidChordLines(text: string): boolean {
     if (!text || !text.trim()) return false
+
+    // 1. Check for inline ChordPro bracketed chords: e.g. [C], [Bbsus2], [F/A], [Gm7]
+    if (/\[[A-GH][b#]?(?:m|maj|min|dim|aug|sus|add|\d|\/|\.|\?)*\]/i.test(text)) {
+        return true
+    }
+
+    // 2. Check for ChordPro directives: e.g. {title:...}, {c:...}, {comment:...}
+    if (/\{(?:title|t|subtitle|st|comment|c|artist|key|tempo|start_of_chorus|soc|start_of_verse|sov)\b/i.test(text)) {
+        return true
+    }
+
+    // 3. Check for chord-over-lyric lines
     const lines = text.split(/\r?\n/)
     let chordLines = 0
     for (const l of lines) {
