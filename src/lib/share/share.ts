@@ -1,7 +1,8 @@
 import type { List } from "$lib/models/List"
 import type { Song } from "$lib/models/Song"
 import { showToast } from "$lib/state/toast.svelte"
-import { createShareUrl, encodeListShare, encodeSongShare } from "./shareCodec"
+import { encodeListShare, encodeSongShare } from "./shareCodec"
+import { createShortShare } from "./shortener"
 
 export async function copyUrlToClipboard(url: string, title?: string): Promise<boolean> {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -49,7 +50,7 @@ export async function copyUrlToClipboard(url: string, title?: string): Promise<b
 export async function shareSong(song: Song): Promise<boolean> {
     try {
         const encoded = await encodeSongShare(song)
-        const url = createShareUrl(encoded)
+        const url = await createShortShare(encoded)
         return await copyUrlToClipboard(url, song.name)
     } catch (e) {
         console.error("Error creating song share URL:", e)
@@ -61,7 +62,7 @@ export async function shareSong(song: Song): Promise<boolean> {
 export async function shareList(list: List, allSongs: Song[]): Promise<boolean> {
     try {
         const encoded = await encodeListShare(list, allSongs)
-        const url = createShareUrl(encoded)
+        const url = await createShortShare(encoded)
         return await copyUrlToClipboard(url, list.name)
     } catch (e) {
         console.error("Error creating list share URL:", e)

@@ -445,23 +445,6 @@
         box-sizing: border-box;
     }
 
-    .setlist-header {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        padding: 4px 8px 8px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--md-sys-color-on-surface, #1b1b1f);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    }
-
-    .sub-hint {
-        font-size: 0.78rem;
-        font-weight: 400;
-        opacity: 0.65;
-    }
-
     .song-table {
         display: flex;
         flex-direction: column;
@@ -548,25 +531,6 @@
 
     .play-btn.active {
         color: #1db954;
-    }
-
-    .status-pill {
-        font-size: 0.7rem;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 4px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-
-    .status-pill.existing {
-        background: rgba(0, 0, 0, 0.07);
-        color: #555;
-    }
-
-    .status-pill.new {
-        background: #e8f5e9;
-        color: #2e7d32;
     }
 
     /* Bottom center action container */

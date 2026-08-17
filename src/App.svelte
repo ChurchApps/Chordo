@@ -20,7 +20,7 @@
     import PlaybackBar from "./components/playback/PlaybackBar.svelte"
     import Toast from "./components/common/Toast.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
-    import { decodeSharePayload, extractSharePayloadFromUrl } from "$lib/share/shareCodec"
+    import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/shareCodec"
     import { setSharePayload } from "$lib/share/share.svelte"
     import { setActivePage } from "$lib/state/menu.svelte"
 
@@ -28,7 +28,7 @@
         if (typeof window === "undefined") return
         const rawPayload = extractSharePayloadFromUrl()
         if (rawPayload) {
-            const decoded = await decodeSharePayload(rawPayload)
+            const decoded = await resolveSharePayload(rawPayload)
             if (decoded) {
                 setSharePayload(decoded, rawPayload)
                 const title = decoded.type === "list" ? decoded.list.name : decoded.song.name

@@ -1,8 +1,9 @@
+import type { SongMetadata } from "../chords/metadata"
 import type { List } from "../models/List"
 import type { Song } from "../models/Song"
-import type { SongMetadata } from "../chords/metadata"
+import { fetchShortShare } from "./shortener"
 
-export type SharedSongData = {
+type SharedSongData = {
     id?: string
     name: string
     content: string
@@ -13,13 +14,13 @@ export type SharedSongData = {
     createdAt?: number
 }
 
-export type SharedListSongItem = {
+type SharedListSongItem = {
     songId: string
     transposed?: string
     lastKnownName?: string
 }
 
-export type SharedListData = {
+type SharedListData = {
     id?: string
     name: string
     songs: SharedSongData[]
@@ -45,7 +46,7 @@ export type SharePayload = { type: "song"; song: SharedSongData } | { type: "lis
 
 // --- Base64URL Helpers ---
 
-export function uint8ArrayToBase64Url(bytes: Uint8Array): string {
+function uint8ArrayToBase64Url(bytes: Uint8Array): string {
     let binary = ""
     const len = bytes.byteLength
     for (let i = 0; i < len; i++) {
@@ -54,7 +55,7 @@ export function uint8ArrayToBase64Url(bytes: Uint8Array): string {
     return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }
 
-export function base64UrlToUint8Array(base64Url: string): Uint8Array {
+function base64UrlToUint8Array(base64Url: string): Uint8Array {
     let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
     while (base64.length % 4 !== 0) {
         base64 += "="
@@ -108,7 +109,7 @@ function expandUrl(shortUrl?: string): string | undefined {
 
 // --- Chord Content Normalizer ---
 
-export function trimChordContent(content: string): string {
+function trimChordContent(content: string): string {
     if (!content) return ""
     return content
         .replace(/\r\n|\r/g, "\n")
@@ -122,7 +123,7 @@ export function trimChordContent(content: string): string {
 
 // --- Native Compression Streams ---
 
-export async function compressString(input: string): Promise<string> {
+async function compressString(input: string): Promise<string> {
     const rawBytes = new TextEncoder().encode(input)
     if (typeof CompressionStream !== "undefined") {
         const stream = new Response(rawBytes as BodyInit).body?.pipeThrough(new CompressionStream("deflate-raw"))
@@ -134,7 +135,7 @@ export async function compressString(input: string): Promise<string> {
     return uint8ArrayToBase64Url(rawBytes)
 }
 
-export async function decompressString(encoded: string): Promise<string> {
+async function decompressString(encoded: string): Promise<string> {
     const bytes = base64UrlToUint8Array(encoded)
     if (typeof DecompressionStream !== "undefined") {
         try {
@@ -336,4 +337,39 @@ export function extractSharePayloadFromUrl(url: string = typeof window !== "unde
     } catch {
         return null
     }
+}
+
+export function isShortenedShareId(raw: string): boolean {
+    if (!raw) return false
+    if (raw.startsWith("d:")) return true
+    if (/^[A-Za-z0-9_-]{4,16}$/.test(raw) && !raw.includes("[")) return true
+    return false
+}
+
+export async function resolveSharePayload(raw: string): Promise<SharePayload | null> {
+    if (!raw) return null
+    const trimmed = raw.trim()
+
+    // 1. If explicitly prefixed or formatted as a short ID, fetch from shortener
+    if (isShortenedShareId(trimmed)) {
+        const fetched = await fetchShortShare(trimmed)
+        if (fetched) {
+            const decoded = await decodeSharePayload(fetched)
+            if (decoded) return decoded
+        }
+    }
+
+    // 2. Try direct decode as compressed Base64URL
+    const direct = await decodeSharePayload(trimmed)
+    if (direct) return direct
+
+    // 3. Fallback: if direct decode failed, try fetching as short ID
+    if (!isShortenedShareId(trimmed)) {
+        const fetched = await fetchShortShare(trimmed)
+        if (fetched) {
+            return await decodeSharePayload(fetched)
+        }
+    }
+
+    return null
 }
