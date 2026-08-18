@@ -1,7 +1,7 @@
 @import "@fontsource/open-sans/400.css";
 @import "@fontsource/open-sans/500.css";
 @import "@fontsource/open-sans/700.css";
-@import "@fontsource/material-symbols-outlined/index.css";
+@import "./material-symbols.css";
 @import "./themes.css";
 
 :root {
@@ -61,7 +61,7 @@ main {
 
 .material-symbols-outlined,
 md-icon {
-    font-family: "Material Symbols Outlined", sans-serif;
+    font-family: "Material Symbols Outlined";
     font-weight: normal;
     font-style: normal;
     /* font-size: 24px; */
@@ -74,6 +74,8 @@ md-icon {
     direction: ltr;
     font-feature-settings: "liga";
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    user-select: none;
 }
 
 /* center {
