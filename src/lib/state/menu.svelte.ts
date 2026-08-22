@@ -147,6 +147,16 @@ export function setActivePopup(popup: Popups | null): void {
 // restore page position when returning from draw
 export const savedFullscreenPosition = $state<{ index: number | null; pageIndex: number | null }>({ index: null, pageIndex: null })
 
+const initialLyricsOnly = typeof sessionStorage !== "undefined" && sessionStorage.getItem("chordo_lyrics_only") === "true"
+export const fullscreenState = $state<{ lyricsOnly: boolean }>({ lyricsOnly: initialLyricsOnly })
+
+export function setFullscreenLyricsOnly(lyricsOnly: boolean): void {
+    fullscreenState.lyricsOnly = lyricsOnly
+    if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("chordo_lyrics_only", String(lyricsOnly))
+    }
+}
+
 /// HELPERS ///
 
 /**

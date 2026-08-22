@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { calculateTransposeSemitones, hasTransposableContent } from "$lib/chords/transpose"
     import type { Folder } from "$lib/models/Folder"
     import type { List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
@@ -13,6 +12,7 @@
     import { shareList, shareSong } from "$lib/share/share"
     import { clearSharePayload } from "$lib/share/share.svelte"
     import { pages } from "../pages/pages"
+    import TransposeButton from "../song/TransposeButton.svelte"
 
     let headerPath = $derived(
         menuState.previousPages.reduce((path, page) => {
@@ -60,19 +60,6 @@
     // Active song context
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let currentSong = $derived(activeSongContext?.song ?? null)
-
-    let canTranspose = $derived(currentSong ? hasTransposableContent(currentSong.content, currentSong.getMetadata("key"), currentSong.images) : false)
-
-    // Semitone distance / count from base key
-    let transposeCount = $derived.by(() => {
-        if (!currentSong) return 0
-        return calculateTransposeSemitones({
-            targetKey: activeSongContext?.listItem?.transposed,
-            lastTransposed: currentSong.lastTransposed,
-            songKey: currentSong.getMetadata("key"),
-            content: currentSong.content
-        })
-    })
 
     function confirmDeleteSong(song: Song | null) {
         if (!song) return
@@ -202,16 +189,7 @@
                             {/if}
                         </md-icon-button>
                     {/if}
-                    <div class="action-btn-wrapper">
-                        <md-icon-button aria-label="Transpose" disabled={!canTranspose} onclick={() => setActivePopup("transpose")}>
-                            <span class="material-symbols-outlined">swap_vert</span>
-                        </md-icon-button>
-                        {#if transposeCount !== 0}
-                            <span class="badge" class:negative={transposeCount < 0}>
-                                {transposeCount > 0 ? "+" + transposeCount : transposeCount}
-                            </span>
-                        {/if}
-                    </div>
+                    <TransposeButton />
                     <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
@@ -344,7 +322,6 @@
         gap: 4px;
     }
 
-    .action-btn-wrapper,
     .more-menu-wrapper {
         position: relative;
         display: inline-flex;
@@ -359,25 +336,6 @@
     md-menu-item {
         white-space: nowrap;
     }
-
-    .badge {
-        position: absolute;
-        bottom: 6px;
-        right: 4px;
-        background: var(--md-sys-color-primary, #6750a4);
-        color: var(--md-sys-color-on-primary, #ffffff);
-        font-size: 0.65rem;
-        font-weight: 700;
-        line-height: 1;
-        padding: 2px 4px;
-        border-radius: 9999px;
-        pointer-events: none;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        font-variant-numeric: tabular-nums;
-    }
-    /* .badge.negative {
-        background: var(--md-sys-color-tertiary, #7d5260);
-    } */
 
     /* search */
 

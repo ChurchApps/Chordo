@@ -157,5 +157,9 @@
         "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
         "copy_failed": "Kunne ikke kopiere lenke",
         "generate_failed": "Kunne ikke opprette delingslenke"
+    },
+    "song_fullscreen": {
+        "lyrics_only": "Kun tekst",
+        "show_chords": "Vis akkorder"
     }
 }

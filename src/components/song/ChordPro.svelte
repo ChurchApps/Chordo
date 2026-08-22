@@ -14,7 +14,8 @@
         showMeta = false,
         numColumns = 1,
         lightMode = false, // do some optimization to the rendering if light mode
-        fitParent = true
+        fitParent = true,
+        hideChords = false
     } = $props<{
         songId?: string | null
         song?: any
@@ -24,6 +25,7 @@
         numColumns?: number
         lightMode?: boolean
         fitParent?: boolean
+        hideChords?: boolean
     }>()
 
     import { Song } from "$lib/models/Song"
@@ -80,7 +82,7 @@
         {/each}
     </div>
 {:else if parsed}
-    <div class="chordpro-container" style="--num-columns: {numColumns};">
+    <div class="chordpro-container" class:hide-chords={hideChords} style="--num-columns: {numColumns};">
         <div class="song-header">
             {#if song?.name}
                 <div class="song-title">{song.name}</div>
@@ -98,7 +100,7 @@
         </div>
 
         {#each parsed.lines as line}
-            {@const hasChords = line.tokens?.some((token) => token.chord)}
+            {@const hasChords = !hideChords && line.tokens?.some((token) => token.chord)}
 
             {#if line.type === "empty"}
                 <div class="line empty">&nbsp;</div>
@@ -115,21 +117,23 @@
             {:else if line.type === "comment"}
                 <div class="line comment">{line.directiveValue}</div>
             {:else if line.type === "lyrics"}
-                <div class="line lyrics-line">
-                    {#each line.tokens as token}
-                        <span class="token">
-                            {#if hasChords}
-                                {#if token.chord}
-                                    <span class="chord-cell">{token.chord}</span>
-                                {:else}
-                                    <span class="chord-cell placeholder">&nbsp;</span>
+                {#if !hideChords || line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
+                    <div class="line lyrics-line">
+                        {#each line.tokens as token}
+                            <span class="token">
+                                {#if hasChords}
+                                    {#if token.chord}
+                                        <span class="chord-cell">{token.chord}</span>
+                                    {:else}
+                                        <span class="chord-cell placeholder">&nbsp;</span>
+                                    {/if}
                                 {/if}
-                            {/if}
 
-                            <span class="lyric-cell">{token.lyric}</span>
-                        </span>
-                    {/each}
-                </div>
+                                <span class="lyric-cell">{token.lyric}</span>
+                            </span>
+                        {/each}
+                    </div>
+                {/if}
             {/if}
         {/each}
     </div>
@@ -166,6 +170,10 @@
         white-space: pre-wrap;
         font-size: 1rem;
         line-height: 1.2;
+    }
+    .hide-chords .lyrics-line {
+        line-height: 1.4;
+        margin-bottom: 3px;
     }
     .token {
         display: inline-flex;

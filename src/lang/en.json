@@ -157,5 +157,9 @@
         "shared_no_media": "Shared! Note: Attached images/PDFs are not included.",
         "copy_failed": "Failed to copy link",
         "generate_failed": "Failed to generate share link"
+    },
+    "song_fullscreen": {
+        "lyrics_only": "Lyrics only",
+        "show_chords": "Show chords"
     }
 }
