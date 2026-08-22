@@ -1,5 +1,6 @@
 import storage from "../storage/StorageManager.svelte"
 import { getId, type NonFunctionProperties } from "../utils/common"
+import { t } from "../state/i18n.svelte"
 import type { Song } from "./Song"
 
 export class Lists {
@@ -26,6 +27,27 @@ export class Lists {
         folder.addList(list.id)
         storage.addList(list)
         return list
+    }
+
+    static duplicate(listId: string): List | null {
+        const list = storage.getListById(listId)
+        if (!list) return null
+
+        let parentFolder = storage.folders.find((f) => f.lists.includes(listId))
+        if (!parentFolder || parentFolder.type === "shared") {
+            parentFolder = storage.folders.find((f) => f.type !== "shared") ?? parentFolder ?? storage.folders[0]
+        }
+        if (!parentFolder) return null
+
+        const copySuffix = t("common", "copy") || "Copy"
+        const newList = new List({
+            name: `${list.name} (${copySuffix})`,
+            songs: list.songs.map((s) => ({ ...s }))
+        })
+
+        parentFolder.addList(newList.id)
+        storage.addList(newList)
+        return newList
     }
 }
 

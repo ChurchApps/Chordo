@@ -14,7 +14,8 @@
         "import": "Importer",
         "export": "Eksporter",
         "key": "Toneart",
-        "original": "Original"
+        "original": "Original",
+        "copy": "Kopi"
     },
     "pages": {
         "folder": "Mappe",
@@ -66,6 +67,7 @@
         "share_song": "Del sang",
         "delete_song": "Slett sang",
         "rename_list": "Endre navn på setliste",
+        "duplicate_list": "Dupliser setliste",
         "share_list": "Del setliste",
         "delete_list": "Slett setliste",
         "rename_folder": "Endre navn på mappe",

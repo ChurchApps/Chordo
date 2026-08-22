@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Folder } from "$lib/models/Folder"
-    import type { List } from "$lib/models/List"
+    import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
@@ -258,6 +258,20 @@
                                 >
                                     <span class="material-symbols-outlined" slot="start">edit</span>
                                     <div slot="headline">{t("menu", "rename_list")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        if (currentList) {
+                                            const newList = Lists.duplicate(currentList.id)
+                                            if (newList) {
+                                                setActivePage("list", newList.id, newList.name, "replace")
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">content_copy</span>
+                                    <div slot="headline">{t("menu", "duplicate_list")}</div>
                                 </md-menu-item>
                                 <md-menu-item
                                     onclick={() => {
