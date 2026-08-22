@@ -104,7 +104,18 @@
         "playback_url": "Playback URL",
         "playback_url_placeholder": "e.g. Spotify or YouTube link...",
         "play": "Play",
-        "open_external": "Open link in external app"
+        "open_external": "Open link in external app",
+        "reorder": "Reorder",
+        "reorder_sections": "Reorder sections",
+        "reorder_dialog_title": "Reorder Sections",
+        "add_section": "Add section",
+        "add_existing_section": "Add existing section",
+        "no_sections": "No lyrics sections detected.",
+        "delete_section": "Delete section",
+        "cant_delete_last_section": "Keep at least one instance of this section",
+        "move_up": "Move up",
+        "move_down": "Move down",
+        "section_count": "{count} sections"
     },
     "transpose": {
         "title": "Transpose",

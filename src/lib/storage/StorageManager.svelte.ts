@@ -151,17 +151,17 @@ class StorageManager {
     }
 
     updateSong(song: Song) {
-        this.songs = this.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
+        this.songs = this.songs.map((s) => (s.id === song.id ? (song instanceof Song ? song : new Song(song as any)) : s))
         this.save()
     }
 
     updateList(list: List) {
-        this.lists = this.lists.map((l) => (l.id === list.id ? new List(l as any) : l))
+        this.lists = this.lists.map((l) => (l.id === list.id ? (list instanceof List ? list : new List(list as any)) : l))
         this.save()
     }
 
     updateFolder(folder: Folder) {
-        this.folders = this.folders.map((f) => (f.id === folder.id ? new Folder(f as any) : f))
+        this.folders = this.folders.map((f) => (f.id === folder.id ? (folder instanceof Folder ? folder : new Folder(folder as any)) : f))
         this.save()
     }
 

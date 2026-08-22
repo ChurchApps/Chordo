@@ -104,7 +104,18 @@
         "playback_url": "Avspillings-URL",
         "playback_url_placeholder": "f.eks. Spotify- eller YouTube-lenke...",
         "play": "Spill av",
-        "open_external": "Åpne i ekstern app"
+        "open_external": "Åpne i ekstern app",
+        "reorder": "Rekkefølge",
+        "reorder_sections": "Endre rekkefølge",
+        "reorder_dialog_title": "Endre rekkefølge på seksjoner",
+        "add_section": "Legg til seksjon",
+        "add_existing_section": "Legg til eksisterende seksjon",
+        "no_sections": "Ingen sangseksjoner funnet.",
+        "delete_section": "Slett seksjon",
+        "cant_delete_last_section": "Må beholde minst én av denne seksjonen",
+        "move_up": "Flytt opp",
+        "move_down": "Flytt ned",
+        "section_count": "{count} seksjoner"
     },
     "transpose": {
         "title": "Transponer",

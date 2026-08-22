@@ -11,6 +11,7 @@
     import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
+    import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))
     let playbackUrlValue = $derived(song?.playbackUrl || song?.spotify || song?.getMetadata("playback") || song?.getMetadata("spotify") || "")
@@ -19,8 +20,11 @@
     let hasContent = $derived(Boolean(song?.content && song.content.trim().length > 0))
 
     let showMetadata = $state(false)
+    let showReorderDialog = $state(false)
+    let reorderInitialText = $state("")
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
+    let contentInputEl = $state<any>(null)
     let imageWebUrls = $state<string[]>([])
 
     // URL Pull State
@@ -42,6 +46,12 @@
             })
         } else {
             imageWebUrls = []
+        }
+    })
+
+    $effect(() => {
+        if (contentInputEl && song?.content !== undefined && contentInputEl.value !== song.content) {
+            contentInputEl.value = song.content
         }
     })
 
@@ -99,6 +109,25 @@
             if (currentSongName !== value) updatePageTitle(value)
             currentSongName = value
         }
+    }
+
+    function openReorderDialog() {
+        reorderInitialText = (contentInputEl ? contentInputEl.value : song?.content) || ""
+        showReorderDialog = true
+    }
+
+    function applyReorderedContent(newContent: string) {
+        if (!song) return
+        song.content = newContent
+        reorderInitialText = newContent
+        if (contentInputEl) {
+            contentInputEl.value = newContent
+        }
+        if (newContent.trim()) {
+            syncMetadataFromText(newContent)
+        }
+        storage.updateSong(song)
+        storage.persist()
     }
 
     function updateMetadataValue(e: Event, metaKey: string) {
@@ -319,16 +348,34 @@
                 {/if}
             {/if}
 
-            <md-outlined-text-field
-                type="textarea"
-                label={t("song_edit", "content")}
-                placeholder={t("song_edit", "content_placeholder")}
-                rows={8}
-                value={song.content}
-                oninput={(e: Event) => updateValue(e, "content")}
-                style="width: 100%;margin-top: 10px;resize: none;{hasContent && !hasMedia ? 'flex: 1;' : ''}"
-            >
-            </md-outlined-text-field>
+            <div class="textarea-wrapper" style="{hasContent && !hasMedia ? 'flex: 1; display: flex; flex-direction: column;' : ''}">
+                {#if hasContent}
+                    <div class="reorder-button-container">
+                        <button
+                            type="button"
+                            class="reorder-btn"
+                            onclick={openReorderDialog}
+                            title={t("song_edit", "reorder_sections")}
+                        >
+                            <span class="material-symbols-outlined" style="font-size: 16px;">reorder</span>
+                            <span>{t("song_edit", "reorder")}</span>
+                        </button>
+                    </div>
+                {/if}
+
+                <md-outlined-text-field
+                    id="song-content-input"
+                    bind:this={contentInputEl}
+                    type="textarea"
+                    label={t("song_edit", "content")}
+                    placeholder={t("song_edit", "content_placeholder")}
+                    rows={8}
+                    value={song.content}
+                    oninput={(e: Event) => updateValue(e, "content")}
+                    style="width: 100%;resize: none;{hasContent && !hasMedia ? 'flex: 1;' : ''}"
+                >
+                </md-outlined-text-field>
+            </div>
 
             <input type="file" accept="image/*,application/pdf,.pdf" multiple bind:this={fileInputEl} onchange={handleAddMedia} style="display: none;" />
 
@@ -378,6 +425,13 @@
         {/if}
     </div>
 </main>
+
+<ReorderSectionsDialog
+    open={showReorderDialog}
+    initialText={reorderInitialText}
+    onApply={applyReorderedContent}
+    onClose={() => (showReorderDialog = false)}
+/>
 
 <ProgressDialog open={isConvertingPdf} title={t("song_edit", "converting_pdf_title")} icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
 
@@ -524,5 +578,40 @@
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
+    }
+
+    .textarea-wrapper {
+        position: relative;
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    .reorder-button-container {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        z-index: 2;
+    }
+
+    .reorder-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 16px;
+        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+        background: var(--md-sys-color-surface-container-high, #f7f2fa);
+        color: var(--md-sys-color-primary, #6750a4);
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.15s ease;
+    }
+
+    .reorder-btn:hover {
+        background: var(--md-sys-color-primary-container, #eaddff);
+        color: var(--md-sys-color-on-primary-container, #21005d);
+        border-color: var(--md-sys-color-primary, #6750a4);
     }
 </style>
