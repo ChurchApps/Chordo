@@ -54,8 +54,8 @@
                     <md-list class="folders-list">
                         {#each matchedFolders as folder}
                             <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
-                                <div slot="headline">{folder.name}</div>
-                                <md-icon slot="start">folder</md-icon>
+                                <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
+                                <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
                                 <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                             </md-list-item>
                         {/each}
@@ -123,8 +123,8 @@
             <md-list class="folders-list scroll-list">
                 {#each folders as folder}
                     <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
-                        <div slot="headline">{folder.name}</div>
-                        <md-icon slot="start">folder</md-icon>
+                        <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
+                        <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
                         <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                     </md-list-item>
                 {/each}

@@ -144,9 +144,7 @@
 
         // 2. Individual prompt per name collision
         const nameDecisions = new Map<string, boolean>()
-        const nameCollisions = sharedList.songs.filter(
-            (s) => (!s.id || !storage.songs.some((e) => e.id === s.id)) && storage.songs.some((e) => e.name.trim().toLowerCase() === s.name.trim().toLowerCase())
-        )
+        const nameCollisions = sharedList.songs.filter((s) => (!s.id || !storage.songs.some((e) => e.id === s.id)) && storage.songs.some((e) => e.name.trim().toLowerCase() === s.name.trim().toLowerCase()))
 
         for (const s of nameCollisions) {
             const norm = s.name.trim().toLowerCase()
@@ -203,7 +201,7 @@
             })
             let sharedFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared")
             if (!sharedFolder) {
-                sharedFolder = new Folder({ name: "Shared" })
+                sharedFolder = new Folder({ name: "Shared", type: "shared" })
                 storage.addFolder(sharedFolder)
             }
             sharedFolder.addList(newList.id)
@@ -280,7 +278,8 @@
                     <!-- {#if existingSong}
                         Update / Replace Song
                     {:else} -->
-                    {t("common", "import")} {t("pages", "song")}
+                    {t("common", "import")}
+                    {t("pages", "song")}
                     <!-- {/if} -->
                 </md-filled-button>
             </div>
@@ -361,7 +360,8 @@
             <div class="bottom-center-action">
                 <md-filled-button onclick={importList} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
-                    {t("common", "import")} {t("pages", "list")}
+                    {t("common", "import")}
+                    {t("pages", "list")}
                 </md-filled-button>
             </div>
         </div>

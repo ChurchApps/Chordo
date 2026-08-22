@@ -25,6 +25,9 @@
         "add_songs": "Legg til sanger",
         "share_preview": "Importer delt"
     },
+    "folder_types": {
+        "shared": "Delt med deg"
+    },
     "search": {
         "placeholder_all": "Søk i mapper, setlister, sanger...",
         "placeholder_songs": "Søk i sanger...",

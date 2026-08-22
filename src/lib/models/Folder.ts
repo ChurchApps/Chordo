@@ -4,7 +4,9 @@ import type { List } from "./List"
 
 export class Folders {
     static get(folders: Folder[]): Folder[] {
-        return sortByName(folders)
+        const shared = folders.filter((f) => f.type === "shared")
+        const others = folders.filter((f) => f.type !== "shared")
+        return [...shared, ...sortByName(others)]
     }
 
     static create(data: Partial<FolderKeys> = {}): Folder | null {
@@ -22,12 +24,14 @@ export class Folder {
     name: string
     lists: string[]
     createdAt: number
+    type: "default" | "shared"
 
     constructor(data: Partial<FolderKeys> = {}) {
         this.id = data.id ?? getId("folder")
         this.name = data.name ?? "Untitled"
         this.lists = data.lists || []
         this.createdAt = data.createdAt ?? Date.now()
+        this.type = data.type ?? "default"
     }
 
     getLists(allLists: List[]) {

@@ -25,6 +25,9 @@
         "add_songs": "Add songs",
         "share_preview": "Import shared"
     },
+    "folder_types": {
+        "shared": "Shared with you"
+    },
     "search": {
         "placeholder_all": "Search folders, setlists, songs...",
         "placeholder_songs": "Search songs...",
