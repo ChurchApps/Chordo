@@ -9,41 +9,34 @@ export interface ReorderState {
     dragOverIdx: number | null
 }
 
+function reorderArray<T>(items: T[], fromIndices: number[], targetIdx: number) {
+    const indicesToMove = [...fromIndices].sort((a, b) => a - b)
+    const remaining = items.filter((_, idx) => !indicesToMove.includes(idx))
+    const moved = items.filter((_, idx) => indicesToMove.includes(idx))
+
+    let insertAt = 0
+    for (let i = 0; i < items.length; i++) {
+        if (i === targetIdx) break
+        if (!indicesToMove.includes(i)) insertAt++
+    }
+
+    const result = [...remaining]
+    result.splice(insertAt, 0, ...moved)
+    return { items: result, insertAt, count: moved.length }
+}
+
 /**
  * Derives a live preview of the list while dragging, preserving each item's
  * original index to accurately target ghost states across duplicate items.
  */
 export function getDisplayList<T>(list: T[], state: ReorderState): IndexedItem<T>[] {
-    const indexed = list.map((item, originalIdx) => ({
-        item,
-        originalIdx
-    }))
-
+    const indexed = list.map((item, originalIdx) => ({ item, originalIdx }))
     const { draggedIdx, draggedIndices, dragOverIdx } = state
-
     if (draggedIdx === null || dragOverIdx === null || draggedIdx === dragOverIdx) {
         return indexed
     }
-
-    const indicesToMove = draggedIndices.length > 0 && draggedIndices.includes(draggedIdx)
-        ? [...draggedIndices].sort((a, b) => a - b)
-        : [draggedIdx]
-
-    const remaining = indexed.filter((_, idx) => !indicesToMove.includes(idx))
-    const movedItems = indexed.filter((_, idx) => indicesToMove.includes(idx))
-
-    // Calculate target insert index in remaining list
-    let insertAt = 0
-    for (let i = 0; i < indexed.length; i++) {
-        if (i === dragOverIdx) break
-        if (!indicesToMove.includes(i)) {
-            insertAt++
-        }
-    }
-
-    const updated = [...remaining]
-    updated.splice(insertAt, 0, ...movedItems)
-    return updated
+    const move = draggedIndices.length > 0 && draggedIndices.includes(draggedIdx) ? draggedIndices : [draggedIdx]
+    return reorderArray(indexed, move, dragOverIdx).items
 }
 
 /**
@@ -92,7 +85,8 @@ export function handleItemDrop(
     e.stopPropagation()
     if (state.draggedIdx !== null) {
         const indices = state.draggedIndices.length > 0 ? state.draggedIndices : [state.draggedIdx]
-        onMoveBatch(indices, targetIdx)
+        const target = state.dragOverIdx !== null ? state.dragOverIdx : targetIdx
+        onMoveBatch(indices, target)
     }
     resetDragState(state)
 }
@@ -128,33 +122,11 @@ export function handleContainerDrop(
  * Applies a batch move of multiple item indices to a target position in an array.
  * Returns a new array with the items moved, along with updated selected indices.
  */
-export function applyBatchMove<T>(list: T[], fromIndices: number[], targetIdx: number): { updatedList: T[]; newSelectedIndices: number[] } {
+export function applyBatchMove<T>(list: T[], fromIndices: number[], dragOverIdx: number): { updatedList: T[]; newSelectedIndices: number[] } {
     if (fromIndices.length === 0) return { updatedList: [...list], newSelectedIndices: [] }
-    const sortedFrom = [...fromIndices].sort((a, b) => a - b)
-    const result = [...list]
-
-    // Save items to move
-    const movedItems = sortedFrom.map((idx) => result[idx]).filter((item): item is T => item !== undefined)
-
-    // Remove items in descending index order
-    for (let i = sortedFrom.length - 1; i >= 0; i--) {
-        result.splice(sortedFrom[i], 1)
+    const { items, insertAt, count } = reorderArray(list, fromIndices, dragOverIdx)
+    return {
+        updatedList: items,
+        newSelectedIndices: Array.from({ length: count }, (_, i) => insertAt + i)
     }
-
-    // Calculate target insertion index after removal
-    let insertIndex = targetIdx
-    for (const idx of sortedFrom) {
-        if (idx < targetIdx) {
-            insertIndex--
-        }
-    }
-    if (insertIndex < 0) insertIndex = 0
-    if (insertIndex > result.length) insertIndex = result.length
-
-    // Insert moved items into target position
-    result.splice(insertIndex, 0, ...movedItems)
-
-    const newSelectedIndices = movedItems.map((_, i) => insertIndex + i)
-
-    return { updatedList: result, newSelectedIndices }
 }

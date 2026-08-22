@@ -94,15 +94,13 @@ export class List {
         const updated = [...this.songs]
         updated[index] = { ...current, transposed: transposedKey }
         this.songs = updated
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
     }
 
     addSong(songId: string, songName?: string) {
         const name = songName ?? storage.getSongById(songId)?.name
         this.songs = [...this.songs, { songId, lastKnownName: name }]
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
     }
 
     addSongs(songIds: string[]) {
@@ -111,8 +109,7 @@ export class List {
             lastKnownName: storage.getSongById(songId)?.name
         }))
         this.songs = [...this.songs, ...newItems]
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
     }
 
     moveSong(fromIndex: number, toIndex: number): boolean {
@@ -123,16 +120,19 @@ export class List {
         const [moved] = next.splice(fromIndex, 1)
         next.splice(toIndex, 0, moved)
         this.songs = next
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
         return true
     }
 
     removeSong(index: number): boolean {
         if (index < 0 || index >= this.songs.length) return false
         this.songs = this.songs.filter((_, i) => i !== index)
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
         return true
+    }
+
+    setSongs(songs: ListSongItem[]) {
+        this.songs = [...songs]
+        storage.updateList(this)
     }
 }

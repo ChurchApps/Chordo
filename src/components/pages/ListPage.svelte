@@ -25,7 +25,6 @@
             list.removeSong(idx)
         }
 
-        storage.lists = [...storage.lists]
         selectedIndices = []
         listEditingState.isEditing = false
     }
@@ -64,9 +63,7 @@
     function onBatchMove(fromIndices: number[], targetIdx: number) {
         if (!list || fromIndices.length === 0) return
         const { updatedList, newSelectedIndices } = applyBatchMove(list.songs, fromIndices, targetIdx)
-        list.songs = updatedList
-        storage.persist()
-        storage.lists = [...storage.lists]
+        list.setSongs(updatedList)
         selectedIndices = newSelectedIndices
     }
 
@@ -116,12 +113,6 @@
 
         savedFullscreenPosition.index = originalIdx
         setActivePage("song", item.songId, item.name)
-    }
-
-    function applyMove(from: number, to: number) {
-        if (!list) return
-        list.moveSong(from, to)
-        storage.lists = [...storage.lists]
     }
 </script>
 

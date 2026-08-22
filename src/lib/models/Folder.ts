@@ -36,6 +36,7 @@ export class Folder {
     }
 
     addList(listId: string) {
-        this.lists.push(listId)
+        if (!this.lists.includes(listId)) this.lists.push(listId)
+        storage.updateFolder(this)
     }
 }
