@@ -90,7 +90,7 @@
     }
 
     function confirmDeleteFolder(folder: Folder | null) {
-        if (!folder) return
+        if (!folder || folder.type === "shared") return
         openConfirm({
             title: t("confirm", "delete_folder_title"),
             message: `Are you sure you want to delete folder "${folder.name}"?`,
@@ -200,7 +200,8 @@
                     </md-icon-button>
                 {/if}
 
-                {#if menuState.activePage !== "share_preview"}
+                {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}
+                {#if menuState.activePage !== "share_preview" && !(menuState.activePage === "folder" && activeFolder?.type === "shared")}
                     <div class="more-menu-wrapper">
                         <md-icon-button id="more-options-btn" aria-label="More options" onclick={() => (moreMenuOpen = !moreMenuOpen)}>
                             <span class="material-symbols-outlined">more_vert</span>
@@ -252,6 +253,15 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
+                                        setActivePopup("rename_list")
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">edit</span>
+                                    <div slot="headline">{t("menu", "rename_list")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
                                         if (currentList) shareList(currentList, storage.songs)
                                     }}
                                 >
@@ -269,15 +279,26 @@
                                 </md-menu-item>
                             {:else if menuState.activePage === "folder"}
                                 {@const currentFolder = storage.getFolderById(menuState.contentId)}
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        confirmDeleteFolder(currentFolder)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                    <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_folder")}</div>
-                                </md-menu-item>
+                                {#if currentFolder && currentFolder.type !== "shared"}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            setActivePopup("rename_folder")
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">edit</span>
+                                        <div slot="headline">{t("menu", "rename_folder")}</div>
+                                    </md-menu-item>
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            confirmDeleteFolder(currentFolder)
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                                        <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_folder")}</div>
+                                    </md-menu-item>
+                                {/if}
                             {/if}
                         </md-menu>
                     </div>

@@ -194,6 +194,8 @@ class StorageManager {
     }
 
     deleteFolder(folderId: string) {
+        const folder = this.getFolderById(folderId)
+        if (folder?.type === "shared") return
         this.folders = this.folders.filter((f) => f.id !== folderId)
         this.save()
     }

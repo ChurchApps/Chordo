@@ -56,13 +56,19 @@
         "song_title_label": "Sangtittel",
         "song_title_placeholder": "f.eks. Navnet Jesus"
     },
+    "rename": {
+        "list": "Endre navn på setliste",
+        "folder": "Endre navn på mappe"
+    },
     "menu": {
         "settings": "Innstillinger",
         "about": "Om appen",
         "share_song": "Del sang",
         "delete_song": "Slett sang",
+        "rename_list": "Endre navn på setliste",
         "share_list": "Del setliste",
         "delete_list": "Slett setliste",
+        "rename_folder": "Endre navn på mappe",
         "delete_folder": "Slett mappe"
     },
     "confirm": {

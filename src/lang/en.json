@@ -56,13 +56,19 @@
         "song_title_label": "Song title",
         "song_title_placeholder": "e.g. Amazing Grace"
     },
+    "rename": {
+        "list": "Rename setlist",
+        "folder": "Rename folder"
+    },
     "menu": {
         "settings": "Settings",
         "about": "About",
         "share_song": "Share song",
         "delete_song": "Delete song",
+        "rename_list": "Rename setlist",
         "share_list": "Share setlist",
         "delete_list": "Delete setlist",
+        "rename_folder": "Rename folder",
         "delete_folder": "Delete folder"
     },
     "confirm": {
