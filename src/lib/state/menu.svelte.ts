@@ -63,9 +63,22 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
         menuState.contentId = contentId ?? null
         menuState.customPageTitle = customTitle ?? null
 
-        if (action !== "replace" && addToHistory) {
+        if (currentState.activePage === "share_preview") {
+            if (menuState.previousPages.length === 0) {
+                menuState.previousPages = [{ activePage: "home", contentId: null, customPageTitle: null }]
+            }
+            if (typeof window !== "undefined") {
+                history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "")
+                if (menu !== "home") {
+                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+                }
+            }
+        } else if (action !== "replace" && addToHistory) {
             menuState.previousPages.push(currentState)
             if (typeof window !== "undefined") {
+                if (action === "append" && appendData) {
+                    history.pushState({ type: "page", activePage: appendData.activePage, contentId: appendData.contentId ?? null, customPageTitle: appendData.customPageTitle ?? null }, "")
+                }
                 history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
             }
         } else if (action === "replace") {
@@ -73,7 +86,7 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
                 history.replaceState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
             }
         }
-        if (action === "append") menuState.previousPages.push(clone(appendData))
+        if (action === "append" && appendData) menuState.previousPages.push(clone(appendData))
     }
 
     if (typeof document !== "undefined" && (document as any).startViewTransition) {
@@ -143,6 +156,16 @@ export function setActivePopup(popup: Popups | null): void {
 
 // restore page position when returning from draw
 export const savedFullscreenPosition = $state<{ index: number | null; pageIndex: number | null }>({ index: null, pageIndex: null })
+
+const initialLyricsOnly = typeof sessionStorage !== "undefined" && sessionStorage.getItem("chordo_lyrics_only") === "true"
+export const fullscreenState = $state<{ lyricsOnly: boolean }>({ lyricsOnly: initialLyricsOnly })
+
+export function setFullscreenLyricsOnly(lyricsOnly: boolean): void {
+    fullscreenState.lyricsOnly = lyricsOnly
+    if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("chordo_lyrics_only", String(lyricsOnly))
+    }
+}
 
 /// HELPERS ///
 

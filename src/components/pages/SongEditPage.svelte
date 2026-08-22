@@ -11,13 +11,20 @@
     import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
+    import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))
     let playbackUrlValue = $derived(song?.playbackUrl || song?.spotify || song?.getMetadata("playback") || song?.getMetadata("spotify") || "")
     let playbackInfo = $derived(parsePlaybackUrl(playbackUrlValue))
+    let hasMedia = $derived(Boolean(song?.images && song.images.length > 0))
+    let hasContent = $derived(Boolean(song?.content && song.content.trim().length > 0))
 
+    let showMetadata = $state(false)
+    let showReorderDialog = $state(false)
+    let reorderInitialText = $state("")
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
+    let contentInputEl = $state<any>(null)
     let imageWebUrls = $state<string[]>([])
 
     // URL Pull State
@@ -39,6 +46,12 @@
             })
         } else {
             imageWebUrls = []
+        }
+    })
+
+    $effect(() => {
+        if (contentInputEl && song?.content !== undefined && contentInputEl.value !== song.content) {
+            contentInputEl.value = song.content
         }
     })
 
@@ -96,6 +109,25 @@
             if (currentSongName !== value) updatePageTitle(value)
             currentSongName = value
         }
+    }
+
+    function openReorderDialog() {
+        reorderInitialText = (contentInputEl ? contentInputEl.value : song?.content) || ""
+        showReorderDialog = true
+    }
+
+    function applyReorderedContent(newContent: string) {
+        if (!song) return
+        song.content = newContent
+        reorderInitialText = newContent
+        if (contentInputEl) {
+            contentInputEl.value = newContent
+        }
+        if (newContent.trim()) {
+            syncMetadataFromText(newContent)
+        }
+        storage.updateSong(song)
+        storage.persist()
     }
 
     function updateMetadataValue(e: Event, metaKey: string) {
@@ -215,38 +247,53 @@
 <main>
     <div style="display: flex;flex-direction: column;flex: 1;padding: 30px;padding-bottom: 93px;">
         {#if song}
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
                 <!-- Title -->
-                <md-outlined-text-field id="song-name-input" label={t("song_edit", "title")} placeholder={t("song_edit", "title_placeholder")} value={song.name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;"> </md-outlined-text-field>
+                <md-outlined-text-field id="song-name-input" label={t("song_edit", "title")} placeholder={t("song_edit", "title_placeholder")} value={song.name} oninput={(e: Event) => updateValue(e, "name")} style="flex: 1;">
+                </md-outlined-text-field>
+                <md-icon-button
+                    type="button"
+                    onclick={() => (showMetadata = !showMetadata)}
+                    title={showMetadata ? t("song_edit", "collapse_metadata") : t("song_edit", "expand_metadata")}
+                    aria-label={showMetadata ? t("song_edit", "collapse_metadata") : t("song_edit", "expand_metadata")}
+                >
+                    <md-icon>{showMetadata ? "keyboard_arrow_down" : "chevron_right"}</md-icon>
+                </md-icon-button>
             </div>
 
-            <!-- Dynamic Metadata Inputs Grid (includes Artist, Key, Tempo, Time, Album, Year, Composer, Copyright, Capo) -->
-            <div class="metadata-grid">
-                {#each METADATA_CONFIGS as cfg}
-                    <md-outlined-text-field id={"song-meta-" + cfg.key} label={cfg.label} placeholder={cfg.placeholder} value={song.getMetadata(cfg.key)} oninput={(e: Event) => updateMetadataValue(e, cfg.key)} style="flex: 1; min-width: 140px;">
-                    </md-outlined-text-field>
-                {/each}
-            </div>
+            {#if showMetadata}
+                <!-- Dynamic Metadata Inputs Grid (includes Artist, Key, Tempo, Time, Album, Year, Composer, Copyright, Capo) -->
+                <div class="metadata-grid">
+                    {#each METADATA_CONFIGS as cfg}
+                        <md-outlined-text-field
+                            id={"song-meta-" + cfg.key}
+                            label={cfg.label}
+                            placeholder={cfg.placeholder}
+                            value={song.getMetadata(cfg.key)}
+                            oninput={(e: Event) => updateMetadataValue(e, cfg.key)}
+                            style="flex: 1; min-width: 140px;"
+                        >
+                        </md-outlined-text-field>
+                    {/each}
+                </div>
+            {/if}
 
             <!-- Playback URL Section -->
             <div class="playback-section">
                 <div class="playback-input-row">
-                    <md-outlined-text-field
-                        id="song-playback-input"
-                        label={t("song_edit", "playback_url")}
-                        placeholder={t("song_edit", "playback_url_placeholder")}
-                        value={playbackUrlValue}
-                        oninput={updatePlaybackValue}
-                        style="flex: 1;"
-                    >
+                    <md-outlined-text-field id="song-playback-input" label={t("song_edit", "playback_url")} placeholder={t("song_edit", "playback_url_placeholder")} value={playbackUrlValue} oninput={updatePlaybackValue} style="flex: 1;">
                         <span slot="leading-icon" style="display: inline-flex; align-items: center; justify-content: center;">
                             {#if playbackInfo?.provider === "spotify"}
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DB954">
-                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"/>
+                                    <path
+                                        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"
+                                    />
                                 </svg>
                             {:else if playbackInfo?.provider === "youtube"}
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#FF0000">
-                                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                    <path
+                                        d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                                    />
                                 </svg>
                             {:else}
                                 <md-icon>play_circle</md-icon>
@@ -276,7 +323,7 @@
             {/if}
 
             <!-- Import URL Textbox & Pull Button (only shown if content is empty) -->
-            {#if !song.content || !song.content.trim()}
+            {#if !hasContent}
                 <div class="url-pull-container">
                     <md-outlined-text-field
                         id="song-url-input"
@@ -301,20 +348,38 @@
                 {/if}
             {/if}
 
-            <md-outlined-text-field
-                type="textarea"
-                label={t("song_edit", "content")}
-                placeholder={t("song_edit", "content_placeholder")}
-                rows={8}
-                value={song.content}
-                oninput={(e: Event) => updateValue(e, "content")}
-                style="width: 100%;margin-top: 10px;{song.images ? '' : 'flex: 1;'}"
-            >
-            </md-outlined-text-field>
+            <div class="textarea-wrapper" style="{hasContent && !hasMedia ? 'flex: 1; display: flex; flex-direction: column;' : ''}">
+                {#if hasContent}
+                    <div class="reorder-button-container">
+                        <button
+                            type="button"
+                            class="reorder-btn"
+                            onclick={openReorderDialog}
+                            title={t("song_edit", "reorder_sections")}
+                        >
+                            <span class="material-symbols-outlined" style="font-size: 16px;">reorder</span>
+                            <span>{t("song_edit", "reorder")}</span>
+                        </button>
+                    </div>
+                {/if}
+
+                <md-outlined-text-field
+                    id="song-content-input"
+                    bind:this={contentInputEl}
+                    type="textarea"
+                    label={t("song_edit", "content")}
+                    placeholder={t("song_edit", "content_placeholder")}
+                    rows={8}
+                    value={song.content}
+                    oninput={(e: Event) => updateValue(e, "content")}
+                    style="width: 100%;resize: none;{hasContent && !hasMedia ? 'flex: 1;' : ''}"
+                >
+                </md-outlined-text-field>
+            </div>
 
             <input type="file" accept="image/*,application/pdf,.pdf" multiple bind:this={fileInputEl} onchange={handleAddMedia} style="display: none;" />
 
-            {#if song.images && song.images.length > 0}
+            {#if hasMedia}
                 <div class="images-section-header">
                     <span class="section-title">{t("song_edit", "media_pages")} ({song.images.length})</span>
                     <md-outlined-button type="button" onclick={() => fileInputEl?.click()}>
@@ -349,7 +414,7 @@
                         </div>
                     {/each}
                 </div>
-            {:else}
+            {:else if !hasContent}
                 <div style="margin-top: 10px;">
                     <md-outlined-button type="button" onclick={() => fileInputEl?.click()}>
                         <md-icon slot="icon">add_photo_alternate</md-icon>
@@ -360,6 +425,13 @@
         {/if}
     </div>
 </main>
+
+<ReorderSectionsDialog
+    open={showReorderDialog}
+    initialText={reorderInitialText}
+    onApply={applyReorderedContent}
+    onClose={() => (showReorderDialog = false)}
+/>
 
 <ProgressDialog open={isConvertingPdf} title={t("song_edit", "converting_pdf_title")} icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
 
@@ -507,5 +579,39 @@
         max-height: 100%;
         object-fit: contain;
     }
-</style>
 
+    .textarea-wrapper {
+        position: relative;
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    .reorder-button-container {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        z-index: 2;
+    }
+
+    .reorder-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 16px;
+        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+        background: var(--md-sys-color-surface-container-high, #f7f2fa);
+        color: var(--md-sys-color-primary, #6750a4);
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.15s ease;
+    }
+
+    .reorder-btn:hover {
+        background: var(--md-sys-color-primary-container, #eaddff);
+        color: var(--md-sys-color-on-primary-container, #21005d);
+        border-color: var(--md-sys-color-primary, #6750a4);
+    }
+</style>

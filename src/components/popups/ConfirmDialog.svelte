@@ -2,16 +2,37 @@
     import { closeConfirm, confirmState } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
 
-    async function handleConfirm() {
-        if (confirmState.config?.onConfirm) {
-            await confirmState.config.onConfirm()
+    let isActionTaken = false
+
+    $effect(() => {
+        if (confirmState.isOpen) {
+            isActionTaken = false
         }
+    })
+
+    async function handleConfirm() {
+        if (isActionTaken) return
+        isActionTaken = true
+        const callback = confirmState.config?.onConfirm
         closeConfirm()
+        if (callback) {
+            await callback()
+        }
+    }
+
+    async function handleCancel() {
+        if (isActionTaken) return
+        isActionTaken = true
+        const callback = confirmState.config?.onCancel
+        closeConfirm()
+        if (callback) {
+            await callback()
+        }
     }
 </script>
 
 {#if confirmState.isOpen}
-    <md-dialog open onclosed={closeConfirm}>
+    <md-dialog open onclosed={handleCancel}>
         <div slot="headline">
             {confirmState.config?.title ?? t("common", "confirm")}
         </div>
@@ -21,7 +42,7 @@
         </div>
 
         <div slot="actions">
-            <md-text-button role="button" tabindex="0" onclick={closeConfirm}>
+            <md-text-button role="button" tabindex="0" onclick={handleCancel}>
                 {confirmState.config?.cancelLabel ?? t("common", "cancel")}
             </md-text-button>
             <md-filled-button

@@ -1,8 +1,9 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import { Songs } from "$lib/models/Song"
+    import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
-    import { goBack, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
+    import { goBack, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
@@ -29,6 +30,9 @@
     }
 
     let listOpened = !!menuState.contentId
+    let isEditing = $derived(listEditingState.isEditing)
+    let selectedSongIds = $state<string[]>([])
+
     let addSongsOrder: string[] = $state([])
     function toggleSong(songId: string) {
         if (addSongsOrder.includes(songId)) {
@@ -49,17 +53,113 @@
             list.addSongs(addSongsOrder)
         }, 80)
     }
+
+    function removeSelectedSongs() {
+        if (selectedSongIds.length === 0) return
+        const count = selectedSongIds.length
+        const message =
+            count === 1
+                ? t("confirm", "delete_song_msg")
+                : t("confirm", "delete_songs_msg").replace("{count}", count.toString())
+
+        openConfirm({
+            title: count === 1 ? t("confirm", "delete_song_title") : t("confirm", "delete_songs_title"),
+            message,
+            confirmLabel: t("common", "delete"),
+            isDestructive: true,
+            onConfirm: async () => {
+                const idsToDelete = [...selectedSongIds]
+                for (const id of idsToDelete) {
+                    await storage.deleteSong(id)
+                }
+                selectedSongIds = []
+                listEditingState.isEditing = false
+            }
+        })
+    }
+
+    $effect(() => {
+        if (!listOpened && isEditing) {
+            listEditingState.onDeleteSelected = removeSelectedSongs
+        } else if (!isEditing) {
+            listEditingState.onDeleteSelected = undefined
+            selectedSongIds = []
+        }
+    })
+
+    let longPressTimer: ReturnType<typeof setTimeout> | null = null
+    let longPressed = false
+
+    function startPress(e: PointerEvent, songId: string) {
+        if (listOpened || e.button !== 0) return
+        longPressed = false
+        longPressTimer = setTimeout(() => {
+            longPressed = true
+            listEditingState.isEditing = true
+            if (!selectedSongIds.includes(songId)) {
+                selectedSongIds = [...selectedSongIds, songId]
+            }
+            if (navigator.vibrate) navigator.vibrate(50)
+        }, 500)
+    }
+
+    function endPress() {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer)
+            longPressTimer = null
+        }
+    }
+
+    function handleContextMenu(e: MouseEvent, songId: string) {
+        if (listOpened) return
+        e.preventDefault()
+        listEditingState.isEditing = true
+        if (!selectedSongIds.includes(songId)) {
+            selectedSongIds = [...selectedSongIds, songId]
+        }
+    }
+
+    function handleItemClick(songId: string, songName: string) {
+        if (longPressed) {
+            longPressed = false
+            return
+        }
+        if (listOpened) {
+            toggleSong(songId)
+            return
+        }
+        if (isEditing) {
+            if (selectedSongIds.includes(songId)) {
+                selectedSongIds = selectedSongIds.filter((id) => id !== songId)
+                if (selectedSongIds.length === 0) {
+                    listEditingState.isEditing = false
+                }
+            } else {
+                selectedSongIds = [...selectedSongIds, songId]
+            }
+            return
+        }
+        openSong(songId, songName)
+    }
 </script>
 
 <main>
     {#if filteredSongs.length}
         <md-list class="song-list scroll-list">
             {#each filteredSongs as song, idx}
-                {@const selected = addSongsOrder.includes(song.id)}
+                {@const isSelected = listOpened ? addSongsOrder.includes(song.id) : (isEditing && selectedSongIds.includes(song.id))}
                 {@const artist = song.metadata?.artist || (song.getMetadata ? song.getMetadata("artist") : "")}
                 {@const key = song.metadata?.key || (song.getMetadata ? song.getMetadata("key") : "")}
 
-                <md-list-item type="button" class:selected onclick={() => (listOpened ? toggleSong(song.id) : openSong(song.id, song.name))}>
+                <md-list-item
+                    type="button"
+                    class:selected={isSelected}
+                    onpointerdown={(e: PointerEvent) => startPress(e, song.id)}
+                    onpointerup={endPress}
+                    onpointerleave={endPress}
+                    oncontextmenu={(e: MouseEvent) => handleContextMenu(e, song.id)}
+                    onclick={() => handleItemClick(song.id, song.name)}
+                >
                     <div slot="headline">{song.name}</div>
                     {#if artist || key}
                         <div slot="supporting-text">
@@ -69,10 +169,14 @@
                         </div>
                     {/if}
                     <md-icon slot="start">music_note</md-icon>
-                    {#if listOpened && selected}
+                    {#if listOpened && isSelected}
                         <span slot="end" class="number">{addSongsOrder.indexOf(song.id) + 1}</span>
                     {:else if listOpened}
                         <md-icon slot="end" style="opacity: 0.8;">add</md-icon>
+                    {:else if isEditing && isSelected}
+                        <md-icon slot="end" style="color: var(--md-sys-color-primary);">check_circle</md-icon>
+                    {:else if isEditing}
+                        <md-icon slot="end" style="opacity: 0.4;">radio_button_unchecked</md-icon>
                     {:else}
                         <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                     {/if}
@@ -101,6 +205,10 @@
 <div class="fab-container">
     {#if listOpened && addSongsOrder.length > 0}
         <md-fab aria-label={t("common", "done")} onclick={addSongs}>
+            <span class="material-symbols-outlined" slot="icon">check</span>
+        </md-fab>
+    {:else if !listOpened && isEditing}
+        <md-fab aria-label={t("common", "done")} onclick={() => (listEditingState.isEditing = false)}>
             <span class="material-symbols-outlined" slot="icon">check</span>
         </md-fab>
     {:else}

@@ -1,13 +1,15 @@
 <script lang="ts">
     import { onMount, tick } from "svelte"
     import { slide } from "svelte/transition"
-    import { goBack, menuState, setActivePage, savedFullscreenPosition } from "$lib/state/menu.svelte"
+    import { goBack, menuState, setActivePage, savedFullscreenPosition, fullscreenState, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { t } from "$lib/state/i18n.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { requestWakeLock, releaseWakeLock } from "$lib/utils/wakeLock"
     import { enterFullscreen, exitFullscreen, toggleFullscreen, isFullscreenActive } from "$lib/utils/fullscreen"
     import ChordPro from "../song/ChordPro.svelte"
     import Paper from "../song/Paper.svelte"
     import Draw from "../draw/Draw.svelte"
+    import TransposeButton from "../song/TransposeButton.svelte"
 
     // --- State & Derived State ---
     const listId = $derived(menuState.previousPages.find((a) => a.activePage === "list")?.contentId)
@@ -298,6 +300,19 @@
                 <md-icon>{isNativeFullscreen ? "fullscreen_exit" : "fullscreen"}</md-icon>
             </md-icon-button> -->
 
+            <TransposeButton />
+
+            <md-icon-button
+                toggle
+                selected={fullscreenState.lyricsOnly}
+                onclick={() => setFullscreenLyricsOnly(!fullscreenState.lyricsOnly)}
+                aria-label={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
+                title={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
+            >
+                <md-icon>lyrics</md-icon>
+                <md-icon slot="selected">lyrics</md-icon>
+            </md-icon-button>
+
             <md-icon-button
                 onclick={() => {
                     savedFullscreenPosition.pageIndex = currentPageIndex
@@ -331,8 +346,8 @@
 
                 <div class="slide">
                     <Paper padding={hasMedia ? 0 : 12} background={hasMedia ? "black" : "white"} headerText={song?.name ?? ""}>
-                        {#key targetKey + ":" + (song?.lastTransposed ?? "")}
-                            <ChordPro {songId} {targetKey} numColumns={2} showMeta lightMode={Math.abs(i - currentPageIndex) > 1} />
+                        {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly}
+                            <ChordPro {songId} {targetKey} numColumns={2} showMeta lightMode={Math.abs(i - currentPageIndex) > 1} hideChords={fullscreenState.lyricsOnly} />
                         {/key}
                     </Paper>
                 </div>
@@ -361,6 +376,7 @@
         background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
         --md-icon-button-icon-color: white;
         --md-icon-button-hover-icon-color: white;
+        --md-icon-button-selected-icon-color: var(--md-sys-color-primary, #f5aa67);
     }
 
     footer {

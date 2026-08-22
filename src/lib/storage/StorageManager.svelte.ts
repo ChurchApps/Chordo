@@ -151,17 +151,20 @@ class StorageManager {
     }
 
     updateSong(song: Song) {
-        this.songs = this.songs.map((s) => (s.id === song.id ? new Song(s as any) : s))
+        const nextSong = new Song(song)
+        this.songs = this.songs.map((s) => (s.id === song.id ? nextSong : s))
         this.save()
     }
 
     updateList(list: List) {
-        this.lists = this.lists.map((l) => (l.id === list.id ? new List(l as any) : l))
+        const nextList = new List(list)
+        this.lists = this.lists.map((l) => (l.id === list.id ? nextList : l))
         this.save()
     }
 
     updateFolder(folder: Folder) {
-        this.folders = this.folders.map((f) => (f.id === folder.id ? new Folder(f as any) : f))
+        const nextFolder = new Folder(folder)
+        this.folders = this.folders.map((f) => (f.id === folder.id ? nextFolder : f))
         this.save()
     }
 
@@ -191,6 +194,8 @@ class StorageManager {
     }
 
     deleteFolder(folderId: string) {
+        const folder = this.getFolderById(folderId)
+        if (folder?.type === "shared") return
         this.folders = this.folders.filter((f) => f.id !== folderId)
         this.save()
     }

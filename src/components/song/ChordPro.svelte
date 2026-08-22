@@ -14,7 +14,8 @@
         showMeta = false,
         numColumns = 1,
         lightMode = false, // do some optimization to the rendering if light mode
-        fitParent = true
+        fitParent = true,
+        hideChords = false
     } = $props<{
         songId?: string | null
         song?: any
@@ -24,6 +25,7 @@
         numColumns?: number
         lightMode?: boolean
         fitParent?: boolean
+        hideChords?: boolean
     }>()
 
     import { Song } from "$lib/models/Song"
@@ -35,9 +37,6 @@
     let chordProContent = $derived.by(() => {
         const raw = song?.content || ""
         if (!raw) return ""
-        if (raw.includes("[") || raw.includes("{")) {
-            return raw
-        }
         return convertToChordPro(raw)
     })
 
@@ -80,7 +79,7 @@
         {/each}
     </div>
 {:else if parsed}
-    <div class="chordpro-container" style="--num-columns: {numColumns};">
+    <div class="chordpro-container" class:hide-chords={hideChords} style="--num-columns: {numColumns};">
         <div class="song-header">
             {#if song?.name}
                 <div class="song-title">{song.name}</div>
@@ -97,40 +96,50 @@
             {/if}
         </div>
 
-        {#each parsed.lines as line}
-            {@const hasChords = line.tokens?.some((token) => token.chord)}
+        {#each parsed.sections as section}
+            <div class="chordpro-section">
+                {#each section.lines as line}
+                    {@const hasChords = !hideChords && line.tokens?.some((token) => token.chord)}
 
-            {#if line.type === "empty"}
-                <div class="line empty">&nbsp;</div>
-            {:else if line.type === "directive"}
-                {#if !isMetadataDirective(line.directiveKey)}
-                    <div class="line directive">
-                        {#if line.directiveKey === "verse"}
-                            {line.directiveValue}
-                        {:else}
-                            {line.directiveKey}{line.directiveValue ? ": " + line.directiveValue : ""}
-                        {/if}
-                    </div>
-                {/if}
-            {:else if line.type === "comment"}
-                <div class="line comment">{line.directiveValue}</div>
-            {:else if line.type === "lyrics"}
-                <div class="line lyrics-line">
-                    {#each line.tokens as token}
-                        <span class="token">
-                            {#if hasChords}
-                                {#if token.chord}
-                                    <span class="chord-cell">{token.chord}</span>
+                    {#if line.type === "empty"}
+                        <div class="line empty">&nbsp;</div>
+                    {:else if line.type === "directive"}
+                        {#if !isMetadataDirective(line.directiveKey)}
+                            <div class="line directive">
+                                {#if line.directiveKey === "verse"}
+                                    {line.directiveValue}
                                 {:else}
-                                    <span class="chord-cell placeholder">&nbsp;</span>
+                                    {line.directiveKey}{line.directiveValue ? ": " + line.directiveValue : ""}
                                 {/if}
-                            {/if}
+                            </div>
+                        {/if}
+                    {:else if line.type === "comment"}
+                        <div class="line comment">{line.directiveValue}</div>
+                    {:else if line.type === "lyrics"}
+                        {#if !hideChords || line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
+                            <div class="line lyrics-line">
+                                {#each line.words ?? [{ tokens: line.tokens ?? [] }] as word}
+                                    <span class="word">
+                                        {#each word.tokens as token}
+                                            <span class="token">
+                                                {#if hasChords}
+                                                    {#if token.chord}
+                                                        <span class="chord-cell">{token.chord}</span>
+                                                    {:else}
+                                                        <span class="chord-cell placeholder">&nbsp;</span>
+                                                    {/if}
+                                                {/if}
 
-                            <span class="lyric-cell">{token.lyric}</span>
-                        </span>
-                    {/each}
-                </div>
-            {/if}
+                                                <span class="lyric-cell">{token.lyric}</span>
+                                            </span>
+                                        {/each}
+                                    </span>
+                                {/each}
+                            </div>
+                        {/if}
+                    {/if}
+                {/each}
+            </div>
         {/each}
     </div>
 {/if}
@@ -156,42 +165,80 @@
         -webkit-column-span: all;
     }
 
+    .chordpro-section {
+        break-inside: avoid; /* Prevents splitting a section across columns or pages */
+        -webkit-column-break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 25px;
+    }
+
+    .chordpro-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .chordpro-section:empty {
+        display: none;
+    }
+
     .line {
         break-inside: avoid; /* Keeps lyric lines from splitting mid-line across columns */
         -webkit-column-break-inside: avoid;
         page-break-inside: avoid;
+        text-wrap: pretty;
     }
 
     .lyrics-line {
         white-space: pre-wrap;
         font-size: 1rem;
         line-height: 1.2;
+        word-break: normal;
+        overflow-wrap: break-word;
+        text-wrap: balance;
+    }
+    .hide-chords .lyrics-line {
+        line-height: 1.4;
+        margin-bottom: 3px;
+    }
+    .word {
+        display: inline-flex;
+        align-items: flex-end;
+        white-space: pre-wrap;
+        max-width: 100%;
     }
     .token {
         display: inline-flex;
         flex-direction: column;
         align-items: flex-start;
         vertical-align: baseline;
-        white-space: pre;
+        white-space: pre-wrap;
+        max-width: 100%;
     }
+
     .chord-cell {
-        line-height: 1;
+        line-height: 1.2;
         font-family: monospace;
         font-weight: 700;
         font-size: 1.1rem;
         margin-bottom: 1px;
         color: #5498be;
         text-align: left;
+        white-space: pre-wrap;
+        word-break: normal;
+        overflow-wrap: break-word;
+        max-width: 100%;
     }
     .lyric-cell {
         display: inline-block;
         white-space: pre-wrap;
         text-align: left;
     }
+
     .chord-cell.placeholder {
         color: transparent;
         user-select: none;
     }
+
+
     .directive {
         font-weight: 500;
         color: #5498be;
@@ -201,7 +248,8 @@
     }
     .comment {
         font-weight: 600;
-        color: #2e7d32;
+        /* color: #2e7d32; */
+        color: #306685;
         margin: 4px 0;
     }
     .line.empty {

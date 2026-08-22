@@ -1,12 +1,11 @@
 import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
+import { matchSectionHeader, isChordToken } from "./chordproParser"
 
-// Regex for recognizing common chord patterns
-const CHORD_REGEX = /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add)?\d*(\/[A-GH](b|#)?)?$/i
-
-function isChordToken(token: string): boolean {
-    const cleaned = token.replace(/[\(\)\[\]]/g, "").trim()
-    if (!cleaned) return false
-    return CHORD_REGEX.test(cleaned)
+/**
+ * Checks if a line is a guitar tab staff (e.g. "E |---0-5-2---|")
+ */
+export function isGuitarTabLine(line: string): boolean {
+    return /^[eEhHgGdDaA]\s*\|[\-\d\s\/\\hpbtr~|]+\|?\s*$/i.test(line.trim())
 }
 
 /**
@@ -15,8 +14,9 @@ function isChordToken(token: string): boolean {
 export function isChordLine(line: string): boolean {
     const trimmed = line.trim()
     if (!trimmed) return false
+    if (isGuitarTabLine(line)) return false
 
-    if (/^(verse|chorus|bridge|intro|outro|refreng|mellomspill|pre-chorus|tag|coda|interlude|channel)\b/i.test(trimmed)) {
+    if (matchSectionHeader(trimmed)) {
         return false
     }
 
@@ -24,17 +24,19 @@ export function isChordLine(line: string): boolean {
     if (tokens.length === 0) return false
 
     let validChords = 0
+    let totalNonPunctuation = 0
 
     for (const token of tokens) {
         if (/^\(?x?\d+\)?$/i.test(token)) continue
-        if (token === "." || token === "|" || token === "/") continue
+        if (token === "." || token === "|" || token === "/" || token === "%" || token === "-") continue
 
+        totalNonPunctuation++
         if (isChordToken(token)) {
             validChords++
         }
     }
 
-    return validChords > 0 && validChords / tokens.length >= 0.5
+    return totalNonPunctuation > 0 && validChords / totalNonPunctuation >= 0.5
 }
 
 export interface ConvertOptions {
@@ -65,8 +67,8 @@ export function extractAndCleanSongMetadata(text: string, options: ConvertOption
         const line = rawLines[i]
         const trimmed = line.trim()
 
-        if (!trimmed) {
-            if (remainingLines.length > 0) {
+        if (!trimmed || /^[-=_*#~]{3,}$/.test(trimmed)) {
+            if (remainingLines.length > 0 && trimmed && !/^[-=_*#~]{3,}$/.test(trimmed)) {
                 remainingLines.push(line)
             }
             i++
@@ -89,29 +91,54 @@ export function extractAndCleanSongMetadata(text: string, options: ConvertOption
             continue
         }
 
-        // 2. Unbraced key-value: Key: Value
-        const unbracedMatch = trimmed.match(/^([a-zA-Z0-9_\-\/]+):\s*(.+)$/)
+        // 2. Unbraced key-value: Key: Value (e.g. "Key: G", "Tekst & melodi: ...", "T&M: ...", "Tempo: 120")
+        const unbracedMatch = trimmed.match(/^([^:]+):\s*(.+)$/)
         if (unbracedMatch) {
             const key = unbracedMatch[1].trim().toLowerCase()
-            const val = unbracedMatch[2].trim()
+            let val = unbracedMatch[2].trim()
             const targetMetaKey = METADATA_ALIAS_MAP[key]
 
             if (targetMetaKey) {
+                // Support multi-line metadata values in headers (e.g. multi-line composer list)
+                while (i + 1 < rawLines.length) {
+                    const nextTrim = rawLines[i + 1].trim()
+                    if (!nextTrim || /^[-=_*#~]{3,}$/.test(nextTrim) || nextTrim.includes(":") || matchSectionHeader(nextTrim) || isChordLine(nextTrim)) {
+                        break
+                    }
+                    val += " " + nextTrim
+                    i++
+                }
                 ;(metadata as any)[targetMetaKey] = val
+                i++
+                continue
+            }
+            if (key === "web" || key === "link" || key === "website" || key === "url" || key === "source") {
                 i++
                 continue
             }
         }
 
-        // 3. Line 1 = Title, Line 2 = Artist if at top of file before any section/chords
-        if (checkedHeaderLines === 0 && !metadata.title && remainingLines.length === 0) {
-            const nextLine = i + 1 < rawLines.length ? rawLines[i + 1].trim() : ""
-            const isNextArtist = nextLine && !nextLine.includes(":") && !nextLine.includes("[") && !nextLine.includes("{") && !isChordLine(nextLine)
-            if (isNextArtist) {
-                metadata.title = trimmed
-                metadata.artist = nextLine
-                i += 2
+        // 3. Header Detection at top of file before any chords/sections
+        if (checkedHeaderLines === 0 && remainingLines.length === 0) {
+            // Case 3a: "Title - Artist" on line 1
+            const titleArtistMatch = trimmed.match(/^([^\-\|]+?)\s+[\-\|]\s+([^\[\{]+)$/) || trimmed.match(/^(.+?)\s+by\s+([^\[\{]+)$/i)
+            if (titleArtistMatch && !isChordLine(trimmed)) {
+                if (!metadata.title) metadata.title = titleArtistMatch[1].trim()
+                if (!metadata.artist) metadata.artist = titleArtistMatch[2].trim()
+                i++
                 continue
+            }
+
+            // Case 3b: Line 1 = Title, Line 2 = Artist
+            if (!metadata.title) {
+                const nextLine = i + 1 < rawLines.length ? rawLines[i + 1].trim() : ""
+                const isNextArtist = nextLine && !nextLine.includes(":") && !nextLine.includes("[") && !nextLine.includes("{") && !isChordLine(nextLine)
+                if (isNextArtist) {
+                    metadata.title = trimmed
+                    metadata.artist = nextLine
+                    i += 2
+                    continue
+                }
             }
         }
 
@@ -146,18 +173,29 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             continue
         }
 
-        // Section headings e.g. "Verse 1", "Verse1", "Intro:", "[Chorus]", "Ref (x2)"
-        const sectionMatch = trimmed.match(/^\[?(Verse\s*\d*|Chorus\s*\d*|Bridge\s*\d*|Intro\s*\d*|Outro\s*\d*|Refreng\s*\d*|Ref\s*\(?x?\d*\)?|Mellomspill\s*\d*|Pre-Chorus\s*\d*|Tag\s*\d*|Channel\s*\d*|Alt Chorus\s*\d*)\]?:?$/i)
-        if (sectionMatch) {
-            let sectionName = sectionMatch[1]
-            sectionName = sectionName.replace(/([a-zA-Z]+)(\d+)/, "$1 $2")
-            output.push(`{c: ${sectionName}}`)
+        // Section headings e.g. "Verse 1", "Verse 1:", "Vers 1:", "[Chorus]", "Ref (x2)"
+        const section = matchSectionHeader(trimmed)
+        if (section) {
+            if (output.length > 0 && output[output.length - 1] !== "") {
+                output.push("")
+            }
+            output.push(`{c: ${section}}`)
             i++
             continue
         }
 
         // Bracketed ChordPro lines
         if (line.includes("[") && line.includes("]")) {
+            // Clean up bar lines that have brackets around every bar/chord symbol: e.g. [|] [C] [-] [-] [|]
+            if (line.includes("|")) {
+                const cleaned = line
+                    .replace(/[\[\]]/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()
+                output.push(`[${cleaned}]`)
+                i++
+                continue
+            }
             output.push(line)
             i++
             continue
@@ -168,7 +206,7 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             const chordLine = line
             const nextLine = i + 1 < lines.length ? lines[i + 1] : ""
 
-            if (nextLine && nextLine.trim() && !isChordLine(nextLine) && !/^(verse|chorus|bridge|intro|outro|refreng|mellomspill)\s*\d*/i.test(nextLine.trim()) && !/^\[?(verse|chorus|bridge|intro|outro|refreng|mellomspill)/i.test(nextLine.trim())) {
+            if (nextLine && nextLine.trim() && !isChordLine(nextLine) && !matchSectionHeader(nextLine.trim())) {
                 const mergedLine = mergeChordAndLyricLines(chordLine, nextLine, options)
                 output.push(mergedLine)
                 i += 2
@@ -192,11 +230,24 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
 }
 
 function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: ConvertOptions): string {
+    const chordLeadMatch = chordLine.match(/^(\s*)/)
+    const lyricLeadMatch = lyricLine.match(/^(\s*)/)
+    const chordLead = chordLeadMatch ? chordLeadMatch[1].length : 0
+    const lyricLead = lyricLeadMatch ? lyricLeadMatch[1].length : 0
+
+    let normChordLine = chordLine
+    let normLyricLine = lyricLine
+
+    // Harmonize leading whitespace if lyrics are indented but chord line started at 0
+    if (lyricLead > 0 && chordLead === 0) {
+        normLyricLine = lyricLine.slice(lyricLead)
+    }
+
     const chordsWithPos: { chord: string; index: number }[] = []
     const chordRegex = /\S+/g
     let match: RegExpExecArray | null
 
-    while ((match = chordRegex.exec(chordLine)) !== null) {
+    while ((match = chordRegex.exec(normChordLine)) !== null) {
         const rawToken = match[0]
         if (isChordToken(rawToken)) {
             let formattedChord = rawToken
@@ -210,7 +261,37 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
         }
     }
 
-    if (chordsWithPos.length === 0) return lyricLine
+    if (chordsWithPos.length === 0) return normLyricLine.trimEnd()
+
+    // Identify word boundaries in the normalized lyric line for smart snapping
+    const wordRegex = /\S+/g
+    const words: { text: string; start: number; end: number }[] = []
+    let wMatch: RegExpExecArray | null
+    while ((wMatch = wordRegex.exec(normLyricLine)) !== null) {
+        words.push({
+            text: wMatch[0],
+            start: wMatch.index,
+            end: wMatch.index + wMatch[0].length
+        })
+    }
+
+    // Snap chords to start of word if placed on whitespace immediately before or near the beginning
+    for (const c of chordsWithPos) {
+        for (const w of words) {
+            // Chord is 1 char before word start (on whitespace)
+            if (c.index === w.start - 1) {
+                c.index = w.start
+                break
+            }
+            // Chord is on 1st or 2nd character of short words (<= 4 chars) or 1st char of any word
+            if (c.index > w.start && c.index <= w.start + (w.text.length <= 4 ? 2 : 1)) {
+                c.index = w.start
+                break
+            }
+        }
+    }
+
+    chordsWithPos.sort((a, b) => a.index - b.index)
 
     let result = ""
     let lyricIdx = 0
@@ -219,11 +300,11 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
         const targetPos = c.index
 
         if (lyricIdx < targetPos) {
-            result += lyricLine.slice(lyricIdx, Math.min(targetPos, lyricLine.length))
-            lyricIdx = Math.min(targetPos, lyricLine.length)
+            result += normLyricLine.slice(lyricIdx, Math.min(targetPos, normLyricLine.length))
+            lyricIdx = Math.min(targetPos, normLyricLine.length)
         }
 
-        if (targetPos > lyricLine.length && lyricIdx >= lyricLine.length) {
+        if (targetPos > normLyricLine.length && lyricIdx >= normLyricLine.length) {
             const padLen = targetPos - lyricIdx
             result += " ".repeat(padLen)
             lyricIdx = targetPos
@@ -232,33 +313,36 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
         result += `[${c.chord}]`
     }
 
-    if (lyricIdx < lyricLine.length) {
-        result += lyricLine.slice(lyricIdx)
+    if (lyricIdx < normLyricLine.length) {
+        result += normLyricLine.slice(lyricIdx)
     }
 
-    return result
+    return result.trimEnd()
 }
 
-function formatStandaloneChordLine(chordLine: string, options: ConvertOptions): string {
-    const tokens = chordLine.split(/(\s+)/)
-    let result = ""
+export function formatStandaloneChordLine(chordLine: string, options: ConvertOptions = {}): string {
+    const trimmed = chordLine.trim()
 
-    for (const token of tokens) {
-        if (!token.trim()) {
-            result += token
-            continue
-        }
+    // If it's a bar line (contains "|"), wrap the entire measure in brackets
+    if (trimmed.includes("|")) {
+        const cleaned = trimmed.replace(/[\[\]]/g, " ").replace(/\s+/g, " ").trim()
+        return `[${cleaned}]`
+    }
 
-        if (isChordToken(token)) {
-            let formatted = token
-            if (options.convertScandinavianChords && formatted.startsWith("H")) {
-                formatted = "B" + formatted.slice(1)
+    // Otherwise, wrap individual chords in brackets e.g. "G C D Em" -> "[G] [C] [D] [Em]"
+    const tokens = trimmed.split(/\s+/)
+    return tokens
+        .map((t) => {
+            if (isChordToken(t)) {
+                let chord = t
+                if (options.convertScandinavianChords && chord.startsWith("H")) {
+                    chord = "B" + chord.slice(1)
+                }
+                return `[${chord}]`
             }
-            result += `[${formatted}]`
-        } else {
-            result += token
-        }
-    }
-
-    return result
+            return t
+        })
+        .join(" ")
 }
+
+

@@ -13,11 +13,13 @@ export class Settings {
     locale?: SupportedLocale
     theme?: SupportedTheme
     draw?: DrawSettings
+    shareCache?: Record<string, string>
 
     constructor(data: Partial<SettingsKeys> = {}) {
         if (data.locale) this.locale = data.locale
         if (data.theme) this.theme = data.theme
         if (data.draw) this.draw = { ...data.draw }
+        if (data.shareCache) this.shareCache = { ...data.shareCache }
     }
 
     /**

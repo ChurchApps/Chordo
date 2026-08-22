@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { calculateTransposeSemitones, hasTransposableContent } from "$lib/chords/transpose"
     import type { Folder } from "$lib/models/Folder"
-    import type { List } from "$lib/models/List"
+    import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
@@ -12,7 +11,9 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { shareList, shareSong } from "$lib/share/share"
     import { clearSharePayload } from "$lib/share/share.svelte"
+    import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
     import { pages } from "../pages/pages"
+    import TransposeButton from "../song/TransposeButton.svelte"
 
     let headerPath = $derived(
         menuState.previousPages.reduce((path, page) => {
@@ -61,19 +62,6 @@
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let currentSong = $derived(activeSongContext?.song ?? null)
 
-    let canTranspose = $derived(currentSong ? hasTransposableContent(currentSong.content, currentSong.getMetadata("key"), currentSong.images) : false)
-
-    // Semitone distance / count from base key
-    let transposeCount = $derived.by(() => {
-        if (!currentSong) return 0
-        return calculateTransposeSemitones({
-            targetKey: activeSongContext?.listItem?.transposed,
-            lastTransposed: currentSong.lastTransposed,
-            songKey: currentSong.getMetadata("key"),
-            content: currentSong.content
-        })
-    })
-
     function confirmDeleteSong(song: Song | null) {
         if (!song) return
         openConfirm({
@@ -103,7 +91,7 @@
     }
 
     function confirmDeleteFolder(folder: Folder | null) {
-        if (!folder) return
+        if (!folder || folder.type === "shared") return
         openConfirm({
             title: t("confirm", "delete_folder_title"),
             message: `Are you sure you want to delete folder "${folder.name}"?`,
@@ -142,7 +130,13 @@
     <header class="top-app-bar">
         <div class="top-bar-left">
             {#if menuState.activePage === "share_preview"}
-                <md-icon-button aria-label="Home" onclick={() => { clearSharePayload(); setActivePage("home"); }}>
+                <md-icon-button
+                    aria-label="Home"
+                    onclick={() => {
+                        clearSharePayload()
+                        setActivePage("home")
+                    }}
+                >
                     <span class="material-symbols-outlined">home</span>
                 </md-icon-button>
             {:else if isEditing}
@@ -196,26 +190,19 @@
                             {/if}
                         </md-icon-button>
                     {/if}
-                    <div class="action-btn-wrapper">
-                        <md-icon-button aria-label="Transpose" disabled={!canTranspose} onclick={() => setActivePopup("transpose")}>
-                            <span class="material-symbols-outlined">swap_vert</span>
-                        </md-icon-button>
-                        {#if transposeCount !== 0}
-                            <span class="badge" class:negative={transposeCount < 0}>
-                                {transposeCount > 0 ? "+" + transposeCount : transposeCount}
-                            </span>
-                        {/if}
-                    </div>
-                    <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", menuState.contentId, "Edit Song")}>
+                    <TransposeButton />
+                    <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
-                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder" || menuState.activePage === "list"}
+                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                    <!-- || menuState.activePage === "folder" || menuState.activePage === "list" -->
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>
                 {/if}
 
-                {#if menuState.activePage !== "share_preview"}
+                {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}
+                {#if menuState.activePage !== "share_preview" && !(menuState.activePage === "folder" && activeFolder?.type === "shared")}
                     <div class="more-menu-wrapper">
                         <md-icon-button id="more-options-btn" aria-label="More options" onclick={() => (moreMenuOpen = !moreMenuOpen)}>
                             <span class="material-symbols-outlined">more_vert</span>
@@ -267,11 +254,43 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
+                                        setActivePopup("rename_list")
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">edit</span>
+                                    <div slot="headline">{t("menu", "rename_list")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        if (currentList) {
+                                            const newList = Lists.duplicate(currentList.id)
+                                            if (newList) {
+                                                setActivePage("list", newList.id, newList.name, "replace")
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">content_copy</span>
+                                    <div slot="headline">{t("menu", "duplicate_list")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
                                         if (currentList) shareList(currentList, storage.songs)
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
                                     <div slot="headline">{t("menu", "share_list")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        if (currentList) exportAsFreeShowProject(currentList, storage.songs)
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">download</span>
+                                    <div slot="headline">{t("menu", "export_as")} FreeShow Project</div>
                                 </md-menu-item>
                                 <md-menu-item
                                     onclick={() => {
@@ -284,15 +303,26 @@
                                 </md-menu-item>
                             {:else if menuState.activePage === "folder"}
                                 {@const currentFolder = storage.getFolderById(menuState.contentId)}
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        confirmDeleteFolder(currentFolder)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                    <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_folder")}</div>
-                                </md-menu-item>
+                                {#if currentFolder && currentFolder.type !== "shared"}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            setActivePopup("rename_folder")
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">edit</span>
+                                        <div slot="headline">{t("menu", "rename_folder")}</div>
+                                    </md-menu-item>
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            confirmDeleteFolder(currentFolder)
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                                        <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_folder")}</div>
+                                    </md-menu-item>
+                                {/if}
                             {/if}
                         </md-menu>
                     </div>
@@ -337,7 +367,6 @@
         gap: 4px;
     }
 
-    .action-btn-wrapper,
     .more-menu-wrapper {
         position: relative;
         display: inline-flex;
@@ -352,25 +381,6 @@
     md-menu-item {
         white-space: nowrap;
     }
-
-    .badge {
-        position: absolute;
-        bottom: 6px;
-        right: 4px;
-        background: var(--md-sys-color-primary, #6750a4);
-        color: var(--md-sys-color-on-primary, #ffffff);
-        font-size: 0.65rem;
-        font-weight: 700;
-        line-height: 1;
-        padding: 2px 4px;
-        border-radius: 9999px;
-        pointer-events: none;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        font-variant-numeric: tabular-nums;
-    }
-    /* .badge.negative {
-        background: var(--md-sys-color-tertiary, #7d5260);
-    } */
 
     /* search */
 

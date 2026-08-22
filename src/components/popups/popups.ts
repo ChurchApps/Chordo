@@ -1,19 +1,23 @@
 import AboutDialog from "./AboutDialog.svelte"
-import CreateFolder from "./CreateFolder.svelte"
-import CreateList from "./CreateList.svelte"
-import CreateSong from "./CreateSong.svelte"
 import SettingsDialog from "./SettingsDialog.svelte"
+import TextInputDialog from "./TextInputDialog.svelte"
 import TransposeDialog from "./TransposeDialog.svelte"
 
 export const popups = {
     create_song: {
-        component: CreateSong
+        component: TextInputDialog
     },
     create_list: {
-        component: CreateList
+        component: TextInputDialog
+    },
+    rename_list: {
+        component: TextInputDialog
     },
     create_folder: {
-        component: CreateFolder
+        component: TextInputDialog
+    },
+    rename_folder: {
+        component: TextInputDialog
     },
     transpose: {
         component: TransposeDialog

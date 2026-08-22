@@ -47,7 +47,7 @@ export const METADATA_CONFIGS: MetadataConfig[] = [
     {
         key: "album",
         label: "Album",
-        placeholder: "e.g. Shalom",
+        placeholder: "e.g. Amazing Grace",
         aliases: ["album"]
     },
     {
@@ -58,14 +58,34 @@ export const METADATA_CONFIGS: MetadataConfig[] = [
     },
     {
         key: "composer",
-        label: "Composer / T/m",
-        placeholder: "e.g. Emilie Ellingsen, Thomas Neteland",
-        aliases: ["composer", "author", "writer", "t/m"]
+        label: "Composer",
+        placeholder: "e.g. John Newton",
+        aliases: [
+            "composer",
+            "author",
+            "writer",
+            "t/m",
+            "t&m",
+            "t & m",
+            "t og m",
+            "tekst og melodi",
+            "tekst & melodi",
+            "tekst/melodi",
+            "tekst",
+            "melodi",
+            "musikk",
+            "words & music",
+            "words and music",
+            "music & lyrics",
+            "music and lyrics",
+            "written by",
+            "skrevet av"
+        ]
     },
     {
         key: "copyright",
         label: "Copyright",
-        placeholder: "e.g. Filadelfiakirken Oslo",
+        placeholder: "e.g. Public Domain",
         aliases: ["copyright"]
     },
     {
@@ -92,9 +112,7 @@ export const METADATA_ALIAS_MAP: Record<string, Extract<keyof SongMetadata, stri
     audio: "playback"
 }
 
-export const ALL_METADATA_ALIASES = new Set<string>([
-    "title", "t", "playback", "playback_url", "playbackurl", "spotify", "spotify_url", "spotifyurl", "youtube", "youtube_url", "youtubeurl", "audio"
-])
+export const ALL_METADATA_ALIASES = new Set<string>(["title", "t", "playback", "playback_url", "playbackurl", "spotify", "spotify_url", "spotifyurl", "youtube", "youtube_url", "youtubeurl", "audio"])
 
 for (const cfg of METADATA_CONFIGS) {
     for (const alias of cfg.aliases) {

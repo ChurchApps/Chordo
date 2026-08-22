@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { openConfirm, promptConfirm } from "$lib/state/confirm.svelte"
     import { Folder } from "$lib/models/Folder"
     import { List } from "$lib/models/List"
     import { Song } from "$lib/models/Song"
@@ -23,11 +24,28 @@
         return payload.list.songs.map((s) => new Song(s))
     })
 
-    // Check if single song already exists in library
-    let existingSong = $derived.by(() => {
+    // Check if single song already exists by ID
+    let existingSongById = $derived.by(() => {
         if (!payload || payload.type !== "song") return null
         const sharedSong = payload.song
-        return storage.songs.find((s) => (sharedSong.id && s.id === sharedSong.id) || s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) || null
+        return (sharedSong.id && storage.songs.find((s) => s.id === sharedSong.id)) || null
+    })
+
+    // Check if single song already exists by Name (and not same ID)
+    let existingSongByName = $derived.by(() => {
+        if (!payload || payload.type !== "song") return null
+        const sharedSong = payload.song
+        if (existingSongById) return null
+        return storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) || null
+    })
+
+    let existingSong = $derived(existingSongById || existingSongByName)
+
+    // Check if list already exists in library
+    let existingList = $derived.by(() => {
+        if (!payload || payload.type !== "list") return null
+        const sharedList = payload.list
+        return (sharedList.id && storage.lists.find((l) => l.id === sharedList.id)) || null
     })
 
     function handleSongPlayback(song: Song) {
@@ -36,117 +54,166 @@
         togglePlayback(song.id || null, url, song.name)
     }
 
+    // --- Helpers for import operations ---
+
+    function applySongData(target: Song, source: any): Song {
+        target.name = source.name
+        target.content = source.content
+        if (source.metadata) target.metadata = { ...target.metadata, ...source.metadata }
+        if (source.playbackUrl) target.playbackUrl = source.playbackUrl
+        if (source.url) target.url = source.url
+        if (source.lastTransposed) target.lastTransposed = source.lastTransposed
+        storage.updateSong(target)
+        return target
+    }
+
+    function createNewSong(source: any, forceNewId = false): Song {
+        const id = !forceNewId && source.id && !storage.songs.some((s) => s.id === source.id) ? source.id : undefined
+        const newSong = new Song({
+            id,
+            name: source.name,
+            content: source.content,
+            metadata: source.metadata || {},
+            playbackUrl: source.playbackUrl,
+            url: source.url,
+            lastTransposed: source.lastTransposed,
+            createdAt: source.createdAt || Date.now()
+        })
+        storage.addSong(newSong)
+        return newSong
+    }
+
+    function askNameConflict(songName: string): Promise<boolean> {
+        const msg = (t("confirm", "song_name_conflict_msg") || 'A song named "{name}" already exists in your library. Do you want to overwrite it, or import this as a separate song?').replace("{name}", songName)
+        return promptConfirm({
+            title: t("confirm", "name_conflict_title") || "Song already exists",
+            message: msg,
+            confirmLabel: t("confirm", "overwrite") || "Overwrite",
+            cancelLabel: t("confirm", "import_separately") || "Import Separately"
+        })
+    }
+
     async function importSong() {
         if (!payload || payload.type !== "song") return
         const shared = payload.song
-
         let songToOpen: Song
 
-        if (existingSong) {
-            // Update existing song
-            existingSong.name = shared.name
-            existingSong.content = shared.content
-            if (shared.metadata) {
-                existingSong.metadata = { ...existingSong.metadata, ...shared.metadata }
-            }
-            if (shared.playbackUrl) existingSong.playbackUrl = shared.playbackUrl
-            if (shared.url) existingSong.url = shared.url
-            if (shared.lastTransposed) existingSong.lastTransposed = shared.lastTransposed
-
-            storage.updateSong(existingSong)
-            songToOpen = existingSong
+        if (existingSongById) {
+            songToOpen = applySongData(existingSongById, shared)
             showToast(`Updated "${shared.name}" in your library`, "success")
+        } else if (existingSongByName) {
+            const overwrite = await askNameConflict(shared.name)
+            if (overwrite) {
+                songToOpen = applySongData(existingSongByName, shared)
+                showToast(`Updated "${shared.name}" in your library`, "success")
+            } else {
+                songToOpen = createNewSong(shared, true)
+                showToast(`Imported "${shared.name}" to your library`, "success")
+            }
         } else {
-            // Create new song
-            const newSong = new Song({
-                id: shared.id,
-                name: shared.name,
-                content: shared.content,
-                metadata: shared.metadata || {},
-                playbackUrl: shared.playbackUrl,
-                url: shared.url,
-                lastTransposed: shared.lastTransposed,
-                createdAt: shared.createdAt || Date.now()
-            })
-            storage.addSong(newSong)
-            songToOpen = newSong
+            songToOpen = createNewSong(shared)
             showToast(`Imported "${shared.name}" to your library`, "success")
         }
 
         storage.persist()
         clearSharePayload()
-        setActivePage("song", songToOpen.id, songToOpen.name, "replace")
+        setActivePage("song", songToOpen.id, songToOpen.name)
     }
 
     async function importList() {
         if (!payload || payload.type !== "list") return
         const sharedList = payload.list
 
-        // Map through songs: keep existing songs intact, create new ones
-        const resolvedListSongs: { songId: string; lastKnownName?: string; transposed?: string }[] = []
-        let newSongsCount = 0
-        let existingSongsCount = 0
+        // 1. Batch prompt for exact ID matches
+        const idMatches = sharedList.songs.filter((s) => s.id && storage.songs.some((e) => e.id === s.id))
+        let overwriteIdMatches = false
+        if (idMatches.length > 0) {
+            const msg = (
+                idMatches.length === 1
+                    ? t("confirm", "overwrite_song_msg") || "1 song in this list already exists in your library. Do you want to overwrite it with the shared version or keep your existing version?"
+                    : t("confirm", "overwrite_songs_msg") || "{count} songs in this list already exist in your library. Do you want to overwrite them with the shared versions or keep your existing versions?"
+            ).replace("{count}", idMatches.length.toString())
 
-        for (let i = 0; i < sharedList.songs.length; i++) {
-            const sharedSong = sharedList.songs[i]
-            const listItem = sharedList.listItems[i] || { songId: sharedSong.id || "", transposed: sharedSong.lastTransposed }
+            overwriteIdMatches = await promptConfirm({
+                title: t("confirm", "overwrite_songs_title") || "Overwrite existing songs?",
+                message: msg,
+                confirmLabel: t("confirm", "overwrite") || "Overwrite",
+                cancelLabel: t("confirm", "keep_existing") || "Keep Existing"
+            })
+        }
 
-            // Check if song exists by ID or name
-            const existing = storage.songs.find((s) => (sharedSong.id && s.id === sharedSong.id) || s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase())
+        // 2. Individual prompt per name collision
+        const nameDecisions = new Map<string, boolean>()
+        const nameCollisions = sharedList.songs.filter((s) => (!s.id || !storage.songs.some((e) => e.id === s.id)) && storage.songs.some((e) => e.name.trim().toLowerCase() === s.name.trim().toLowerCase()))
 
-            if (existing) {
-                // Keep existing song intact without overwrite
-                resolvedListSongs.push({
-                    songId: existing.id,
-                    lastKnownName: existing.name,
-                    transposed: listItem.transposed || sharedSong.lastTransposed
-                })
-                existingSongsCount++
-            } else {
-                // Create new song
-                const newSong = new Song({
-                    id: sharedSong.id,
-                    name: sharedSong.name,
-                    content: sharedSong.content,
-                    metadata: sharedSong.metadata || {},
-                    playbackUrl: sharedSong.playbackUrl,
-                    url: sharedSong.url,
-                    lastTransposed: sharedSong.lastTransposed,
-                    createdAt: sharedSong.createdAt || Date.now()
-                })
-                storage.addSong(newSong)
-                resolvedListSongs.push({
-                    songId: newSong.id,
-                    lastKnownName: newSong.name,
-                    transposed: listItem.transposed || sharedSong.lastTransposed
-                })
-                newSongsCount++
+        for (const s of nameCollisions) {
+            const norm = s.name.trim().toLowerCase()
+            if (!nameDecisions.has(norm)) {
+                await new Promise((r) => setTimeout(r, 60))
+                nameDecisions.set(norm, await askNameConflict(s.name))
             }
         }
 
-        // Create the List
-        const newList = new List({
-            name: sharedList.name,
-            songs: resolvedListSongs,
-            createdAt: sharedList.createdAt || Date.now()
+        // 3. Resolve all songs for list
+        const resolvedSongs = sharedList.songs.map((sharedSong, i) => {
+            const item = sharedList.listItems[i] || { songId: sharedSong.id || "", transposed: sharedSong.lastTransposed }
+            const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
+            const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
+
+            let songId = ""
+            let songName = sharedSong.name
+
+            if (matchById) {
+                if (overwriteIdMatches) applySongData(matchById, sharedSong)
+                songId = matchById.id
+                songName = matchById.name
+            } else if (matchByName) {
+                if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
+                    applySongData(matchByName, sharedSong)
+                    songId = matchByName.id
+                    songName = matchByName.name
+                } else {
+                    songId = createNewSong(sharedSong, true).id
+                }
+            } else {
+                songId = createNewSong(sharedSong).id
+            }
+
+            return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
         })
 
-        // Find or create "Shared" folder
-        let sharedFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared")
-        if (!sharedFolder) {
-            sharedFolder = new Folder({ name: "Shared" })
-            storage.addFolder(sharedFolder)
-        }
-        sharedFolder.addList(newList.id)
-        storage.updateFolder(sharedFolder)
+        // 4. Create or replace list
+        const existingListMatch = sharedList.id ? storage.lists.find((l) => l.id === sharedList.id) : null
+        let listToOpen: List
 
-        storage.addList(newList)
+        if (existingListMatch) {
+            existingListMatch.name = sharedList.name
+            existingListMatch.songs = resolvedSongs
+            storage.updateList(existingListMatch)
+            listToOpen = existingListMatch
+            showToast(`Updated "${existingListMatch.name}" in your library`, "success")
+        } else {
+            const newList = new List({
+                id: sharedList.id,
+                name: sharedList.name,
+                songs: resolvedSongs,
+                createdAt: sharedList.createdAt || Date.now()
+            })
+            let sharedFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared")
+            if (!sharedFolder) {
+                sharedFolder = new Folder({ name: "Shared", type: "shared" })
+                storage.addFolder(sharedFolder)
+            }
+            sharedFolder.addList(newList.id)
+            storage.updateFolder(sharedFolder)
+            storage.addList(newList)
+            listToOpen = newList
+            showToast(`Imported "${newList.name}" into Shared`, "success")
+        }
+
         storage.persist()
         clearSharePayload()
-
-        const msg = `Imported "${newList.name}" into Shared (${newSongsCount} new, ${existingSongsCount} existing)`
-        showToast(msg, "success")
-        setActivePage("list", newList.id, newList.name, "replace")
+        setActivePage("list", listToOpen.id, listToOpen.name)
     }
 </script>
 
@@ -187,10 +254,15 @@
                 </div>
             </div>
 
-            {#if existingSong}
+            {#if existingSongById}
                 <div class="alert warning">
                     <span class="material-symbols-outlined">info</span>
-                    <span>"{existingSong.name}" already exists in your library. Importing will replace it.</span>
+                    <span>"{existingSongById.name}" already exists in your library. Importing will replace it.</span>
+                </div>
+            {:else if existingSongByName}
+                <div class="alert warning">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>A song named "{existingSongByName.name}" already exists in your library.</span>
                 </div>
             {/if}
 
@@ -206,7 +278,8 @@
                     <!-- {#if existingSong}
                         Update / Replace Song
                     {:else} -->
-                    {t("common", "import")} Song
+                    {t("common", "import")}
+                    {t("pages", "song")}
                     <!-- {/if} -->
                 </md-filled-button>
             </div>
@@ -214,6 +287,12 @@
     {:else if payload.type === "list"}
         {@const list = payload.list}
         <div class="share-card compact">
+            {#if existingList}
+                <div class="alert warning">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>"{existingList.name}" already exists in your library. Importing will replace it.</span>
+                </div>
+            {/if}
             <!-- <div class="card-top">
                 <div class="title-section">
                     <span class="badge-type"><span class="material-symbols-outlined">queue_music</span> Shared Setlist</span>
@@ -281,7 +360,8 @@
             <div class="bottom-center-action">
                 <md-filled-button onclick={importList} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
-                    {t("common", "import")} List
+                    {t("common", "import")}
+                    {t("pages", "list")}
                 </md-filled-button>
             </div>
         </div>

@@ -60,6 +60,9 @@ function base64UrlToUint8Array(base64Url: string): Uint8Array {
     while (base64.length % 4 !== 0) {
         base64 += "="
     }
+    if (!/^[A-Za-z0-9+/=]+$/.test(base64)) {
+        throw new Error("Invalid characters in base64 string")
+    }
     const binary = atob(base64)
     const bytes = new Uint8Array(binary.length)
     for (let i = 0; i < binary.length; i++) {
@@ -314,7 +317,7 @@ export async function decodeSharePayload(encoded: string): Promise<SharePayload 
 
 export function getShareBaseUrl(): string {
     if (typeof window !== "undefined") return window.location.origin
-    return "https://chordo.netlify.app"
+    return "https://chordo.org"
 }
 
 export function createShareUrl(encodedPayload: string): string {
@@ -341,7 +344,7 @@ export function extractSharePayloadFromUrl(url: string = typeof window !== "unde
 
 export function isShortenedShareId(raw: string): boolean {
     if (!raw) return false
-    if (raw.startsWith("d:")) return true
+    if (raw.startsWith("d:") || raw.startsWith("p:") || raw.startsWith("id:")) return true
     if (/^[A-Za-z0-9_-]{4,16}$/.test(raw) && !raw.includes("[")) return true
     return false
 }
@@ -350,26 +353,18 @@ export async function resolveSharePayload(raw: string): Promise<SharePayload | n
     if (!raw) return null
     const trimmed = raw.trim()
 
-    // 1. If explicitly prefixed or formatted as a short ID, fetch from shortener
+    // 1. If it's a shortened ID (e.g. d:xxxx), ONLY fetch from shortener
     if (isShortenedShareId(trimmed)) {
-        const fetched = await fetchShortShare(trimmed)
-        if (fetched) {
-            const decoded = await decodeSharePayload(fetched)
-            if (decoded) return decoded
-        }
-    }
-
-    // 2. Try direct decode as compressed Base64URL
-    const direct = await decodeSharePayload(trimmed)
-    if (direct) return direct
-
-    // 3. Fallback: if direct decode failed, try fetching as short ID
-    if (!isShortenedShareId(trimmed)) {
         const fetched = await fetchShortShare(trimmed)
         if (fetched) {
             return await decodeSharePayload(fetched)
         }
+        return null // Do not attempt to Base64 decode a short ID
     }
+
+    // 2. Direct decode as compressed Base64URL payload
+    const direct = await decodeSharePayload(trimmed)
+    if (direct) return direct
 
     return null
 }

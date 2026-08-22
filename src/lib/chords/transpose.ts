@@ -16,8 +16,17 @@ export function getScaleForOriginalKey(originalKey: string): string[] {
     return preferFlats ? FLAT_NOTES : SHARP_NOTES
 }
 
+const ENHARMONIC_EQUIVALENTS: Record<string, string> = {
+    Cb: "B",
+    "B#": "C",
+    Fb: "E",
+    "E#": "F",
+    H: "B",
+    Hb: "Bb"
+}
+
 /**
- * Normalizes a note string for index lookup (handling flats, sharps, casing)
+ * Normalizes a note string for index lookup (handling flats, sharps, casing, and enharmonics like Cb -> B).
  */
 export function normalizeNote(note: string): string {
     if (!note) return ""
@@ -29,8 +38,9 @@ export function normalizeNote(note: string): string {
     const rest = normalized.slice(1).toLowerCase()
     normalized = first + rest
 
-    if (normalized === "H") return "B"
-    if (normalized === "Hb") return "Bb"
+    if (ENHARMONIC_EQUIVALENTS[normalized]) {
+        return ENHARMONIC_EQUIVALENTS[normalized]
+    }
 
     return normalized
 }
@@ -61,14 +71,16 @@ export function getSemitoneDistance(fromKey: string, toKey: string): number {
 /**
  * Transposes a single note string by semitones.
  */
-export function transposeNote(note: string, semitones: number, preferFlats = false): string {
-    if (!note || semitones === 0) return note
+export function transposeNote(note: string, semitones = 0, preferFlats = false): string {
+    if (!note) return ""
 
     let normalized = normalizeNote(note)
     let index = SHARP_NOTES.indexOf(normalized)
     if (index === -1) index = FLAT_NOTES.indexOf(normalized)
 
-    if (index === -1) return note // fallback if unknown note
+    if (index === -1) return normalized // fallback if unknown note
+
+    if (semitones === 0) return normalized
 
     let newIndex = (index + semitones) % 12
     if (newIndex < 0) newIndex += 12
@@ -77,26 +89,56 @@ export function transposeNote(note: string, semitones: number, preferFlats = fal
     return scale[newIndex]
 }
 
+// Recognized chord pattern: root note (A-G / H) + optional standard chord qualities & alterations
+export const CHORD_REGEX =
+    /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:(?:maj|min|m|M|sus|add|dim|aug|\+|\-)?\d*)*(?:[\(\[](?:b|#|\+|\-)?\d+[\)\]])*(?:[\b#\+\-]\d+)*\.?$/i
+
 /**
- * Transposes a full chord name (e.g. "G/B", "F#m7", "Cadd9", "Bbm")
+ * Checks if a token represents a valid musical chord (e.g. "G", "F#m7", "Bbsus2", "F/A").
+ * Returns false for non-chords like section names ("[Bridge]", "[Chorus]"), repeat marks, or lyrics.
+ */
+export function isChordToken(token: string): boolean {
+    const cleaned = token.replace(/[\(\)\[\]]/g, "").trim()
+    if (!cleaned || cleaned === "|" || cleaned === "." || cleaned === "/" || cleaned === "%" || /^\(?x?\d+\)?$/i.test(cleaned)) {
+        return false
+    }
+
+    if (cleaned.includes("/")) {
+        const parts = cleaned.split("/")
+        return parts.length === 2 && isChordToken(parts[0]) && isChordToken(parts[1])
+    }
+
+    return CHORD_REGEX.test(cleaned)
+}
+
+/**
+ * Transposes a full chord name (e.g. "G/B", "F#m7", "Bbsus2") or bracketed bar lines (e.g. "| E | E | G#m | F# | X5").
+ * Safely leaves non-chord tokens (such as section labels like "[Bridge]") untransposed.
  */
 export function transposeChord(chord: string, semitones: number, preferFlats = false): string {
     if (!chord || semitones === 0) return chord
 
-    // Handle slash chords like G/B -> transpose G and B separately
-    if (chord.includes("/")) {
-        const parts = chord.split("/")
-        return `${transposeChord(parts[0], semitones, preferFlats)}/${transposeChord(parts[1], semitones, preferFlats)}`
+    // Handle bar line chords e.g. "| E | E | G#m | F# | X5"
+    if (chord.includes("|")) {
+        return chord
+            .split(/([|\s]+)/)
+            .map((token) => (isChordToken(token) ? transposeChord(token, semitones, preferFlats) : token))
+            .join("")
     }
 
-    // Regex to extract root note (e.g. C#, Db, G) and quality (e.g. m7, maj7, add9, sus4)
-    const match = chord.match(/^([A-G][#b]?)(.*)$/)
+    if (!isChordToken(chord)) return chord
+
+    if (chord.includes("/")) {
+        const [root, bass] = chord.split("/")
+        return `${transposeChord(root, semitones, preferFlats)}/${transposeChord(bass, semitones, preferFlats)}`
+    }
+
+    const match = chord.trim().match(/^([A-GH][#b]?)(.*)$/i)
     if (!match) return chord
 
-    const [, root, quality] = match
-    const transposedRoot = transposeNote(root, semitones, preferFlats)
-    return `${transposedRoot}${quality}`
+    return `${transposeNote(match[1], semitones, preferFlats)}${match[2]}`
 }
+
 
 /**
  * Checks if song content has any chords or key metadata to transpose.

@@ -1,5 +1,6 @@
 import storage from "../storage/StorageManager.svelte"
 import { getId, type NonFunctionProperties } from "../utils/common"
+import { t } from "../state/i18n.svelte"
 import type { Song } from "./Song"
 
 export class Lists {
@@ -27,6 +28,27 @@ export class Lists {
         storage.addList(list)
         return list
     }
+
+    static duplicate(listId: string): List | null {
+        const list = storage.getListById(listId)
+        if (!list) return null
+
+        let parentFolder = storage.folders.find((f) => f.lists.includes(listId))
+        if (!parentFolder || parentFolder.type === "shared") {
+            parentFolder = storage.folders.find((f) => f.type !== "shared") ?? parentFolder ?? storage.folders[0]
+        }
+        if (!parentFolder) return null
+
+        const copySuffix = t("common", "copy") || "Copy"
+        const newList = new List({
+            name: `${list.name} (${copySuffix})`,
+            songs: list.songs.map((s) => ({ ...s }))
+        })
+
+        parentFolder.addList(newList.id)
+        storage.addList(newList)
+        return newList
+    }
 }
 
 export type ListSongItem = {
@@ -49,12 +71,19 @@ export class List {
     name: string
     songs: ListSongItem[]
     createdAt: number
+    lastUsedAt?: number
 
     constructor(data: Partial<ListKeys> = {}) {
         this.id = data.id ?? getId("list")
         this.name = data.name ?? "Untitled"
         this.songs = data.songs ? [...data.songs] : []
         this.createdAt = data.createdAt ?? Date.now()
+        this.lastUsedAt = data.lastUsedAt ?? this.createdAt
+    }
+
+    touch() {
+        this.lastUsedAt = Date.now()
+        storage.updateList(this)
     }
 
     getSongs(allSongs: Song[]) {
@@ -94,15 +123,13 @@ export class List {
         const updated = [...this.songs]
         updated[index] = { ...current, transposed: transposedKey }
         this.songs = updated
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
     }
 
     addSong(songId: string, songName?: string) {
         const name = songName ?? storage.getSongById(songId)?.name
         this.songs = [...this.songs, { songId, lastKnownName: name }]
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
     }
 
     addSongs(songIds: string[]) {
@@ -111,8 +138,7 @@ export class List {
             lastKnownName: storage.getSongById(songId)?.name
         }))
         this.songs = [...this.songs, ...newItems]
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
     }
 
     moveSong(fromIndex: number, toIndex: number): boolean {
@@ -123,16 +149,19 @@ export class List {
         const [moved] = next.splice(fromIndex, 1)
         next.splice(toIndex, 0, moved)
         this.songs = next
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
         return true
     }
 
     removeSong(index: number): boolean {
         if (index < 0 || index >= this.songs.length) return false
         this.songs = this.songs.filter((_, i) => i !== index)
-        storage.refreshLists()
-        storage.persist()
+        storage.updateList(this)
         return true
+    }
+
+    setSongs(songs: ListSongItem[]) {
+        this.songs = [...songs]
+        storage.updateList(this)
     }
 }

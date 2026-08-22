@@ -155,15 +155,17 @@
             <input bind:this={fileInputRef} type="file" accept=".json,application/json" style="display: none;" onchange={handleFileImport} />
 
             <div class="settings-actions">
-                <md-outlined-button onclick={exportBackup}>
-                    <span class="material-symbols-outlined" slot="icon">download</span>
-                    {t("settings", "export_data")}
-                </md-outlined-button>
+                <div class="data-actions-row">
+                    <md-outlined-button onclick={exportBackup}>
+                        <span class="material-symbols-outlined" slot="icon">download</span>
+                        {t("settings", "export_data")}
+                    </md-outlined-button>
 
-                <md-outlined-button onclick={triggerImport}>
-                    <span class="material-symbols-outlined" slot="icon">upload</span>
-                    {t("settings", "import_data")}
-                </md-outlined-button>
+                    <md-outlined-button onclick={triggerImport}>
+                        <span class="material-symbols-outlined" slot="icon">upload</span>
+                        {t("settings", "import_data")}
+                    </md-outlined-button>
+                </div>
 
                 {#if importStatus}
                     <div class="status-msg">{importStatus}</div>
@@ -307,6 +309,16 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+    }
+
+    .data-actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .data-actions-row > :global(md-outlined-button) {
+        flex: 1 1 0;
     }
 
     .status-msg {
