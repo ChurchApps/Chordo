@@ -1,13 +1,5 @@
 import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
-
-// Regex for recognizing common chord patterns
-const CHORD_REGEX = /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add)?\d*(\/[A-GH](b|#)?)?$/i
-
-function isChordToken(token: string): boolean {
-    const cleaned = token.replace(/[\(\)\[\]]/g, "").trim()
-    if (!cleaned) return false
-    return CHORD_REGEX.test(cleaned)
-}
+import { matchSectionHeader, isChordToken } from "./chordproParser"
 
 /**
  * Checks if a single text line consists primarily of chord symbols.
@@ -16,7 +8,7 @@ export function isChordLine(line: string): boolean {
     const trimmed = line.trim()
     if (!trimmed) return false
 
-    if (/^(verse|chorus|bridge|intro|outro|refreng|mellomspill|pre-chorus|tag|coda|interlude|channel)\b/i.test(trimmed)) {
+    if (matchSectionHeader(trimmed)) {
         return false
     }
 
@@ -146,12 +138,10 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             continue
         }
 
-        // Section headings e.g. "Verse 1", "Verse1", "Intro:", "[Chorus]", "Ref (x2)"
-        const sectionMatch = trimmed.match(/^\[?(Verse\s*\d*|Chorus\s*\d*|Bridge\s*\d*|Intro\s*\d*|Outro\s*\d*|Refreng\s*\d*|Ref\s*\(?x?\d*\)?|Mellomspill\s*\d*|Pre-Chorus\s*\d*|Tag\s*\d*|Channel\s*\d*|Alt Chorus\s*\d*)\]?:?$/i)
-        if (sectionMatch) {
-            let sectionName = sectionMatch[1]
-            sectionName = sectionName.replace(/([a-zA-Z]+)(\d+)/, "$1 $2")
-            output.push(`{c: ${sectionName}}`)
+        // Section headings e.g. "Verse 1", "Verse 1:", "Vers 1:", "[Chorus]", "Ref (x2)"
+        const section = matchSectionHeader(trimmed)
+        if (section) {
+            output.push(`{c: ${section}}`)
             i++
             continue
         }
@@ -168,7 +158,7 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             const chordLine = line
             const nextLine = i + 1 < lines.length ? lines[i + 1] : ""
 
-            if (nextLine && nextLine.trim() && !isChordLine(nextLine) && !/^(verse|chorus|bridge|intro|outro|refreng|mellomspill)\s*\d*/i.test(nextLine.trim()) && !/^\[?(verse|chorus|bridge|intro|outro|refreng|mellomspill)/i.test(nextLine.trim())) {
+            if (nextLine && nextLine.trim() && !isChordLine(nextLine) && !matchSectionHeader(nextLine.trim())) {
                 const mergedLine = mergeChordAndLyricLines(chordLine, nextLine, options)
                 output.push(mergedLine)
                 i += 2

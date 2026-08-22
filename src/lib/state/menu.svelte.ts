@@ -66,6 +66,9 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
         if (action !== "replace" && addToHistory) {
             menuState.previousPages.push(currentState)
             if (typeof window !== "undefined") {
+                if (action === "append" && appendData) {
+                    history.pushState({ type: "page", activePage: appendData.activePage, contentId: appendData.contentId ?? null, customPageTitle: appendData.customPageTitle ?? null }, "")
+                }
                 history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
             }
         } else if (action === "replace") {
@@ -73,7 +76,7 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
                 history.replaceState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
             }
         }
-        if (action === "append") menuState.previousPages.push(clone(appendData))
+        if (action === "append" && appendData) menuState.previousPages.push(clone(appendData))
     }
 
     if (typeof document !== "undefined" && (document as any).startViewTransition) {

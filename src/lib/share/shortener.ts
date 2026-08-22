@@ -1,7 +1,21 @@
+import storage from "../storage/StorageManager.svelte"
 import { createShareUrl, getShareBaseUrl } from "./shareCodec"
+
+async function sha256(text: string): Promise<string> {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
+    return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("")
+}
 
 export async function createShortShare(encodedPayload: string): Promise<string> {
     try {
+        const hash = await sha256(encodedPayload)
+
+        // Check if we already have a cached share ID for this exact content SHA
+        const cachedId = storage.settings.shareCache?.[hash]
+        if (cachedId) {
+            return `${getShareBaseUrl()}/#share=d:${cachedId}`
+        }
+
         const formData = new FormData()
         formData.append("content", encodedPayload)
         formData.append("expiry_days", import.meta.env?.DEV ? "1" : "365")
@@ -16,6 +30,13 @@ export async function createShortShare(encodedPayload: string): Promise<string> 
         const pasteUrl = (await res.text()).trim()
         const id = pasteUrl.split("/").filter(Boolean).pop()?.replace(/\.txt$/, "")
         if (!id) throw new Error("No paste ID returned")
+
+        // Persist to local settings shareCache
+        if (!storage.settings.shareCache) {
+            storage.settings.shareCache = {}
+        }
+        storage.settings.shareCache[hash] = id
+        storage.persist()
 
         return `${getShareBaseUrl()}/#share=d:${id}`
     } catch {

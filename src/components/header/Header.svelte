@@ -142,7 +142,13 @@
     <header class="top-app-bar">
         <div class="top-bar-left">
             {#if menuState.activePage === "share_preview"}
-                <md-icon-button aria-label="Home" onclick={() => { clearSharePayload(); setActivePage("home"); }}>
+                <md-icon-button
+                    aria-label="Home"
+                    onclick={() => {
+                        clearSharePayload()
+                        setActivePage("home")
+                    }}
+                >
                     <span class="material-symbols-outlined">home</span>
                 </md-icon-button>
             {:else if isEditing}
@@ -206,10 +212,11 @@
                             </span>
                         {/if}
                     </div>
-                    <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", menuState.contentId, "Edit Song")}>
+                    <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
-                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder" || menuState.activePage === "list"}
+                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                    <!-- || menuState.activePage === "folder" || menuState.activePage === "list" -->
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>

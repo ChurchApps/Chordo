@@ -65,10 +65,20 @@
     "confirm": {
         "delete_song_title": "Slette sang?",
         "delete_song_msg": "Er du sikker på at du vil slette denne sangen? Handlingen kan ikke angres.",
+        "delete_songs_title": "Slette sanger?",
+        "delete_songs_msg": "Er du sikker på at du vil slette {count} sanger? Handlingen kan ikke angres.",
         "delete_list_title": "Slette liste?",
         "delete_list_msg": "Er du sikker på at du vil slette denne listen?",
         "delete_folder_title": "Slette mappe?",
-        "delete_folder_msg": "Er du sikker på at du vil slette denne mappen?"
+        "delete_folder_msg": "Er du sikker på at du vil slette denne mappen?",
+        "overwrite_songs_title": "Overskrive eksisterende sanger?",
+        "overwrite_song_msg": "1 sang i denne listen finnes allerede i biblioteket ditt. Vil du overskrive den med den delte versjonen eller beholde din eksisterende versjon?",
+        "overwrite_songs_msg": "{count} sanger i denne listen finnes allerede i biblioteket ditt. Vil du overskrive dem med de delte versjonene eller beholde dine eksisterende versjoner?",
+        "overwrite": "Overskriv",
+        "keep_existing": "Behold eksisterende",
+        "name_conflict_title": "Sangen finnes allerede",
+        "song_name_conflict_msg": "En sang med navnet \"{name}\" finnes allerede i biblioteket ditt. Vil du overskrive den, eller importere den som en egen sang?",
+        "import_separately": "Importer som ny"
     },
     "song_edit": {
         "title": "Tittel",
@@ -139,5 +149,13 @@
     },
     "list": {
         "deleted": "Slettet"
+    },
+    "share": {
+        "link_copied": "Delingslenke kopiert til utklippstavlen!",
+        "link_copied_no_media": "Delingslenke kopiert! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
+        "shared_success": "Delt!",
+        "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
+        "copy_failed": "Kunne ikke kopiere lenke",
+        "generate_failed": "Kunne ikke opprette delingslenke"
     }
 }
