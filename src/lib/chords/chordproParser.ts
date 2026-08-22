@@ -16,12 +16,17 @@ export interface ParsedLine {
     rawText?: string
 }
 
+export interface ParsedSection {
+    lines: ParsedLine[]
+}
+
 export interface ParsedChordPro {
     metadata: SongMetadata & {
         title?: string
         artist?: string
     }
     lines: ParsedLine[]
+    sections: ParsedSection[]
 }
 
 function formatSectionName(name: string): string {
@@ -40,8 +45,8 @@ export function matchSectionHeader(line: string): string | null {
     const trimmed = line.trim()
     if (!trimmed) return null
 
-    // Ignore repeat count markers like [x2], (2x)
-    if (/^[\(\[]\s*(?:x\s*\d+|\d+\s*x|\d+\s*times|\d+\s*ganger)\s*[\)\]]$/i.test(trimmed)) {
+    // Ignore bar/measure lines with "|" or repeat count markers like [x2], (2x)
+    if (trimmed.includes("|") || /^[\(\[]\s*(?:x\s*\d+|\d+\s*x|\d+\s*times|\d+\s*ganger)\s*[\)\]]$/i.test(trimmed)) {
         return null
     }
 
@@ -53,7 +58,9 @@ export function matchSectionHeader(line: string): string | null {
     const bracketMatch = trimmed.match(/^[\(\[]([^\)\]]+)[\)\]]:?$/)
     if (bracketMatch) {
         const inner = bracketMatch[1].trim()
-        if (!isChordToken(inner) && inner !== "|" && inner !== "." && inner.length <= 60) {
+        const words = inner.split(/[\s\-]+/).filter(Boolean)
+        const hasChords = words.some((w) => isChordToken(w))
+        if (!hasChords && inner !== "." && inner.length <= 60) {
             return formatSectionName(inner)
         }
     }
@@ -68,11 +75,15 @@ export function matchSectionHeader(line: string): string | null {
 
     // 4. Numbered / multi-index pattern: Vers 1, Verse 1, Ref 2 & 3, Stanza II, Couplet 1 (x2)
     if (/^[A-Za-z\u00C0-\u024F\u0400-\u04FF\s]+\s+(?:\d+|[IVXLCDM]+|\(?x?\d+\)?)(?:\s*&.*|\s*\(.*\))?:?$/i.test(trimmed)) {
-        return formatSectionName(trimmed)
+        const firstWord = trimmed.split(/\s+/)[0]
+        if (!isChordToken(firstWord)) {
+            return formatSectionName(trimmed)
+        }
     }
 
     return null
 }
+
 
 
 
@@ -176,5 +187,33 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
         parsedLines.push({ type: "lyrics", tokens })
     }
 
-    return { metadata, lines: parsedLines }
+    return {
+        metadata,
+        lines: parsedLines,
+        sections: groupLinesIntoSections(parsedLines)
+    }
+}
+
+export function groupLinesIntoSections(lines: ParsedLine[]): ParsedSection[] {
+    const sections: ParsedSection[] = []
+    let current: ParsedLine[] = []
+
+    for (const line of lines) {
+        if (line.type === "empty") {
+            if (current.length) {
+                sections.push({ lines: current })
+                current = []
+            }
+        } else {
+            const isHeader = line.type === "comment" || (line.type === "directive" && !METADATA_ALIAS_MAP[line.directiveKey?.toLowerCase() ?? ""])
+            if (isHeader && current.length) {
+                sections.push({ lines: current })
+                current = []
+            }
+            current.push(line)
+        }
+    }
+
+    if (current.length) sections.push({ lines: current })
+    return sections
 }

@@ -16,17 +16,19 @@ export function isChordLine(line: string): boolean {
     if (tokens.length === 0) return false
 
     let validChords = 0
+    let totalNonPunctuation = 0
 
     for (const token of tokens) {
         if (/^\(?x?\d+\)?$/i.test(token)) continue
-        if (token === "." || token === "|" || token === "/") continue
+        if (token === "." || token === "|" || token === "/" || token === "%" || token === "-") continue
 
+        totalNonPunctuation++
         if (isChordToken(token)) {
             validChords++
         }
     }
 
-    return validChords > 0 && validChords / tokens.length >= 0.5
+    return totalNonPunctuation > 0 && validChords / totalNonPunctuation >= 0.5
 }
 
 export interface ConvertOptions {
@@ -229,26 +231,29 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
     return result
 }
 
-function formatStandaloneChordLine(chordLine: string, options: ConvertOptions): string {
-    const tokens = chordLine.split(/(\s+)/)
-    let result = ""
+export function formatStandaloneChordLine(chordLine: string, options: ConvertOptions = {}): string {
+    const trimmed = chordLine.trim()
 
-    for (const token of tokens) {
-        if (!token.trim()) {
-            result += token
-            continue
-        }
-
-        if (isChordToken(token)) {
-            let formatted = token
-            if (options.convertScandinavianChords && formatted.startsWith("H")) {
-                formatted = "B" + formatted.slice(1)
-            }
-            result += `[${formatted}]`
-        } else {
-            result += token
-        }
+    // If it's a bar line (contains "|"), keep chords inside the measure bars by wrapping the entire measure in brackets
+    if (trimmed.includes("|")) {
+        const cleaned = trimmed.replace(/^\[+|\]+$/g, "")
+        return `[${cleaned}]`
     }
 
-    return result
+    // Otherwise, wrap individual chords in brackets e.g. "G C D Em" -> "[G] [C] [D] [Em]"
+    return chordLine.replace(
+        /([A-GH][#b]?(?:m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:(?:maj|min|m|M|sus|add|dim|aug|\+|\-)?\d*)*(?:[\(\[](?:b|#|\+|\-)?\d+[\)\]])*(?:[\b#\+\-]\d+)*(?:\/[A-GH][#b]?)?)/gi,
+        (match) => {
+            if (isChordToken(match)) {
+                let formatted = match
+                if (options.convertScandinavianChords && formatted.startsWith("H")) {
+                    formatted = "B" + formatted.slice(1)
+                }
+                return `[${formatted}]`
+            }
+            return match
+        }
+    )
 }
+
+

@@ -112,11 +112,21 @@ export function isChordToken(token: string): boolean {
 }
 
 /**
- * Transposes a full chord name (e.g. "G/B", "F#m7", "Bbsus2").
+ * Transposes a full chord name (e.g. "G/B", "F#m7", "Bbsus2") or bracketed bar lines (e.g. "| E | E | G#m | F# | X5").
  * Safely leaves non-chord tokens (such as section labels like "[Bridge]") untransposed.
  */
 export function transposeChord(chord: string, semitones: number, preferFlats = false): string {
-    if (!chord || semitones === 0 || !isChordToken(chord)) return chord
+    if (!chord || semitones === 0) return chord
+
+    // Handle bar line chords e.g. "| E | E | G#m | F# | X5"
+    if (chord.includes("|")) {
+        return chord
+            .split(/([|\s]+)/)
+            .map((token) => (isChordToken(token) ? transposeChord(token, semitones, preferFlats) : token))
+            .join("")
+    }
+
+    if (!isChordToken(chord)) return chord
 
     if (chord.includes("/")) {
         const [root, bass] = chord.split("/")
@@ -128,6 +138,7 @@ export function transposeChord(chord: string, semitones: number, preferFlats = f
 
     return `${transposeNote(match[1], semitones, preferFlats)}${match[2]}`
 }
+
 
 /**
  * Checks if song content has any chords or key metadata to transpose.
