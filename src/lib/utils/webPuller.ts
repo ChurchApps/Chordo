@@ -15,23 +15,50 @@ export interface PulledSongResult {
 }
 
 /**
- * HTML Entity Unescaper
+ * Dynamic HTML Entity Unescaper.
+ * In browser environments, leverages standard DOM APIs (DOMParser/textarea) to dynamically decode all W3C HTML5 entities.
+ * In non-DOM environments, decodes all decimal and hexadecimal numeric entities plus core XML entities.
  */
 export function decodeHtmlEntities(str: string): string {
+    if (!str) return ""
+
+    // 1. In browser environment: use DOMParser / textarea to decode all standard HTML entities dynamically
+    if (typeof document !== "undefined") {
+        const txt = document.createElement("textarea")
+        txt.innerHTML = str
+        return txt.value
+    }
+
+    if (typeof DOMParser !== "undefined") {
+        try {
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(str, "text/html")
+            return doc.body.textContent || ""
+        } catch {}
+    }
+
+    // 2. Non-DOM fallback: dynamic numeric entity decoding + core XML entities
     return str
-        .replace(/&#x2018;/g, "'")
-        .replace(/&#x2019;/g, "'")
-        .replace(/&#8216;/g, "'")
-        .replace(/&#8217;/g, "'")
-        .replace(/&rsquo;/g, "'")
-        .replace(/&lsquo;/g, "'")
-        .replace(/&quot;/g, '"')
+        .replace(/&#(\d+);/g, (_, dec) => {
+            try {
+                return String.fromCodePoint(parseInt(dec, 10))
+            } catch {
+                return _
+            }
+        })
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+            try {
+                return String.fromCodePoint(parseInt(hex, 16))
+            } catch {
+                return _
+            }
+        })
         .replace(/&amp;/g, "&")
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
-        .replace(/&#039;/g, "'")
-        .replace(/&nbsp;/g, " ")
-        .replace(/\xa0/g, " ")
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;|&#39;|&apos;/g, "'")
+        .replace(/\xa0|&nbsp;/g, " ")
 }
 
 /**
@@ -157,19 +184,25 @@ export function extractJsonStoreData(html: string): { title?: string; artist?: s
         const tabView = parsed?.store?.page?.data?.tab_view
         const tabData = parsed?.store?.page?.data?.tab
 
-        const title = tabData?.song_name || tabView?.headerMeta?.name
-        const artist = tabData?.artist_name
-        const key = tabView?.meta?.tonality_name || tabData?.tonality_name
+        const title = decodeHtmlEntities(tabData?.song_name || tabView?.headerMeta?.name || "")
+        const artist = decodeHtmlEntities(tabData?.artist_name || "")
+        const key = decodeHtmlEntities(tabView?.meta?.tonality_name || tabData?.tonality_name || "")
         const wikiContent = tabView?.wiki_tab?.content
 
         if (wikiContent) {
-            const cleaned = wikiContent
+            const decodedWiki = decodeHtmlEntities(wikiContent)
+            const cleaned = decodedWiki
                 .replace(/\[ch\](.*?)\[\/ch\]/gi, "$1")
                 .replace(/\[tab\]/gi, "")
                 .replace(/\[\/tab\]/gi, "")
                 .trim()
 
-            return { title, artist, key, rawContent: cleaned }
+            return {
+                title: title || undefined,
+                artist: artist || undefined,
+                key: key || undefined,
+                rawContent: cleaned
+            }
         }
     } catch {
         return null

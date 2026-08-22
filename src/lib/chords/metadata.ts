@@ -60,7 +60,27 @@ export const METADATA_CONFIGS: MetadataConfig[] = [
         key: "composer",
         label: "Composer",
         placeholder: "e.g. John Newton",
-        aliases: ["composer", "author", "writer", "t/m"]
+        aliases: [
+            "composer",
+            "author",
+            "writer",
+            "t/m",
+            "t&m",
+            "t & m",
+            "t og m",
+            "tekst og melodi",
+            "tekst & melodi",
+            "tekst/melodi",
+            "tekst",
+            "melodi",
+            "musikk",
+            "words & music",
+            "words and music",
+            "music & lyrics",
+            "music and lyrics",
+            "written by",
+            "skrevet av"
+        ]
     },
     {
         key: "copyright",

@@ -29,55 +29,62 @@ export interface ParsedChordPro {
     sections: ParsedSection[]
 }
 
-function formatSectionName(name: string): string {
-    return name
+function normalizeSection(name: string, mult = ""): string {
+    const clean = name
         .trim()
-        .replace(/^[\{\[\(]\s*(?:c(?:omment)?:\s*|section:\s*)?/i, "")
-        .replace(/[\}\]\)]?\s*:?\s*$/, "")
+        .replace(/^\{(?:c(?:omment)?:\s*|section:\s*)?/i, "")
+        .replace(/[\}:]+$/g, "")
         .replace(/^([A-Za-z\u00C0-\u024F\u0400-\u04FF]+)(\d+)/, "$1 $2")
         .trim()
+
+    return mult ? `${clean} (${mult})` : clean
 }
+
+const SECTION_KEYWORDS =
+    /^(?:verse|vers|chorus|kor|refrain|refreng|ref|bridge|bro|b-del|stanza|strofe|couplet|part|del|intro|outro|ending|avslutning|coda|interlude|mellomspill|solo|pre-chorus|prechorus|pre-ref|pre-refreng|post-chorus|tag|hook|vamp|spoken|instrumental|intermezzo|theme|tema)\b/i
 
 /**
  * Structural detection of section/group headers regardless of language.
  */
 export function matchSectionHeader(line: string): string | null {
-    const trimmed = line.trim()
-    if (!trimmed) return null
-
-    // Ignore bar/measure lines with "|" or repeat count markers like [x2], (2x)
-    if (trimmed.includes("|") || /^[\(\[]\s*(?:x\s*\d+|\d+\s*x|\d+\s*times|\d+\s*ganger)\s*[\)\]]$/i.test(trimmed)) {
-        return null
-    }
+    const raw = line.trim()
+    if (!raw || raw.includes("|")) return null
+    if (/^[\(\[]\s*(?:x\s*\d+|\d+\s*x|\d+\s*times|\d+\s*ganger)\s*[\)\]]$/i.test(raw)) return null
 
     // 1. Braced directive: {c: ...}, {comment: ...}, {section: ...}
-    const bracedMatch = trimmed.match(/^\{(?:c|comment|section):\s*(.+?)\}$/i)
-    if (bracedMatch) return formatSectionName(bracedMatch[1])
+    const bracedMatch = raw.match(/^\{(?:c|comment|section):\s*(.+?)\}$/i)
+    if (bracedMatch) return normalizeSection(bracedMatch[1])
 
-    // 2. Bracketed or parenthesized line: [Verse 1], [Chorus], [Bridge], [Coro], (Intro)
-    const bracketMatch = trimmed.match(/^[\(\[]([^\)\]]+)[\)\]]:?$/)
-    if (bracketMatch) {
-        const inner = bracketMatch[1].trim()
-        const words = inner.split(/[\s\-]+/).filter(Boolean)
-        const hasChords = words.some((w) => isChordToken(w))
-        if (!hasChords && inner !== "." && inner.length <= 60) {
-            return formatSectionName(inner)
-        }
+    // A bracketed section header must have the entire line enclosed in brackets: e.g. [Verse 1] or [Chorus] (x2)
+    const isEnclosedBracket = /^[\(\[][^\)\]]+[\)\]](?:\s*(?:[\(\[]?(?:x|\*|\b)\s*\d+[\)\]]?))?\s*$/i.test(raw)
+
+    // Strip leading/trailing decorative markers and colons
+    let str = raw.replace(/^[\s▒█■▶►◆●#=\-\*~_]+/g, "").replace(/[\s\*:]+$/g, "")
+
+    // Extract repeat multiplier (e.g. (x2), x4, (2x))
+    let mult = ""
+    const multMatch = str.match(/(?:\s*[\(\[]\s*(?:x\s*|\*\s*)?(\d+)\s*(?:x|\)|\b|\]|\s*ganger|\s*times)+|\s+(?:x|\*)\s*(\d+))\s*$/i)
+    if (multMatch) {
+        mult = `x${multMatch[1] || multMatch[2]}`
+        str = str.slice(0, multMatch.index).trim()
     }
 
-    // 3. Line ending with colon: Vers 1:, Chorus:, Bridge:, Ref 2 & 3:, Bro:, Instrumental:
-    if (trimmed.endsWith(":") && !trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-        const header = trimmed.slice(0, -1).trim()
-        if (header.length <= 60 && !METADATA_ALIAS_MAP[header.toLowerCase()]) {
-            return formatSectionName(header)
-        }
+    // Strip outer brackets/parentheses if whole string was enclosed
+    if (/^\[[^\]]+\]$/.test(str) || /^\([^\)]+\)$/.test(str)) {
+        str = str.slice(1, -1).trim()
     }
+    if (!str) return null
 
-    // 4. Numbered / multi-index pattern: Vers 1, Verse 1, Ref 2 & 3, Stanza II, Couplet 1 (x2)
-    if (/^[A-Za-z\u00C0-\u024F\u0400-\u04FF\s]+\s+(?:\d+|[IVXLCDM]+|\(?x?\d+\)?)(?:\s*&.*|\s*\(.*\))?:?$/i.test(trimmed)) {
-        const firstWord = trimmed.split(/\s+/)[0]
-        if (!isChordToken(firstWord)) {
-            return formatSectionName(trimmed)
+    // If remaining string still contains inline brackets (like [D]Gud... [F#m7]), it's lyrics, not a section header
+    if (str.includes("[") || str.includes("]")) return null
+
+    const isKeyword = SECTION_KEYWORDS.test(str)
+    const isOriginalColon = /:\s*$/i.test(raw)
+
+    if (isKeyword || isEnclosedBracket || (isOriginalColon && str.split(/\s+/).length <= 4)) {
+        const words = str.split(/[\s\-]+/).filter(Boolean)
+        if (!words.some((w) => isChordToken(w))) {
+            return normalizeSection(str, mult)
         }
     }
 
