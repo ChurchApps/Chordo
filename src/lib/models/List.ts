@@ -71,12 +71,19 @@ export class List {
     name: string
     songs: ListSongItem[]
     createdAt: number
+    lastUsedAt?: number
 
     constructor(data: Partial<ListKeys> = {}) {
         this.id = data.id ?? getId("list")
         this.name = data.name ?? "Untitled"
         this.songs = data.songs ? [...data.songs] : []
         this.createdAt = data.createdAt ?? Date.now()
+        this.lastUsedAt = data.lastUsedAt ?? this.createdAt
+    }
+
+    touch() {
+        this.lastUsedAt = Date.now()
+        storage.updateList(this)
     }
 
     getSongs(allSongs: Song[]) {

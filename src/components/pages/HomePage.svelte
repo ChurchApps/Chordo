@@ -27,6 +27,23 @@
 
     let totalResults = $derived(matchedFolders.length + matchedLists.length + matchedSongs.length)
 
+    const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000
+
+    let recentLists = $derived.by(() => {
+        const now = Date.now()
+        const oneMonthAgo = now - ONE_MONTH_MS
+
+        return storage.lists
+            .map((list) => ({
+                list,
+                lastUsed: list.lastUsedAt ?? list.createdAt
+            }))
+            .filter(({ lastUsed }) => lastUsed && lastUsed >= oneMonthAgo)
+            .sort((a, b) => b.lastUsed - a.lastUsed)
+            .slice(0, 3)
+            .map(({ list }) => list)
+    })
+
     function openFolder(id: string, name: string) {
         setActivePage("folder", id, name)
     }
@@ -53,7 +70,7 @@
                     <div class="search-category-title">{t("search", "category_folders")} ({matchedFolders.length})</div>
                     <md-list class="folders-list">
                         {#each matchedFolders as folder}
-                            {@const count = folder.getLists ? folder.getLists(storage.lists).length : folder.lists?.length ?? 0}
+                            {@const count = folder.getLists ? folder.getLists(storage.lists).length : (folder.lists?.length ?? 0)}
                             <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
                                 <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
                                 <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
@@ -124,10 +141,28 @@
 
         <hr />
 
+        {#if recentLists.length > 0}
+            <div class="section-title">{t("home", "recently_used")}</div>
+            <md-list class="folders-list scroll-list" style="overflow: initial;">
+                {#each recentLists as list}
+                    {@const count = list.songs?.length ?? 0}
+                    <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
+                        <div slot="headline">{list.name}</div>
+                        <md-icon slot="start">list</md-icon>
+                        <span slot="trailing-supporting-text" class="item-count">{count}</span>
+                        <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                    </md-list-item>
+                {/each}
+            </md-list>
+
+            <hr />
+        {/if}
+
         {#if folders.length}
+            <div class="section-title">{t("search", "category_folders")}</div>
             <md-list class="folders-list scroll-list">
                 {#each folders as folder}
-                    {@const count = folder.getLists ? folder.getLists(storage.lists).length : folder.lists?.length ?? 0}
+                    {@const count = folder.getLists ? folder.getLists(storage.lists).length : (folder.lists?.length ?? 0)}
                     <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
                         <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
                         <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
@@ -156,40 +191,6 @@
     </div>
 {/if}
 
-<!-- {#if addMenuOpen}
-    <div class="speed-dial-menu" transition:fade={{ duration: 150 }}>
-        <md-elevation></md-elevation>
-        <md-text-button class="menu-item" onclick={() => openDialog("create_folder")}>
-            <span style="display: flex;align-items: center;justify-content: right;gap: 12px;">
-                <span class="material-symbols-outlined item-icon">folder</span>
-                <span class="item-label">New Folder</span>
-            </span>
-        </md-text-button>
-        <md-elevation></md-elevation>
-        <md-text-button class="menu-item" onclick={() => openDialog("create_list")}>
-            <span style="display: flex;align-items: center;justify-content: right;gap: 12px;">
-                <span class="material-symbols-outlined item-icon">list</span>
-                <span class="item-label">New List</span>
-            </span>
-        </md-text-button>
-        <md-elevation></md-elevation>
-        <md-text-button class="menu-item" onclick={() => openDialog("create_song")}>
-            <span style="display: flex;align-items: center;justify-content: right;gap: 12px;">
-                <span class="material-symbols-outlined item-icon">description</span>
-                <span class="item-label">New Song</span>
-            </span>
-        </md-text-button>
-    </div>
-{/if}
-
-<div class="fab-container">
-    <md-fab aria-label="Add" onclick={() => (addMenuOpen = !addMenuOpen)}>
-        <span class="material-symbols-outlined" slot="icon">
-            {addMenuOpen ? "close" : "add"}
-        </span>
-    </md-fab>
-</div> -->
-
 <style>
     .search-results-container {
         display: flex;
@@ -198,6 +199,7 @@
         height: 100%;
     }
 
+    .section-title,
     .search-category-title {
         font-size: 0.8rem;
         font-weight: 700;

@@ -41,6 +41,14 @@
         }
     })
 
+    $effect(() => {
+        if (list) {
+            if (!list.lastUsedAt || Date.now() - list.lastUsedAt > 60 * 1000) {
+                list.touch()
+            }
+        }
+    })
+
     let longPressTimer: ReturnType<typeof setTimeout> | null = null
     let longPressed = false
 

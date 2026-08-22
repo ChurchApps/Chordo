@@ -29,6 +29,9 @@
     "folder_types": {
         "shared": "Shared with you"
     },
+    "home": {
+        "recently_used": "Recently used"
+    },
     "search": {
         "placeholder_all": "Search folders, setlists, songs...",
         "placeholder_songs": "Search songs...",
