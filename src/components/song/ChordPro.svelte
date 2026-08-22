@@ -118,17 +118,21 @@
                     {:else if line.type === "lyrics"}
                         {#if !hideChords || line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
                             <div class="line lyrics-line">
-                                {#each line.tokens as token}
-                                    <span class="token">
-                                        {#if hasChords}
-                                            {#if token.chord}
-                                                <span class="chord-cell">{token.chord}</span>
-                                            {:else}
-                                                <span class="chord-cell placeholder">&nbsp;</span>
-                                            {/if}
-                                        {/if}
+                                {#each line.words ?? [{ tokens: line.tokens ?? [] }] as word}
+                                    <span class="word">
+                                        {#each word.tokens as token}
+                                            <span class="token">
+                                                {#if hasChords}
+                                                    {#if token.chord}
+                                                        <span class="chord-cell">{token.chord}</span>
+                                                    {:else}
+                                                        <span class="chord-cell placeholder">&nbsp;</span>
+                                                    {/if}
+                                                {/if}
 
-                                        <span class="lyric-cell">{token.lyric}</span>
+                                                <span class="lyric-cell">{token.lyric}</span>
+                                            </span>
+                                        {/each}
                                     </span>
                                 {/each}
                             </div>
@@ -180,16 +184,26 @@
         break-inside: avoid; /* Keeps lyric lines from splitting mid-line across columns */
         -webkit-column-break-inside: avoid;
         page-break-inside: avoid;
+        text-wrap: pretty;
     }
 
     .lyrics-line {
         white-space: pre-wrap;
         font-size: 1rem;
         line-height: 1.2;
+        word-break: normal;
+        overflow-wrap: break-word;
+        text-wrap: balance;
     }
     .hide-chords .lyrics-line {
         line-height: 1.4;
         margin-bottom: 3px;
+    }
+    .word {
+        display: inline-flex;
+        align-items: flex-end;
+        white-space: pre-wrap;
+        max-width: 100%;
     }
     .token {
         display: inline-flex;
@@ -199,6 +213,7 @@
         white-space: pre-wrap;
         max-width: 100%;
     }
+
     .chord-cell {
         line-height: 1.2;
         font-family: monospace;
@@ -208,19 +223,22 @@
         color: #5498be;
         text-align: left;
         white-space: pre-wrap;
-        word-break: break-word;
+        word-break: normal;
+        overflow-wrap: break-word;
         max-width: 100%;
     }
-
     .lyric-cell {
         display: inline-block;
         white-space: pre-wrap;
         text-align: left;
     }
+
     .chord-cell.placeholder {
         color: transparent;
         user-select: none;
     }
+
+
     .directive {
         font-weight: 500;
         color: #5498be;

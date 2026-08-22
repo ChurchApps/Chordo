@@ -8,13 +8,19 @@ export interface ChordProToken {
     lyric: string // Lyric segment associated with this chord or preceding it
 }
 
+export interface ChordWord {
+    tokens: ChordProToken[]
+}
+
 export interface ParsedLine {
     type: "directive" | "comment" | "lyrics" | "empty"
     directiveKey?: string
     directiveValue?: string
     tokens?: ChordProToken[]
+    words?: ChordWord[]
     rawText?: string
 }
+
 
 export interface ParsedSection {
     lines: ParsedLine[]
@@ -25,6 +31,7 @@ export interface ParsedChordPro {
         title?: string
         artist?: string
     }
+
     lines: ParsedLine[]
     sections: ParsedSection[]
 }
@@ -91,15 +98,11 @@ export function matchSectionHeader(line: string): string | null {
     return null
 }
 
-
-
-
-
-
 const COMMENT_PRESETS: Record<string, string> = {
     soc: "Chorus",
     sov: "Verse"
 }
+
 
 const COMMENT_KEYS = new Set(["comment", "c", "section", "soc", "eoc", "sov", "eov"])
 
@@ -176,22 +179,9 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
             }
         }
 
-        // 4. Tokenize lyrics and bracketed chords [Chord]
-        const parts = line.split(/\[([^\]]+)\]/)
-        const tokens: ChordProToken[] = []
-
-        if (parts[0]) {
-            tokens.push({ chord: "", lyric: parts[0] })
-        }
-
-        for (let i = 1; i < parts.length; i += 2) {
-            tokens.push({
-                chord: transposeChord(parts[i], semitones),
-                lyric: parts[i + 1] || ""
-            })
-        }
-
-        parsedLines.push({ type: "lyrics", tokens })
+        // 4. Tokenize lyrics and bracketed chords into atomic word units
+        const { tokens, words } = parseLyricLineToWords(line, semitones)
+        parsedLines.push({ type: "lyrics", tokens, words })
     }
 
     return {
@@ -199,6 +189,66 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
         lines: parsedLines,
         sections: groupLinesIntoSections(parsedLines)
     }
+}
+
+export function parseLyricLineToWords(line: string, semitones = 0): { tokens: ChordProToken[]; words: ChordWord[] } {
+    const trimmedLine = line.trimStart()
+    const parts = trimmedLine.split(/\[([^\]]+)\]/)
+    const rawTokens: ChordProToken[] = []
+
+    if (parts[0]) {
+        rawTokens.push({ chord: "", lyric: parts[0].trimStart() })
+    }
+
+    for (let i = 1; i < parts.length; i += 2) {
+        let lyricPart = parts[i + 1] || ""
+        if (rawTokens.length === 0 && !parts[0]) {
+            lyricPart = lyricPart.trimStart()
+        }
+        rawTokens.push({
+            chord: transposeChord(parts[i], semitones),
+            lyric: lyricPart
+        })
+    }
+
+    const words: ChordWord[] = []
+    let currentWordTokens: ChordProToken[] = []
+
+    for (const raw of rawTokens) {
+        const { chord, lyric } = raw
+
+        if (!lyric) {
+            if (chord) {
+                currentWordTokens.push({ chord, lyric: "" })
+            }
+            continue
+        }
+
+        // Split lyric into word segments while keeping trailing whitespace
+        const segments = lyric.match(/\S+\s*|\s+/g) || [lyric]
+
+        for (let s = 0; s < segments.length; s++) {
+            const seg = segments[s]
+            const isFirst = s === 0
+
+            // The chord belongs to the exact syllable segment where it was placed
+            const segChord = isFirst ? chord : ""
+
+            currentWordTokens.push({ chord: segChord, lyric: seg })
+
+            if (/\s$/.test(seg)) {
+                words.push({ tokens: currentWordTokens })
+                currentWordTokens = []
+            }
+        }
+    }
+
+    if (currentWordTokens.length > 0) {
+        words.push({ tokens: currentWordTokens })
+    }
+
+    const allTokens = words.flatMap((w) => w.tokens)
+    return { tokens: allTokens, words }
 }
 
 export function groupLinesIntoSections(lines: ParsedLine[]): ParsedSection[] {
@@ -224,3 +274,4 @@ export function groupLinesIntoSections(lines: ParsedLine[]): ParsedSection[] {
     if (current.length) sections.push({ lines: current })
     return sections
 }
+
