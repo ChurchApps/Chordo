@@ -18,7 +18,7 @@
     },
     "pages": {
         "folder": "Folder",
-        "list": "List",
+        "list": "Setlist",
         "song": "Song",
         "song_edit": "Edit song",
         "all_songs": "All songs",
@@ -26,29 +26,29 @@
         "share_preview": "Import shared"
     },
     "search": {
-        "placeholder_all": "Search folders, lists, songs...",
+        "placeholder_all": "Search folders, setlists, songs...",
         "placeholder_songs": "Search songs...",
-        "placeholder_lists": "Search lists...",
+        "placeholder_lists": "Search setlists...",
         "no_results": "No results found",
         "category_folders": "Folders",
-        "category_lists": "Lists",
+        "category_lists": "Setlists",
         "category_songs": "Songs"
     },
     "empty_state": {
         "no_folders_title": "No folders yet",
         "no_folders_desc": "Tap the + button in the bottom right to create your first folder to organize your content.",
-        "no_lists_title": "No lists yet",
-        "no_lists_desc": "Tap the + button in the bottom right to create your first list where you can add songs.",
+        "no_lists_title": "No setlists yet",
+        "no_lists_desc": "Tap the + button in the bottom right to create your first setlist where you can add songs.",
         "no_songs_title": "No songs yet",
         "no_songs_desc": "Tap the + button in the bottom right to add songs."
     },
     "new": {
         "folder": "Create folder",
-        "list": "Create list",
+        "list": "Create setlist",
         "song": "Create song",
         "folder_name_label": "Folder name",
         "folder_name_placeholder": "e.g. Worship",
-        "list_name_label": "List name",
+        "list_name_label": "Setlist name",
         "list_name_placeholder": "e.g. Sunday Set",
         "song_title_label": "Song title",
         "song_title_placeholder": "e.g. Amazing Grace"
@@ -58,8 +58,8 @@
         "about": "About",
         "share_song": "Share song",
         "delete_song": "Delete song",
-        "share_list": "Share list",
-        "delete_list": "Delete list",
+        "share_list": "Share setlist",
+        "delete_list": "Delete setlist",
         "delete_folder": "Delete folder"
     },
     "confirm": {
@@ -67,13 +67,13 @@
         "delete_song_msg": "Are you sure you want to delete this song? This action cannot be undone.",
         "delete_songs_title": "Delete songs?",
         "delete_songs_msg": "Are you sure you want to delete {count} songs? This action cannot be undone.",
-        "delete_list_title": "Delete list?",
-        "delete_list_msg": "Are you sure you want to delete this list?",
+        "delete_list_title": "Delete setlist?",
+        "delete_list_msg": "Are you sure you want to delete this setlist?",
         "delete_folder_title": "Delete folder?",
         "delete_folder_msg": "Are you sure you want to delete this folder?",
         "overwrite_songs_title": "Overwrite existing songs?",
-        "overwrite_song_msg": "1 song in this list already exists in your library. Do you want to overwrite it with the shared version or keep your existing version?",
-        "overwrite_songs_msg": "{count} songs in this list already exist in your library. Do you want to overwrite them with the shared versions or keep your existing versions?",
+        "overwrite_song_msg": "1 song in this setlist already exists in your library. Do you want to overwrite it with the shared version or keep your existing version?",
+        "overwrite_songs_msg": "{count} songs in this setlist already exist in your library. Do you want to overwrite them with the shared versions or keep your existing versions?",
         "overwrite": "Overwrite",
         "keep_existing": "Keep Existing",
         "name_conflict_title": "Song already exists",
@@ -130,7 +130,7 @@
         "import_invalid": "Invalid backup file.",
         "import_error": "Error parsing backup file.",
         "reset_confirm_title": "Reset all data?",
-        "reset_confirm_msg": "This will permanently delete all songs, folders, and lists. This action cannot be undone.",
+        "reset_confirm_msg": "This will permanently delete all songs, folders, and setlists. This action cannot be undone.",
         "reset_confirm_btn": "Reset",
         "import_confirm_title": "Import backup?",
         "import_confirm_btn": "Import"
@@ -139,6 +139,8 @@
         "title": "Chordo: Chords Manager",
         "version": "Version",
         "desc": "Organize, transpose, annotate, and view chord sheets.",
+        "source_code": "Source Code",
+        "support_donate": "Support & Donate",
         "close": "Close"
     },
     "pwa": {

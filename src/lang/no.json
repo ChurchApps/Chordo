@@ -18,7 +18,7 @@
     },
     "pages": {
         "folder": "Mappe",
-        "list": "Liste",
+        "list": "Setliste",
         "song": "Sang",
         "song_edit": "Rediger sang",
         "all_songs": "Alle sanger",
@@ -26,29 +26,29 @@
         "share_preview": "Importer delt"
     },
     "search": {
-        "placeholder_all": "Søk i mapper, lister, sanger...",
+        "placeholder_all": "Søk i mapper, setlister, sanger...",
         "placeholder_songs": "Søk i sanger...",
-        "placeholder_lists": "Søk i lister...",
+        "placeholder_lists": "Søk i setlister...",
         "no_results": "Ingen resultater funnet",
         "category_folders": "Mapper",
-        "category_lists": "Lister",
+        "category_lists": "Setlister",
         "category_songs": "Sanger"
     },
     "empty_state": {
         "no_folders_title": "Ingen mapper ennå",
         "no_folders_desc": "Trykk på +-knappen nederst til høyre for å opprette din første mappe.",
-        "no_lists_title": "Ingen lister ennå",
-        "no_lists_desc": "Trykk på +-knappen nederst til høyre for å opprette din første liste for sanger.",
+        "no_lists_title": "Ingen setlister ennå",
+        "no_lists_desc": "Trykk på +-knappen nederst til høyre for å opprette din første setliste for sanger.",
         "no_songs_title": "Ingen sanger ennå",
         "no_songs_desc": "Trykk på +-knappen nederst til høyre for å legge til sanger."
     },
     "new": {
         "folder": "Ny mappe",
-        "list": "Ny liste",
+        "list": "Ny setliste",
         "song": "Ny sang",
         "folder_name_label": "Mappenavn",
         "folder_name_placeholder": "f.eks. Lovsang",
-        "list_name_label": "Listenavn",
+        "list_name_label": "Setlistenavn",
         "list_name_placeholder": "f.eks. Søndagssett",
         "song_title_label": "Sangtittel",
         "song_title_placeholder": "f.eks. Navnet Jesus"
@@ -58,8 +58,8 @@
         "about": "Om appen",
         "share_song": "Del sang",
         "delete_song": "Slett sang",
-        "share_list": "Del liste",
-        "delete_list": "Slett liste",
+        "share_list": "Del setliste",
+        "delete_list": "Slett setliste",
         "delete_folder": "Slett mappe"
     },
     "confirm": {
@@ -67,13 +67,13 @@
         "delete_song_msg": "Er du sikker på at du vil slette denne sangen? Handlingen kan ikke angres.",
         "delete_songs_title": "Slette sanger?",
         "delete_songs_msg": "Er du sikker på at du vil slette {count} sanger? Handlingen kan ikke angres.",
-        "delete_list_title": "Slette liste?",
-        "delete_list_msg": "Er du sikker på at du vil slette denne listen?",
+        "delete_list_title": "Slette setliste?",
+        "delete_list_msg": "Er du sikker på at du vil slette denne setlisten?",
         "delete_folder_title": "Slette mappe?",
         "delete_folder_msg": "Er du sikker på at du vil slette denne mappen?",
         "overwrite_songs_title": "Overskrive eksisterende sanger?",
-        "overwrite_song_msg": "1 sang i denne listen finnes allerede i biblioteket ditt. Vil du overskrive den med den delte versjonen eller beholde din eksisterende versjon?",
-        "overwrite_songs_msg": "{count} sanger i denne listen finnes allerede i biblioteket ditt. Vil du overskrive dem med de delte versjonene eller beholde dine eksisterende versjoner?",
+        "overwrite_song_msg": "1 sang i denne setlisten finnes allerede i biblioteket ditt. Vil du overskrive den med den delte versjonen eller beholde din eksisterende versjon?",
+        "overwrite_songs_msg": "{count} sanger i denne setlisten finnes allerede i biblioteket ditt. Vil du overskrive dem med de delte versjonene eller beholde dine eksisterende versjoner?",
         "overwrite": "Overskriv",
         "keep_existing": "Behold eksisterende",
         "name_conflict_title": "Sangen finnes allerede",
@@ -130,7 +130,7 @@
         "import_invalid": "Ugyldig sikkerhetskopi.",
         "import_error": "Feil ved lesing av fil.",
         "reset_confirm_title": "Tilbakestill all data?",
-        "reset_confirm_msg": "Dette vil slette alle sanger, mapper og lister permanent. Handlingen kan ikke angres.",
+        "reset_confirm_msg": "Dette vil slette alle sanger, mapper og setlister permanent. Handlingen kan ikke angres.",
         "reset_confirm_btn": "Tilbakestill",
         "import_confirm_title": "Importer sikkerhetskopi?",
         "import_confirm_btn": "Importer"
@@ -139,6 +139,8 @@
         "title": "Chordo: Chords Manager",
         "version": "Versjon",
         "desc": "Organiser, transponer, annoter og vis akkordark.",
+        "source_code": "Kildekode",
+        "support_donate": "Støtt / Doner",
         "close": "Lukk"
     },
     "pwa": {

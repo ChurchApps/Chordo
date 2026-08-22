@@ -280,7 +280,7 @@
                     <!-- {#if existingSong}
                         Update / Replace Song
                     {:else} -->
-                    {t("common", "import")} Song
+                    {t("common", "import")} {t("pages", "song")}
                     <!-- {/if} -->
                 </md-filled-button>
             </div>
@@ -361,7 +361,7 @@
             <div class="bottom-center-action">
                 <md-filled-button onclick={importList} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
-                    {t("common", "import")} List
+                    {t("common", "import")} {t("pages", "list")}
                 </md-filled-button>
             </div>
         </div>
