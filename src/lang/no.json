@@ -72,6 +72,7 @@
         "rename_list": "Endre navn på setliste",
         "duplicate_list": "Dupliser setliste",
         "share_list": "Del setliste",
+        "export_as": "Eksporter som",
         "delete_list": "Slett setliste",
         "rename_folder": "Endre navn på mappe",
         "delete_folder": "Slett mappe"

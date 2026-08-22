@@ -11,6 +11,7 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { shareList, shareSong } from "$lib/share/share"
     import { clearSharePayload } from "$lib/share/share.svelte"
+    import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
     import { pages } from "../pages/pages"
     import TransposeButton from "../song/TransposeButton.svelte"
 
@@ -281,6 +282,15 @@
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
                                     <div slot="headline">{t("menu", "share_list")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        if (currentList) exportAsFreeShowProject(currentList, storage.songs)
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">download</span>
+                                    <div slot="headline">{t("menu", "export_as")} FreeShow Project</div>
                                 </md-menu-item>
                                 <md-menu-item
                                     onclick={() => {
