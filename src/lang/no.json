@@ -83,6 +83,8 @@
     "song_edit": {
         "title": "Tittel",
         "title_placeholder": "f.eks. Navnet Jesus",
+        "expand_metadata": "Vis metadata",
+        "collapse_metadata": "Skjul metadata",
         "source": "Kilde:",
         "import_url": "Importer fra URL",
         "import_url_placeholder": "f.eks. https://example.com/song-chords",

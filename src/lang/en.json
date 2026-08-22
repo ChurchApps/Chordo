@@ -83,6 +83,8 @@
     "song_edit": {
         "title": "Title",
         "title_placeholder": "e.g. Amazing Grace",
+        "expand_metadata": "Expand metadata",
+        "collapse_metadata": "Collapse metadata",
         "source": "Source:",
         "import_url": "Import from URL",
         "import_url_placeholder": "e.g. https://example.com/song-chords",
