@@ -24,9 +24,11 @@
     {#if filteredLists.length}
         <md-list class="list scroll-list">
             {#each filteredLists as list}
+                {@const count = list.songs?.length ?? 0}
                 <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                     <div slot="headline">{list.name}</div>
                     <md-icon slot="start">list</md-icon>
+                    <span slot="trailing-supporting-text" class="item-count">{count}</span>
                     <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                 </md-list-item>
             {/each}

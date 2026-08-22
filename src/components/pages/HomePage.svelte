@@ -53,9 +53,11 @@
                     <div class="search-category-title">{t("search", "category_folders")} ({matchedFolders.length})</div>
                     <md-list class="folders-list">
                         {#each matchedFolders as folder}
+                            {@const count = folder.getLists ? folder.getLists(storage.lists).length : folder.lists?.length ?? 0}
                             <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
                                 <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
                                 <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
+                                <span slot="trailing-supporting-text" class="item-count">{count}</span>
                                 <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                             </md-list-item>
                         {/each}
@@ -66,9 +68,11 @@
                     <div class="search-category-title">{t("search", "category_lists")} ({matchedLists.length})</div>
                     <md-list class="folders-list">
                         {#each matchedLists as list}
+                            {@const count = list.songs?.length ?? 0}
                             <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                                 <div slot="headline">{list.name}</div>
                                 <md-icon slot="start">list</md-icon>
+                                <span slot="trailing-supporting-text" class="item-count">{count}</span>
                                 <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                             </md-list-item>
                         {/each}
@@ -113,6 +117,7 @@
             <md-list-item type="button" onclick={() => openAllSongs()}>
                 <div slot="headline">{t("pages", "all_songs")}</div>
                 <md-icon slot="start">library_music</md-icon>
+                <span slot="trailing-supporting-text" class="item-count">{storage.songs.length}</span>
                 <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
             </md-list-item>
         </md-list>
@@ -122,9 +127,11 @@
         {#if folders.length}
             <md-list class="folders-list scroll-list">
                 {#each folders as folder}
+                    {@const count = folder.getLists ? folder.getLists(storage.lists).length : folder.lists?.length ?? 0}
                     <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
                         <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
                         <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
+                        <span slot="trailing-supporting-text" class="item-count">{count}</span>
                         <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                     </md-list-item>
                 {/each}
