@@ -63,7 +63,17 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
         menuState.contentId = contentId ?? null
         menuState.customPageTitle = customTitle ?? null
 
-        if (action !== "replace" && addToHistory) {
+        if (currentState.activePage === "share_preview") {
+            if (menuState.previousPages.length === 0) {
+                menuState.previousPages = [{ activePage: "home", contentId: null, customPageTitle: null }]
+            }
+            if (typeof window !== "undefined") {
+                history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "")
+                if (menu !== "home") {
+                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+                }
+            }
+        } else if (action !== "replace" && addToHistory) {
             menuState.previousPages.push(currentState)
             if (typeof window !== "undefined") {
                 if (action === "append" && appendData) {

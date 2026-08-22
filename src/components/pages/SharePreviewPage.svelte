@@ -117,7 +117,7 @@
 
         storage.persist()
         clearSharePayload()
-        setActivePage("song", songToOpen.id, songToOpen.name, "replace")
+        setActivePage("song", songToOpen.id, songToOpen.name)
     }
 
     async function importList() {
@@ -215,7 +215,7 @@
 
         storage.persist()
         clearSharePayload()
-        setActivePage("list", listToOpen.id, listToOpen.name, "replace")
+        setActivePage("list", listToOpen.id, listToOpen.name)
     }
 </script>
 
