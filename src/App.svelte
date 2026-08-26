@@ -37,7 +37,7 @@
             } else {
                 // service rate limited or expired
                 // cellular networks quickly get IP rate limited
-                showToast("Could not load shared link, make sure you are on WiFi", "error", 5000)
+                showToast("Could not load shared link, make sure you are on WiFi, or it has expired", "error", 5000)
             }
         }
     }
