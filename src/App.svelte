@@ -35,7 +35,9 @@
                 const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
                 setActivePage("share_preview", null, title, "replace")
             } else {
-                showToast("Could not load shared link (service rate limited or expired)", "error", 5000)
+                // service rate limited or expired
+                // cellular networks quickly get IP rate limited
+                showToast("Could not load shared link, make sure you are on WiFi", "error", 5000)
             }
         }
     }
