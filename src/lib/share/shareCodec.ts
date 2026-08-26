@@ -328,13 +328,13 @@ export function createShareUrl(encodedPayload: string): string {
 export function extractSharePayloadFromUrl(url: string = typeof window !== "undefined" ? window.location.href : ""): string | null {
     if (!url) return null
     try {
-        // check hash: #share=... or #s=...
-        const hashMatch = url.match(/#(?:share|s)=([^&]+)/)
-        if (hashMatch && hashMatch[1]) return hashMatch[1]
-
         // check query: ?share=... or ?s=...
         const queryMatch = url.match(/[?&](?:share|s)=([^&#]+)/)
-        if (queryMatch && queryMatch[1]) return queryMatch[1]
+        if (queryMatch && queryMatch[1]) return decodeURIComponent(queryMatch[1])
+
+        // check hash: #share=... or #s=...
+        const hashMatch = url.match(/#(?:share|s)=([^&]+)/)
+        if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1])
 
         return null
     } catch {

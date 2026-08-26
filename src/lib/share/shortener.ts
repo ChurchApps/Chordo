@@ -18,7 +18,7 @@ export async function createShortShare(encodedPayload: string): Promise<string> 
         // Check if we already have a cached share ID for this exact content SHA
         const cachedId = storage.settings.shareCache?.[hash]
         if (cachedId) {
-            return `${getShareBaseUrl()}/#share=d:${cachedId}`
+            return `${getShareBaseUrl()}/?share=d:${cachedId}`
         }
 
         let id: string | null = null
@@ -86,7 +86,7 @@ export async function createShortShare(encodedPayload: string): Promise<string> 
         // Also save to fetchedSnippetCache for instant local resolution
         fetchedSnippetCache.set(id, encodedPayload)
 
-        return `${getShareBaseUrl()}/#share=d:${id}`
+        return `${getShareBaseUrl()}/?share=d:${id}`
     } catch {
         // Fallback to long URL if offline or network fails
         return createShareUrl(encodedPayload)
@@ -94,8 +94,8 @@ export async function createShortShare(encodedPayload: string): Promise<string> 
 }
 
 export async function fetchShortShare(id: string): Promise<string | null> {
-    const cleanId = id
-        .replace(/^(?:d:|p:|id:)/, "")
+    const cleanId = decodeURIComponent(id)
+        .replace(/^(?:d:|p:|id:)/i, "")
         .replace(/\.txt$|\/raw$/, "")
         .trim()
     if (!cleanId) return null

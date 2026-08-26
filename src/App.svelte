@@ -45,10 +45,12 @@
     onMount(() => {
         handleIncomingShare()
         window.addEventListener("hashchange", handleIncomingShare)
+        window.addEventListener("popstate", handleIncomingShare)
         const cleanupKeyboard = initDialogKeyboardCentering()
 
         return () => {
             window.removeEventListener("hashchange", handleIncomingShare)
+            window.removeEventListener("popstate", handleIncomingShare)
             if (cleanupKeyboard) cleanupKeyboard()
         }
     })
