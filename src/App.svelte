@@ -1,6 +1,6 @@
 <script lang="ts">
     import { setSharePayload } from "$lib/share/share.svelte"
-    import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/shareCodec"
+    import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
     import { setActivePage } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
@@ -35,9 +35,7 @@
                 const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
                 setActivePage("share_preview", null, title, "replace")
             } else {
-                // service rate limited or expired
-                // cellular networks quickly get IP rate limited
-                showToast("Could not load shared link, make sure you are on WiFi, or it has expired", "error", 5000)
+                showToast("Could not load shared content! The link might have expired.", "error", 5000)
             }
         }
     }

@@ -1,9 +1,10 @@
 import type { SongMetadata } from "../chords/metadata"
 import type { List } from "../models/List"
 import type { Song } from "../models/Song"
-import { fetchShortShare } from "./shortener"
 
-type SharedSongData = {
+// --- Types ---
+
+export type SharedSongData = {
     id?: string
     name: string
     content: string
@@ -12,359 +13,164 @@ type SharedSongData = {
     url?: string
     lastTransposed?: string
     createdAt?: number
+    [key: string]: unknown
 }
 
-type SharedListSongItem = {
+export type SharedListSongItem = {
     songId: string
     transposed?: string
     lastKnownName?: string
+    [key: string]: unknown
 }
 
-type SharedListData = {
+export type SharedListData = {
     id?: string
     name: string
     songs: SharedSongData[]
     listItems: SharedListSongItem[]
     createdAt?: number
+    [key: string]: unknown
 }
 
 export type SharePayload = { type: "song"; song: SharedSongData } | { type: "list"; list: SharedListData }
 
-/*
- * WIRE SCHEMAS (Version 1 - Positional Tuples with Base64URL)
- *
- * Song Tuple:
- * [0: name, 1: content, 2: id?, 3: metadata?, 4: playbackUrl?, 5: url?, 6: lastTransposed?, 7: createdAt?]
- *
- * List Item Tuple:
- * [0: songIndexInCatalog, 1: transposed?]
- *
- * Full Share Payload:
- * Single Song: [1, "s", SongTuple]
- * List:        [1, "l", id?, name, createdAt?, SongTuple[], ListItemTuple[]]
- */
+// --- URL Normalization ---
 
-// --- Base64URL Helpers ---
-
-function uint8ArrayToBase64Url(bytes: Uint8Array): string {
-    let binary = ""
-    const len = bytes.byteLength
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+const URL_PREFIXES: Record<string, string> = {
+    "open.spotify.com/track/": "sp:",
+    "youtube.com/watch?v=": "yt:",
+    "youtu.be/": "yts:",
+    "tabs.ultimate-guitar.com/tab/": "ug:",
+    "lovsang.no/sang/": "ls:",
+    "worshiptogether.com/songs/": "wt:",
+    "pnwchords.com/": "pnw:"
 }
 
-function base64UrlToUint8Array(base64Url: string): Uint8Array {
-    let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-    while (base64.length % 4 !== 0) {
-        base64 += "="
-    }
-    if (!/^[A-Za-z0-9+/=]+$/.test(base64)) {
-        throw new Error("Invalid characters in base64 string")
-    }
-    const binary = atob(base64)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i)
-    }
-    return bytes
-}
-
-// --- URL Normalization & Prefix Stripping ---
-
-const URL_PREFIX_MAP: [string, string][] = [
-    ["open.spotify.com/track/", "sp:"],
-    ["youtube.com/watch?v=", "yt:"],
-    ["youtu.be/", "yts:"],
-    ["tabs.ultimate-guitar.com/tab/", "ug:"],
-    ["lovsang.no/sang/", "ls:"],
-    ["worshiptogether.com/songs/", "wt:"],
-    ["pnwchords.com/", "pnw:"]
-]
-
-function compressUrl(url?: string): string | undefined {
+export function compressUrl(url?: string): string | undefined {
     if (!url) return undefined
-    const normalized = url.trim().replace(/^https?:\/\/(www\.)?/, "")
-
-    for (const [domain, code] of URL_PREFIX_MAP) {
-        if (normalized.startsWith(domain)) {
-            return `${code}${normalized.slice(domain.length)}`
-        }
-    }
-    return normalized
+    const clean = url.trim().replace(/^https?:\/\/(www\.)?/, "")
+    const match = Object.entries(URL_PREFIXES).find(([domain]) => clean.startsWith(domain))
+    return match ? `${match[1]}${clean.slice(match[0].length)}` : clean
 }
 
-function expandUrl(shortUrl?: string): string | undefined {
+export function expandUrl(shortUrl?: string): string | undefined {
     if (!shortUrl) return undefined
-
-    for (const [domain, code] of URL_PREFIX_MAP) {
-        if (shortUrl.startsWith(code)) {
-            return `https://${domain}${shortUrl.slice(code.length)}`
-        }
-    }
-
-    if (!shortUrl.startsWith("http://") && !shortUrl.startsWith("https://")) {
-        return `https://${shortUrl}`
-    }
-    return shortUrl
+    const match = Object.entries(URL_PREFIXES).find(([_, code]) => shortUrl.startsWith(code))
+    if (match) return `https://${match[0]}${shortUrl.slice(match[1].length)}`
+    return /^https?:\/\//.test(shortUrl) ? shortUrl : `https://${shortUrl}`
 }
 
-// --- Chord Content Normalizer ---
+// --- Format Cleaners ---
 
-function trimChordContent(content: string): string {
-    if (!content) return ""
+export function trimChordContent(content = ""): string {
     return content
         .replace(/\r\n|\r/g, "\n")
-        .replace(/\u00A0/g, " ") // Convert non-breaking spaces
+        .replace(/\u00A0/g, " ")
         .split("\n")
         .map((line) => line.trimEnd())
         .join("\n")
-        .replace(/\n{3,}/g, "\n\n") // Collapse excess blank lines
+        .replace(/\n{3,}/g, "\n\n")
         .trim()
 }
 
-// --- Native Compression Streams ---
+export function cleanSongForShare(song: Song | SharedSongData): SharedSongData {
+    const rawMeta = typeof (song as Record<string, unknown>).getMetadata === "function" ? (song as Song).getMetadata() : (song as SharedSongData).metadata
 
-async function compressString(input: string): Promise<string> {
-    const rawBytes = new TextEncoder().encode(input)
-    if (typeof CompressionStream !== "undefined") {
-        const stream = new Response(rawBytes as BodyInit).body?.pipeThrough(new CompressionStream("deflate-raw"))
-        if (stream) {
-            const buffer = await new Response(stream).arrayBuffer()
-            return uint8ArrayToBase64Url(new Uint8Array(buffer))
-        }
-    }
-    return uint8ArrayToBase64Url(rawBytes)
-}
+    const metadata = rawMeta ? Object.fromEntries(Object.entries(rawMeta).filter(([_, v]) => typeof v === "string" && v.trim())) : undefined
 
-async function decompressString(encoded: string): Promise<string> {
-    const bytes = base64UrlToUint8Array(encoded)
-    if (typeof DecompressionStream !== "undefined") {
-        try {
-            const stream = new Response(bytes as BodyInit).body?.pipeThrough(new DecompressionStream("deflate-raw"))
-            if (stream) {
-                return await new Response(stream).text()
-            }
-        } catch {
-            return new TextDecoder().decode(bytes)
-        }
-    }
-    return new TextDecoder().decode(bytes)
-}
+    const { getMetadata, images, content, name, playbackUrl, url, ...rest } = song as Record<string, unknown>
 
-// --- Positional Tuple Mappers ---
-
-type SongTuple = [
-    string, // 0: name
-    string, // 1: content
-    string?, // 2: id
-    Record<string, string>?, // 3: metadata
-    string?, // 4: playbackUrl
-    string?, // 5: url
-    string?, // 6: lastTransposed
-    number? // 7: createdAt
-]
-
-function songToTuple(song: SharedSongData): SongTuple {
-    const metaClean: Record<string, string> = {}
-    if (song.metadata) {
-        for (const [k, v] of Object.entries(song.metadata)) {
-            if (v && typeof v === "string" && v.trim()) {
-                metaClean[k] = v.trim()
-            }
-        }
-    }
-    const hasMeta = Object.keys(metaClean).length > 0
-
-    const tuple: SongTuple = [
-        song.name || "Untitled",
-        trimChordContent(song.content),
-        song.id || undefined,
-        hasMeta ? metaClean : undefined,
-        compressUrl(song.playbackUrl),
-        compressUrl(song.url),
-        song.lastTransposed || undefined,
-        song.createdAt || undefined
-    ]
-
-    // Pop trailing undefined entries to minimize wire length
-    while (tuple.length > 2 && tuple[tuple.length - 1] === undefined) {
-        tuple.pop()
-    }
-    return tuple
-}
-
-function tupleToSong(tuple: any[]): SharedSongData {
     return {
-        name: tuple[0] || "Untitled",
-        content: tuple[1] || "",
-        id: tuple[2] || undefined,
-        metadata: tuple[3] || {},
-        playbackUrl: expandUrl(tuple[4]),
-        url: expandUrl(tuple[5]),
-        lastTransposed: tuple[6] || undefined,
-        createdAt: tuple[7] || undefined
+        ...rest,
+        name: (name as string) || "Untitled",
+        content: trimChordContent(content as string),
+        ...(metadata && Object.keys(metadata).length ? { metadata } : {}),
+        ...(playbackUrl ? { playbackUrl: compressUrl(playbackUrl as string) } : {}),
+        ...(url ? { url: compressUrl(url as string) } : {})
     }
 }
 
-// --- Sharing Encoders & Decoders ---
+// --- Payload Handlers ---
 
-export async function encodeSongShare(song: Song | SharedSongData): Promise<string> {
-    const songData: SharedSongData = {
-        id: song.id,
-        name: song.name,
-        content: song.content,
-        metadata: typeof (song as any).getMetadata === "function" ? (song as Song).getMetadata() : song.metadata,
-        playbackUrl: song.playbackUrl,
-        url: song.url,
-        lastTransposed: song.lastTransposed,
-        createdAt: song.createdAt
-    }
+const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
+    song: (data) => ({
+        type: "song",
+        song: {
+            ...data.song,
+            name: data.song?.name || "Untitled",
+            content: data.song?.content || "",
+            metadata: data.song?.metadata || {},
+            playbackUrl: expandUrl(data.song?.playbackUrl),
+            url: expandUrl(data.song?.url)
+        }
+    }),
+    list: (data) => {
+        const songs = (data.list?.songs || []).map((s: SharedSongData) => ({
+            ...s,
+            name: s?.name || "Untitled",
+            content: s?.content || "",
+            metadata: s?.metadata || {},
+            playbackUrl: expandUrl(s?.playbackUrl),
+            url: expandUrl(s?.url)
+        }))
 
-    const payload = [1, "s", songToTuple(songData)]
-    return compressString(JSON.stringify(payload))
-}
+        const listItems = (data.list?.listItems || []).map((item: any, idx: number) => ({
+            ...item,
+            songId: item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
+        }))
 
-export async function encodeListShare(list: List, allSongs: Song[]): Promise<string> {
-    const songMap = new Map(allSongs.map((s) => [s.id, s]))
-    const uniqueSongMap = new Map<string, number>()
-    const catalogTuples: SongTuple[] = []
-
-    // 1. Collect unique songs in a deduplicated catalog pool
-    for (const item of list.songs) {
-        if (!uniqueSongMap.has(item.songId)) {
-            const s = songMap.get(item.songId)
-            if (s) {
-                uniqueSongMap.set(item.songId, catalogTuples.length)
-                catalogTuples.push(
-                    songToTuple({
-                        id: s.id,
-                        name: s.name,
-                        content: s.content,
-                        metadata: typeof s.getMetadata === "function" ? s.getMetadata() : s.metadata,
-                        playbackUrl: s.playbackUrl,
-                        url: s.url,
-                        lastTransposed: s.lastTransposed,
-                        createdAt: s.createdAt
-                    })
-                )
+        return {
+            type: "list",
+            list: {
+                ...data.list,
+                name: data.list?.name || "Untitled List",
+                songs,
+                listItems
             }
         }
     }
+}
 
-    // 2. Map list items to [songIndex, transposed?] tuples (omits redundant lastKnownName)
+export function parseSharePayload(data: any): SharePayload | null {
+    if (!data || typeof data !== "object" || !data.type) return null
+    const parser = PAYLOAD_PARSERS[data.type]
+    return parser ? parser(data) : null
+}
+
+export function buildSongSharePayload(song: Song | SharedSongData): SharePayload {
+    return {
+        type: "song",
+        song: cleanSongForShare(song)
+    }
+}
+
+export function buildListSharePayload(list: List, allSongs: Song[]): SharePayload {
+    const songMap = new Map(allSongs.map((s) => [s.id, s]))
+    const uniqueMap = new Map<string, number>()
+    const catalogSongs: SharedSongData[] = []
+
     const listItems = list.songs
         .map((item) => {
-            const songIndex = uniqueSongMap.get(item.songId)
-            if (songIndex === undefined) return null
-            return item.transposed ? [songIndex, item.transposed] : [songIndex]
+            if (!uniqueMap.has(item.songId)) {
+                const target = songMap.get(item.songId)
+                if (target) {
+                    uniqueMap.set(item.songId, catalogSongs.length)
+                    catalogSongs.push(cleanSongForShare(target))
+                }
+            }
+            const index = uniqueMap.get(item.songId)
+            return index !== undefined ? { songId: catalogSongs[index].id || `song-${index}`, transposed: item.transposed } : null
         })
-        .filter(Boolean)
+        .filter(Boolean) as SharedListSongItem[]
 
-    // Payload: [version, type, id, name, createdAt, songsCatalog, listItems]
-    const payload = [1, "l", list.id || "", list.name, list.createdAt || 0, catalogTuples, listItems]
-    return compressString(JSON.stringify(payload))
-}
-
-export async function decodeSharePayload(encoded: string): Promise<SharePayload | null> {
-    if (!encoded) return null
-    try {
-        const jsonStr = await decompressString(encoded.trim())
-        const data = JSON.parse(jsonStr)
-
-        // Tuple decoding
-        const [, type] = data
-
-        if (type === "s" && Array.isArray(data[2])) {
-            return {
-                type: "song",
-                song: tupleToSong(data[2])
-            }
+    return {
+        type: "list",
+        list: {
+            id: list.id,
+            name: list.name || "Untitled List",
+            createdAt: list.createdAt,
+            songs: catalogSongs,
+            listItems
         }
-
-        if (type === "l") {
-            const [, , id, name, createdAt, rawSongs, rawItems] = data
-            const songs = (rawSongs || []).map(tupleToSong)
-
-            const listItems: SharedListSongItem[] = (rawItems || []).map((item: any[]) => {
-                const songIndex = item[0]
-                const targetSong = songs[songIndex]
-                return {
-                    songId: targetSong ? targetSong.id || `song-${songIndex}` : "",
-                    transposed: item[1] || undefined
-                }
-            })
-
-            return {
-                type: "list",
-                list: {
-                    id: id || undefined,
-                    name: name || "Untitled List",
-                    createdAt: createdAt || undefined,
-                    songs,
-                    listItems
-                }
-            }
-        }
-
-        return null
-    } catch (e) {
-        console.error("Failed to decode share payload:", e)
-        return null
     }
-}
-
-export function getShareBaseUrl(): string {
-    if (typeof window !== "undefined") return window.location.origin
-    return "https://chordo.org"
-}
-
-export function createShareUrl(encodedPayload: string): string {
-    const base = getShareBaseUrl()
-    return `${base}/#share=${encodedPayload}`
-}
-
-export function extractSharePayloadFromUrl(url: string = typeof window !== "undefined" ? window.location.href : ""): string | null {
-    if (!url) return null
-    try {
-        // check query: ?share=... or ?s=...
-        const queryMatch = url.match(/[?&](?:share|s)=([^&#]+)/)
-        if (queryMatch && queryMatch[1]) return decodeURIComponent(queryMatch[1])
-
-        // check hash: #share=... or #s=...
-        const hashMatch = url.match(/#(?:share|s)=([^&]+)/)
-        if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1])
-
-        return null
-    } catch {
-        return null
-    }
-}
-
-export function isShortenedShareId(raw: string): boolean {
-    if (!raw) return false
-    if (raw.startsWith("d:") || raw.startsWith("p:") || raw.startsWith("id:")) return true
-    if (/^[A-Za-z0-9_-]{4,16}$/.test(raw) && !raw.includes("[")) return true
-    return false
-}
-
-export async function resolveSharePayload(raw: string): Promise<SharePayload | null> {
-    if (!raw) return null
-    const trimmed = raw.trim()
-
-    // 1. If it's a shortened ID (e.g. d:xxxx), ONLY fetch from shortener
-    if (isShortenedShareId(trimmed)) {
-        const fetched = await fetchShortShare(trimmed)
-        if (fetched) {
-            return await decodeSharePayload(fetched)
-        }
-        return null // Do not attempt to Base64 decode a short ID
-    }
-
-    // 2. Direct decode as compressed Base64URL payload
-    const direct = await decodeSharePayload(trimmed)
-    if (direct) return direct
-
-    return null
 }

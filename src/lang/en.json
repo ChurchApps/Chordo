@@ -183,7 +183,7 @@
     "share": {
         "link_copied": "Share link copied to clipboard!",
         "link_copied_no_media": "Share link copied! Note: Attached images/PDFs are not included.",
-        "shared_success": "Shared successfully",
+        "shared_success": "Shared!",
         "shared_no_media": "Shared! Note: Attached images/PDFs are not included.",
         "copy_failed": "Failed to copy link",
         "generate_failed": "Failed to generate share link"
