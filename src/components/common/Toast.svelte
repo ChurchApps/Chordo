@@ -70,11 +70,11 @@
         font-size: 20px;
     }
 
-    .toast-text {
+    /* .toast-text {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
+    } */
 
     .toast-close {
         background: transparent;
