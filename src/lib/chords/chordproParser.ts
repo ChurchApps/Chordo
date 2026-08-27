@@ -202,7 +202,7 @@ export function parseLyricLineToWords(line: string, semitones = 0): { tokens: Ch
 
     for (let i = 1; i < parts.length; i += 2) {
         let lyricPart = parts[i + 1] || ""
-        if (rawTokens.length === 0 && !parts[0]) {
+        if (/^\s+\S/.test(lyricPart)) {
             lyricPart = lyricPart.trimStart()
         }
         rawTokens.push({

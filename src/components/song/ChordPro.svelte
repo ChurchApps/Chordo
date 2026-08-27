@@ -85,13 +85,32 @@
                 <div class="song-title">{song.name}</div>
             {/if}
             {#if showMeta}
+                {@const artist = parsed.metadata.artist || (typeof song?.getMetadata === "function" ? song.getMetadata("artist") : song?.metadata?.artist)}
+                {@const keyVal = parsed.metadata.key || (typeof song?.getMetadata === "function" ? song.getMetadata("key") : song?.metadata?.key)}
+                {@const tempo = parsed.metadata.tempo || (typeof song?.getMetadata === "function" ? song.getMetadata("tempo") : song?.metadata?.tempo)}
+                {@const timeSig = parsed.metadata.timeSignature || (typeof song?.getMetadata === "function" ? song.getMetadata("timeSignature") : song?.metadata?.timeSignature)}
+                {@const capo = parsed.metadata.capo || (typeof song?.getMetadata === "function" ? song.getMetadata("capo") : song?.metadata?.capo)}
+                {@const tempoFormatted = tempo ? (timeSig ? `${tempo} BPM ${timeSig}` : `${tempo} BPM`) : timeSig}
                 <div class="song-meta">
-                    {#each METADATA_CONFIGS as cfg}
-                        {@const val = parsed.metadata[cfg.key] || (typeof song?.getMetadata === "function" ? song.getMetadata(cfg.key) : song?.metadata?.[cfg.key])}
-                        {#if val}
-                            <span class="meta-item">{cfg.label}: {val}</span>
+                    {#if artist}
+                        <div class="row">
+                            <span class="meta-item">{artist}</span>
+                        </div>
+                    {/if}
+
+                    <div class="row">
+                        {#if keyVal}
+                            <span class="meta-item">Key: {keyVal}</span>
                         {/if}
-                    {/each}
+                        {#if tempoFormatted}
+                            <span class="meta-item"> • </span>
+                            <span class="meta-item">{tempo ? tempoFormatted : tempoFormatted}</span>
+                        {/if}
+                        {#if capo}
+                            <span class="meta-item"> • </span>
+                            <span class="meta-item">Capo: {capo}</span>
+                        {/if}
+                    </div>
                 </div>
             {/if}
         </div>
@@ -130,7 +149,7 @@
                                                     {/if}
                                                 {/if}
 
-                                                <span class="lyric-cell">{token.lyric}</span>
+                                                <span class="lyric-cell">{token.lyric || "\u200B"}</span>
                                             </span>
                                         {/each}
                                     </span>
@@ -152,7 +171,7 @@
         box-sizing: border-box;
         column-count: var(--num-columns, 1);
         -webkit-column-count: var(--num-columns, 1);
-        column-gap: 1.5rem;
+        column-gap: 0.8rem;
         column-fill: auto; /* Fill column 1 to bottom before wrapping to column 2 */
 
         pointer-events: none;
@@ -190,13 +209,13 @@
     .lyrics-line {
         white-space: pre-wrap;
         font-size: 1rem;
-        line-height: 1.2;
+        line-height: 1.4;
         word-break: normal;
         overflow-wrap: break-word;
         text-wrap: balance;
     }
     .hide-chords .lyrics-line {
-        line-height: 1.4;
+        line-height: 1.2;
         margin-bottom: 3px;
     }
     .word {
@@ -215,10 +234,10 @@
     }
 
     .chord-cell {
-        line-height: 1.2;
+        line-height: 0.9;
         font-family: monospace;
         font-weight: 700;
-        font-size: 1.1rem;
+        font-size: 1rem;
         margin-bottom: 1px;
         color: #5498be;
         text-align: left;
@@ -226,18 +245,21 @@
         word-break: normal;
         overflow-wrap: break-word;
         max-width: 100%;
+        padding-right: 0.3em;
     }
     .lyric-cell {
         display: inline-block;
         white-space: pre-wrap;
         text-align: left;
+        min-height: 1.1em;
+        line-height: 1.1;
     }
 
     .chord-cell.placeholder {
         color: transparent;
         user-select: none;
+        padding-right: 0;
     }
-
 
     .directive {
         font-weight: 500;
@@ -248,9 +270,12 @@
     }
     .comment {
         font-weight: 600;
+        font-size: 0.95rem;
         /* color: #2e7d32; */
         color: #306685;
         margin: 4px 0;
+
+        /* text-transform: uppercase; */
     }
     .line.empty {
         height: 8px;
@@ -258,14 +283,21 @@
     .song-title {
         font-size: 1.6rem;
         font-weight: 800;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
     .song-meta {
+        display: flex;
+        flex-direction: column;
+
         font-size: 0.95rem;
         color: #444;
     }
-    .song-meta .meta-item {
-        margin-right: 12px;
+    .song-meta .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
     }
 
     /* image */

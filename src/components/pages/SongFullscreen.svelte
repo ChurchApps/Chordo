@@ -337,7 +337,18 @@
 
 <main>
     <div class="slider-viewport">
-        <div class="slider" role="region" aria-label="Song carousel" bind:this={sliderEl} onpointerdown={pointerDown} onpointermove={pointerMove} onpointerup={pointerUp} onpointercancel={pointerUp} onlostpointercapture={pointerUp} style="touch-action: pan-y;">
+        <div
+            class="slider"
+            role="region"
+            aria-label="Song carousel"
+            bind:this={sliderEl}
+            onpointerdown={pointerDown}
+            onpointermove={pointerMove}
+            onpointerup={pointerUp}
+            onpointercancel={pointerUp}
+            onlostpointercapture={pointerUp}
+            style="touch-action: pan-y;"
+        >
             {#each songs as songItem, i}
                 {@const songId = songItem?.songId ?? null}
                 {@const song = storage.getSongById(songId, storage.songs)}
@@ -345,9 +356,9 @@
                 {@const hasMedia = !!song?.images.length}
 
                 <div class="slide">
-                    <Paper padding={hasMedia ? 0 : 12} background={hasMedia ? "black" : "white"} headerText={song?.name ?? ""}>
+                    <Paper padding={hasMedia ? 0 : 10} background={hasMedia ? "black" : "white"} headerText={song?.name ?? ""}>
                         {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly}
-                            <ChordPro {songId} {targetKey} numColumns={2} showMeta lightMode={Math.abs(i - currentPageIndex) > 1} hideChords={fullscreenState.lyricsOnly} />
+                            <ChordPro {songId} {targetKey} numColumns={2} lightMode={Math.abs(i - currentPageIndex) > 1} hideChords={fullscreenState.lyricsOnly} showMeta />
                         {/key}
                     </Paper>
                 </div>

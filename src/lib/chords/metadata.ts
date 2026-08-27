@@ -17,6 +17,7 @@ export interface MetadataConfig {
     label: string
     placeholder: string
     aliases: string[]
+    important?: boolean
 }
 
 export const METADATA_CONFIGS: MetadataConfig[] = [
@@ -24,25 +25,29 @@ export const METADATA_CONFIGS: MetadataConfig[] = [
         key: "artist",
         label: "Artist",
         placeholder: "e.g. John Newton",
-        aliases: ["artist", "a", "subtitle", "st"]
+        aliases: ["artist", "a", "subtitle", "st"],
+        important: true
     },
     {
         key: "key",
         label: "Key",
         placeholder: "e.g. G",
-        aliases: ["key", "k"]
+        aliases: ["key", "k"],
+        important: true
     },
     {
         key: "tempo",
         label: "Tempo",
         placeholder: "e.g. 120",
-        aliases: ["tempo"]
+        aliases: ["tempo"],
+        important: true
     },
     {
         key: "timeSignature",
         label: "Time",
         placeholder: "e.g. 4/4",
-        aliases: ["time", "timesignature"]
+        aliases: ["time", "timesignature"],
+        important: true
     },
     {
         key: "album",
@@ -92,7 +97,8 @@ export const METADATA_CONFIGS: MetadataConfig[] = [
         key: "capo",
         label: "Capo",
         placeholder: "e.g. 2",
-        aliases: ["capo"]
+        aliases: ["capo"],
+        important: true
     }
 ]
 
