@@ -117,6 +117,19 @@ function getGroupColor(groupName: string): string {
     return "#5825f5"
 }
 
+function extractChord(rawToken: string): string | null {
+    const token = rawToken.trim()
+    if (!token) return null
+    if (isChordToken(token)) return token
+
+    // Match chords with rhythm slashes or dots: e.g. "E//", "Eb/G//", "A2///", "F#m7.."
+    const match = token.match(/^([A-GH](?:b|#)?(?:m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:\/[A-GH](?:b|#)?)?)/i)
+    if (match && isChordToken(match[1])) {
+        return match[1]
+    }
+    return null
+}
+
 function parseSectionLine(rawLine: string, semitones = 0): { text: string; chords: FreeShowChord[] } | null {
     let line = rawLine.trim()
     if (!line || (line.startsWith("{") && line.endsWith("}")) || matchSectionHeader(line)) return null
@@ -126,35 +139,57 @@ function parseSectionLine(rawLine: string, semitones = 0): { text: string; chord
         line = line.slice(1, -1).trim()
     }
 
-    const chords: FreeShowChord[] = []
-    let text = ""
-
-    // 1. Bracketed chordpro line (e.g. "[Eb]Gud, vekk opp mitt [Bb]indre" or "[G] [D]")
+    // 1. Bracketed chordpro lines: e.g. "[Eb]Gud, vekk..." or "[|] [E//] [///] [|]"
     if (line.includes("[") && line.includes("]")) {
         const parts = line.split(/\[([^\]]+)\]/)
-        for (let i = 0; i < parts.length; i++) {
-            if (i % 2 === 0) {
-                text += parts[i]
-            } else if (isChordToken(parts[i].trim())) {
-                chords.push({ id: getId5(), pos: text.length, key: transposeChord(parts[i].trim(), semitones) })
+        const textParts = parts.filter((_, i) => i % 2 === 0)
+        const hasLyrics = textParts.some((t) => /[a-zA-Z0-9\u00C0-\u024F\u0400-\u04FF]/.test(t.replace(/[\/\|\.\-:\s]/g, "")))
+
+        if (hasLyrics) {
+            let text = ""
+            const chords: FreeShowChord[] = []
+            for (let i = 0; i < parts.length; i++) {
+                if (i % 2 === 0) {
+                    text += parts[i]
+                } else {
+                    const chord = extractChord(parts[i])
+                    if (chord) {
+                        chords.push({ id: getId5(), pos: text.length, key: transposeChord(chord, semitones) })
+                    }
+                }
+            }
+            return text.trim() || chords.length ? { text, chords } : null
+        } else {
+            // Chord / rhythm progression line without lyrics: e.g. "[|] [E//] [///] [|] [E] [/] [///] [|]"
+            let text = ""
+            const chords: FreeShowChord[] = []
+            for (let i = 1; i < parts.length; i += 2) {
+                const token = parts[i].trim()
+                const chord = extractChord(token)
+                if (chord) {
+                    chords.push({ id: getId5(), pos: text.length, key: transposeChord(chord, semitones) })
+                    text += " ".repeat(Math.max(token.length * 2, 8))
+                } else if (token.includes("/")) {
+                    text += " ".repeat(token.length * 2)
+                } else if (token) {
+                    text += " ".repeat(4)
+                }
+            }
+            if (chords.length) {
+                return { text: " ".repeat(text.length), chords }
             }
         }
-        if (chords.length && !text.trim()) {
-            return {
-                text: " ".repeat(chords.length * 8),
-                chords: chords.map((c, i) => ({ ...c, pos: i * 8 }))
-            }
-        }
-        return text.trim() || chords.length ? { text, chords } : null
     }
 
-    // 2. Unbracketed chord / bar lines (e.g. "| Ab . . .| Cm . . .|" or "G   D   Em   C")
+    // 2. Unbracketed chord / bar lines: e.g. "| Ab . . .| Cm . . .|" or "G   D   Em   C"
     if (isChordLine(line) || line.includes("|")) {
         const regex = /\b[A-GH](?:b|#)?(?:m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:\/[A-GH](?:b|#)?)?\b|\S+/g
+        const chords: FreeShowChord[] = []
         let m: RegExpExecArray | null
         while ((m = regex.exec(line)) !== null) {
-            if (isChordToken(m[0])) {
-                chords.push({ id: getId5(), pos: m.index, key: transposeChord(m[0], semitones) })
+            const chord = extractChord(m[0])
+            if (chord) {
+                chords.push({ id: getId5(), pos: m.index, key: transposeChord(chord, semitones) })
             }
         }
         if (chords.length) {
