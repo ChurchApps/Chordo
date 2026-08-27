@@ -147,7 +147,8 @@
     "transpose": {
         "title": "Transponer",
         "key": "Toneart",
-        "original": "Original"
+        "original": "Original",
+        "nashville": "Nashville"
     },
     "draw": {
         "clear": "Tøm",

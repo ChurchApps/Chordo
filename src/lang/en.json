@@ -147,7 +147,8 @@
     "transpose": {
         "title": "Transpose",
         "key": "Key",
-        "original": "Original"
+        "original": "Original",
+        "nashville": "Nashville"
     },
     "draw": {
         "clear": "Clear",

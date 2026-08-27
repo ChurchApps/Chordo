@@ -210,6 +210,66 @@ export function extractBaseKey(content?: string, explicitKey?: string): string |
 }
 
 /**
+ * Converts a note into its Nashville Number System representation relative to a base key.
+ * For example in key of G: G -> 1, C -> 4, D -> 5, Em -> 6m, F# -> 7, etc.
+ */
+export function noteToNashville(note: string, baseKey: string): string {
+    if (!note || !baseKey) return note
+    const noteIdx = getNotePitchIndex(note)
+    const baseIdx = getNotePitchIndex(baseKey)
+    if (noteIdx === -1 || baseIdx === -1) return note
+
+    // Calculate semitone distance from base key (0 to 11)
+    let semitones = (noteIdx - baseIdx) % 12
+    if (semitones < 0) semitones += 12
+
+    // Map 12 semitones to standard Nashville scale degrees
+    const NASHVILLE_DEGREES: Record<number, string> = {
+        0: "1",
+        1: "b2",
+        2: "2",
+        3: "b3",
+        4: "3",
+        5: "4",
+        6: "b5",
+        7: "5",
+        8: "b6",
+        9: "6",
+        10: "b7",
+        11: "7"
+    }
+
+    return NASHVILLE_DEGREES[semitones] ?? note
+}
+
+/**
+ * Converts a chord (e.g. "G/B", "Em7", "| C | D | Em |") into Nashville Number notation relative to baseKey.
+ */
+export function chordToNashville(chord: string, baseKey: string): string {
+    if (!chord || !baseKey) return chord
+
+    if (chord.includes("|")) {
+        return chord
+            .split(/([|\s]+)/)
+            .map((token) => (isChordToken(token) ? chordToNashville(token, baseKey) : token))
+            .join("")
+    }
+
+    if (!isChordToken(chord)) return chord
+
+    if (chord.includes("/")) {
+        const [root, bass] = chord.split("/")
+        return `${chordToNashville(root, baseKey)}/${chordToNashville(bass, baseKey)}`
+    }
+
+    const match = chord.trim().match(/^([A-GH][#b]?)(.*)$/i)
+    if (!match) return chord
+
+    const rootNumber = noteToNashville(match[1], baseKey)
+    return `${rootNumber}${match[2]}`
+}
+
+/**
  * Calculates effective semitones to transpose a song based on explicit semitones, targetKey, or song's lastTransposed key.
  */
 export function calculateTransposeSemitones(params: {
@@ -218,9 +278,10 @@ export function calculateTransposeSemitones(params: {
     lastTransposed?: string
     songKey?: string
     content?: string
-}): number {
-    if (typeof params.semitones === "number") return params.semitones
+}): number | "NNS" {
     const effectiveTargetKey = params.targetKey || params.lastTransposed
+    if (effectiveTargetKey === "NNS") return "NNS"
+    if (typeof params.semitones === "number") return params.semitones
     if (!effectiveTargetKey || !isValidKey(effectiveTargetKey)) return 0
 
     const baseKey = extractBaseKey(params.content, params.songKey)
