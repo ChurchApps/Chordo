@@ -122,6 +122,8 @@
         "playback_url_placeholder": "f.eks. Spotify- eller YouTube-lenke...",
         "play": "Spill av",
         "open_external": "Åpne i ekstern app",
+        "undo": "Angre",
+        "redo": "Gjør om",
         "reorder": "Rekkefølge",
         "reorder_sections": "Endre rekkefølge",
         "reorder_dialog_title": "Endre rekkefølge på seksjoner",

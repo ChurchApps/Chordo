@@ -122,6 +122,8 @@
         "playback_url_placeholder": "e.g. Spotify or YouTube link...",
         "play": "Play",
         "open_external": "Open link in external app",
+        "undo": "Undo",
+        "redo": "Redo",
         "reorder": "Reorder",
         "reorder_sections": "Reorder sections",
         "reorder_dialog_title": "Reorder Sections",
