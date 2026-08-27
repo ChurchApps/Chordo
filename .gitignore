@@ -9,6 +9,7 @@ dist-ssr
 # Environment & Local overrides
 *.local
 .env*.local
+.dev.vars
 
 # Editor & OS files
 .vscode/*
