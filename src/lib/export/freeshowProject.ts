@@ -285,6 +285,17 @@ export function generateFreeShowProject(list: List, allSongs: Song[]): FreeShowP
     const shows: Record<string, FreeShowShow> = {}
 
     for (const listItem of list.songs) {
+        if (listItem.isSection) {
+            projectShows.push({
+                id: listItem.id || getId("section"),
+                type: "section",
+                name: listItem.name || "Section"
+            })
+            continue
+        }
+
+        if (!listItem.songId) continue
+
         const song = allSongs.find((s) => s.id === listItem.songId)
         if (!song) continue
         const { showId, show } = convertSongToFreeShow(song, listItem.transposed)

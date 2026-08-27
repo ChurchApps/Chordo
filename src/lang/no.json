@@ -62,11 +62,15 @@
         "list_name_label": "Setlistenavn",
         "list_name_placeholder": "f.eks. Søndagssett",
         "song_title_label": "Sangtittel",
-        "song_title_placeholder": "f.eks. Navnet Jesus"
+        "song_title_placeholder": "f.eks. Navnet Jesus",
+        "section": "Opprett seksjon",
+        "section_name_label": "Seksjonsnavn",
+        "section_name_placeholder": "f.eks. Pause, Nattverd"
     },
     "rename": {
         "list": "Endre navn på setliste",
-        "folder": "Endre navn på mappe"
+        "folder": "Endre navn på mappe",
+        "section": "Endre navn på seksjon"
     },
     "menu": {
         "settings": "Innstillinger",
@@ -188,7 +192,8 @@
         "install_ios_action": "Installer"
     },
     "list": {
-        "deleted": "Slettet"
+        "deleted": "Slettet",
+        "create_section": "Opprett seksjon"
     },
     "share": {
         "copy_share_link": "Kopier lenke til PWA",

@@ -159,6 +159,20 @@
 </script>
 
 <main>
+    {#if listOpened && !isSearching}
+        <md-list class="section-create-list">
+            <md-list-item
+                type="button"
+                class="create-section-item"
+                onclick={() => setActivePopup("create_section")}
+            >
+                <div slot="headline" class="create-section-title">{t("list", "create_section")}</div>
+                <md-icon slot="start" class="create-section-icon">bookmark_add</md-icon>
+                <md-icon slot="end" style="opacity: 0.8;">add</md-icon>
+            </md-list-item>
+        </md-list>
+    {/if}
+
     {#if filteredSongs.length}
         <md-list class="song-list scroll-list">
             {#each filteredSongs as song, idx}
@@ -234,6 +248,21 @@
 </div>
 
 <style>
+    .section-create-list {
+        padding: 0;
+        border-bottom: 1px solid var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.12));
+    }
+    .create-section-item {
+        background-color: var(--md-sys-color-surface-container-low, rgba(0, 0, 0, 0.02));
+    }
+    .create-section-title {
+        font-weight: 500;
+        color: var(--md-sys-color-primary);
+    }
+    .create-section-icon {
+        color: var(--md-sys-color-primary);
+    }
+
     .song-list {
         list-style: none;
         padding: 0;

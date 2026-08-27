@@ -62,11 +62,15 @@
         "list_name_label": "Setlist name",
         "list_name_placeholder": "e.g. Sunday Set",
         "song_title_label": "Song title",
-        "song_title_placeholder": "e.g. Amazing Grace"
+        "song_title_placeholder": "e.g. Amazing Grace",
+        "section": "Create section",
+        "section_name_label": "Section name",
+        "section_name_placeholder": "e.g. Break, Offering"
     },
     "rename": {
         "list": "Rename setlist",
-        "folder": "Rename folder"
+        "folder": "Rename folder",
+        "section": "Rename section"
     },
     "menu": {
         "settings": "Settings",
@@ -188,7 +192,8 @@
         "install_ios_action": "Install"
     },
     "list": {
-        "deleted": "Deleted"
+        "deleted": "Deleted",
+        "create_section": "Create section"
     },
     "share": {
         "copy_share_link": "Copy link to PWA",

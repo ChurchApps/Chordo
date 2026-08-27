@@ -12,6 +12,7 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { isIosSafariNonStandalone } from "$lib/utils/iosPwa"
     import { parsePlaybackUrl } from "$lib/utils/playback"
+    import { getId } from "$lib/utils/common"
     import ChordPro from "../song/ChordPro.svelte"
 
     let payload = $derived(sharePreviewState.payload)
@@ -154,33 +155,43 @@
             }
         }
 
-        // 3. Resolve all songs for list
-        const resolvedSongs = sharedList.songs.map((sharedSong, i) => {
-            const item = sharedList.listItems[i] || { songId: sharedSong.id || "", transposed: sharedSong.lastTransposed }
-            const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
-            const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
+        // 3. Resolve all songs and sections for list
+        const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0
+            ? sharedList.listItems
+            : sharedList.songs.map((s) => ({ songId: s.id || "", transposed: s.lastTransposed }))
 
-            let songId = ""
-            let songName = sharedSong.name
-
-            if (matchById) {
-                if (overwriteIdMatches) applySongData(matchById, sharedSong)
-                songId = matchById.id
-                songName = matchById.name
-            } else if (matchByName) {
-                if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
-                    applySongData(matchByName, sharedSong)
-                    songId = matchByName.id
-                    songName = matchByName.name
-                } else {
-                    songId = createNewSong(sharedSong, true).id
+        const resolvedSongs = itemsToResolve
+            .map((item: any, i: number) => {
+                if (item.isSection) {
+                    return { id: getId("section"), name: item.name || "Section", isSection: true }
                 }
-            } else {
-                songId = createNewSong(sharedSong).id
-            }
+                const sharedSong = sharedList.songs.find((s) => s.id === item.songId) || sharedList.songs[i]
+                if (!sharedSong) return null
+                const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
+                const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
 
-            return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
-        })
+                let songId = ""
+                let songName = sharedSong.name
+
+                if (matchById) {
+                    if (overwriteIdMatches) applySongData(matchById, sharedSong)
+                    songId = matchById.id
+                    songName = matchById.name
+                } else if (matchByName) {
+                    if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
+                        applySongData(matchByName, sharedSong)
+                        songId = matchByName.id
+                        songName = matchByName.name
+                    } else {
+                        songId = createNewSong(sharedSong, true).id
+                    }
+                } else {
+                    songId = createNewSong(sharedSong).id
+                }
+
+                return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
+            })
+            .filter(Boolean) as any[]
 
         // 4. Create or replace list
         const existingListMatch = sharedList.id ? storage.lists.find((l) => l.id === sharedList.id) : null

@@ -114,10 +114,19 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
             url: expandUrl(s?.url)
         }))
 
-        const listItems = (data.list?.listItems || []).map((item: any, idx: number) => ({
-            ...item,
-            songId: item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
-        }))
+        const listItems = (data.list?.listItems || []).map((item: any, idx: number) => {
+            if (item?.isSection) {
+                return {
+                    ...item,
+                    isSection: true,
+                    name: item?.name || "Section"
+                }
+            }
+            return {
+                ...item,
+                songId: item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
+            }
+        })
 
         return {
             type: "list",
@@ -151,6 +160,14 @@ export function buildListSharePayload(list: List, allSongs: Song[]): SharePayloa
 
     const listItems = list.songs
         .map((item) => {
+            if (item.isSection) {
+                return {
+                    songId: "",
+                    isSection: true,
+                    name: item.name
+                }
+            }
+            if (!item.songId) return null
             if (!uniqueMap.has(item.songId)) {
                 const target = songMap.get(item.songId)
                 if (target) {
