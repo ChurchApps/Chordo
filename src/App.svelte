@@ -81,6 +81,8 @@
         height: 100vh;
         height: 100dvh;
         overflow: hidden;
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
 
         background-color: var(--md-sys-color-primary-background);
         color: var(--md-sys-color-on-primary-container);
