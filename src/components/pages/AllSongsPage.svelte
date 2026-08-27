@@ -78,11 +78,26 @@
         })
     }
 
+    function editSelectedSong() {
+        if (selectedSongIds.length !== 1) return
+        const songId = selectedSongIds[0]
+        const song = storage.getSongById(songId, storage.songs)
+        if (!song) return
+
+        setActivePage("song_edit", song.id, song.name)
+    }
+
     $effect(() => {
         if (!listOpened && isEditing) {
             listEditingState.onDeleteSelected = removeSelectedSongs
+            if (selectedSongIds.length === 1) {
+                listEditingState.onEditSelected = editSelectedSong
+            } else {
+                listEditingState.onEditSelected = undefined
+            }
         } else if (!isEditing) {
             listEditingState.onDeleteSelected = undefined
+            listEditingState.onEditSelected = undefined
             selectedSongIds = []
         }
     })

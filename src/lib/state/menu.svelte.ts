@@ -14,7 +14,7 @@ type MenuState = {
     customPageTitle: string | null
 }
 
-export const listEditingState = $state<{ isEditing: boolean; onDeleteSelected?: () => void }>({ isEditing: false })
+export const listEditingState = $state<{ isEditing: boolean; onDeleteSelected?: () => void; onEditSelected?: () => void }>({ isEditing: false })
 
 export const menuState = $state<MenuState & { previousPages: MenuState[] }>({
     activePage: "home",

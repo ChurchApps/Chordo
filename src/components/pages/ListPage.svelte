@@ -28,14 +28,31 @@
         listEditingState.isEditing = false
     }
 
+    function editSelectedSong() {
+        if (!list || selectedIndices.length !== 1) return
+        const idx = selectedIndices[0]
+        const songItem = listItems[idx]
+        if (!songItem || songItem.isDeleted) return
+
+        savedFullscreenPosition.index = idx
+        setActivePage("song_edit", songItem.songId, songItem.name)
+    }
+
     $effect(() => {
         if (isEditing) {
             listEditingState.onDeleteSelected = removeSelectedSongs
             if (selectedIndices.length === 0 && listItems.length > 0) {
                 selectedIndices = [0]
             }
+            if (selectedIndices.length === 1) {
+                const item = listItems[selectedIndices[0]]
+                listEditingState.onEditSelected = item && !item.isDeleted ? editSelectedSong : undefined
+            } else {
+                listEditingState.onEditSelected = undefined
+            }
         } else {
             listEditingState.onDeleteSelected = undefined
+            listEditingState.onEditSelected = undefined
             selectedIndices = []
         }
     })
