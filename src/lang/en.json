@@ -76,6 +76,7 @@
         "rename_list": "Rename setlist",
         "duplicate_list": "Duplicate setlist",
         "share_list": "Share setlist",
+        "import_list": "Import setlist",
         "export_as": "Export as",
         "delete_list": "Delete setlist",
         "rename_folder": "Rename folder",
@@ -199,6 +200,10 @@
         "shared_no_media": "Shared! Note: Attached images/PDFs are not included.",
         "copy_failed": "Failed to copy link",
         "generate_failed": "Failed to generate share link"
+    },
+    "export": {
+        "success": "Exported successfully!",
+        "failed": "Failed to export"
     },
     "song_fullscreen": {
         "lyrics_only": "Lyrics only",

@@ -6,7 +6,7 @@
     import { clearSharePayload, sharePreviewState } from "$lib/share/share.svelte"
     import { promptConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
-    import { setActivePage } from "$lib/state/menu.svelte"
+    import { menuState, setActivePage } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -199,16 +199,22 @@
                 songs: resolvedSongs,
                 createdAt: sharedList.createdAt || Date.now()
             })
-            let sharedFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared")
-            if (!sharedFolder) {
-                sharedFolder = new Folder({ name: "Shared", type: "shared" })
-                storage.addFolder(sharedFolder)
+            const lastPage = menuState.previousPages.at(-1)
+            const targetFolderId = lastPage?.activePage === "folder" && lastPage.contentId ? lastPage.contentId : null
+            let targetFolder = targetFolderId ? storage.getFolderById(targetFolderId) : null
+
+            if (!targetFolder) {
+                targetFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared") ?? null
             }
-            sharedFolder.addList(newList.id)
-            storage.updateFolder(sharedFolder)
+            if (!targetFolder) {
+                targetFolder = new Folder({ name: "Shared", type: "shared" })
+                storage.addFolder(targetFolder)
+            }
+            targetFolder.addList(newList.id)
+            storage.updateFolder(targetFolder)
             storage.addList(newList)
             listToOpen = newList
-            showToast(`Imported "${newList.name}" into Shared`, "success")
+            showToast(`Imported "${newList.name}" into ${targetFolder.name}`, "success")
         }
 
         storage.persist()

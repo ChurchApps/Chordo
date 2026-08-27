@@ -1,17 +1,18 @@
 <script lang="ts">
+    import { exportSetlistAsJson, importSetlistFile } from "$lib/export/exportHelper"
+    import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
     import type { Folder } from "$lib/models/Folder"
     import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
+    import { shareList, shareSong } from "$lib/share/share"
+    import { clearSharePayload } from "$lib/share/share.svelte"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
-    import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
-    import { parsePlaybackUrl } from "$lib/utils/playback"
+    import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { shareList, shareSong } from "$lib/share/share"
-    import { clearSharePayload } from "$lib/share/share.svelte"
-    import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
+    import { parsePlaybackUrl } from "$lib/utils/playback"
     import { pages } from "../pages/pages"
     import TransposeButton from "../song/TransposeButton.svelte"
 
@@ -291,6 +292,15 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
+                                        if (currentList) exportSetlistAsJson(currentList, storage.songs)
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">download</span>
+                                    <div slot="headline">{t("menu", "export_as")} JSON</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
                                         if (currentList) exportAsFreeShowProject(currentList, storage.songs)
                                     }}
                                 >
@@ -309,6 +319,23 @@
                             {:else if menuState.activePage === "folder"}
                                 {@const currentFolder = storage.getFolderById(menuState.contentId)}
                                 {#if currentFolder && currentFolder.type !== "shared"}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            const fileInput = document.createElement("input")
+                                            fileInput.type = "file"
+                                            fileInput.accept = ".json,application/json"
+                                            fileInput.onchange = (e) => {
+                                                const file = (e.target as HTMLInputElement).files?.[0]
+                                                if (file) importSetlistFile(file)
+                                            }
+                                            fileInput.click()
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">upload</span>
+                                        <div slot="headline">{t("menu", "import_list")}</div>
+                                    </md-menu-item>
+
                                     <md-menu-item
                                         onclick={() => {
                                             moreMenuOpen = false

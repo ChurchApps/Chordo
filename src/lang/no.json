@@ -76,6 +76,7 @@
         "rename_list": "Endre navn på setliste",
         "duplicate_list": "Dupliser setliste",
         "share_list": "Del setliste",
+        "import_list": "Importer setliste",
         "export_as": "Eksporter som",
         "delete_list": "Slett setliste",
         "rename_folder": "Endre navn på mappe",
@@ -199,6 +200,10 @@
         "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
         "copy_failed": "Kunne ikke kopiere lenke",
         "generate_failed": "Kunne ikke opprette delingslenke"
+    },
+    "export": {
+        "success": "Eksportert!",
+        "failed": "Kunne ikke eksportere"
     },
     "song_fullscreen": {
         "lyrics_only": "Kun tekst",

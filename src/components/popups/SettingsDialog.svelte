@@ -1,9 +1,10 @@
 <script lang="ts">
+    import { importSetlistFile } from "$lib/export/exportHelper"
+    import { Settings } from "$lib/models/Settings"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
-    import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import { setActivePopup } from "$lib/state/menu.svelte"
-    import { Settings } from "$lib/models/Settings"
+    import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
@@ -61,6 +62,13 @@
 
             if (!parsed || typeof parsed !== "object") {
                 importStatus = t("settings", "import_invalid")
+                return
+            }
+
+            if (parsed.type === "list" && parsed.list) {
+                closeDialog()
+                await importSetlistFile(file)
+                if (target) target.value = ""
                 return
             }
 
