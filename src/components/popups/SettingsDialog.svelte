@@ -3,14 +3,73 @@
     import { Settings } from "$lib/models/Settings"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
-    import { setActivePopup } from "$lib/state/menu.svelte"
+    import { menuState, popupState, setActivePopup } from "$lib/state/menu.svelte"
     import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import "@material/web/iconbutton/filled-tonal-icon-button.js"
+    import "@material/web/slider/slider.js"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
     let currentTheme = $derived<SupportedTheme>(getTheme())
     let fileInputRef = $state<HTMLInputElement | null>(null)
     let importStatus = $state<string | null>(null)
+
+    // Paper options state
+    const isSongSettings = $derived(
+        popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song_draw" || menuState.activePage === "song")
+    )
+
+    const BACKGROUND_PRESETS = [
+        { id: "white", color: "#ffffff", border: "#cac4d0", label: "White" },
+        { id: "cream", color: "#f8f5ee", border: "#ded7c8", label: "Cream / Warm" },
+        { id: "sepia", color: "#f2ebd9", border: "#d4c8ad", label: "Sepia" },
+        { id: "dark", color: "#222222", border: "#444444", label: "Dark Gray" },
+        { id: "black", color: "#000000", border: "#333333", label: "Black" }
+    ]
+
+    let currentBg = $state(storage.settings.paperOptions?.background || "#ffffff")
+    let currentFontSize = $state(storage.settings.paperOptions?.fontSize ?? 100)
+
+    function selectBackground(color: string) {
+        currentBg = color
+        storage.settings = new Settings({
+            ...storage.settings,
+            paperOptions: {
+                ...storage.settings.paperOptions,
+                background: color
+            }
+        })
+        storage.persist()
+    }
+
+    function handleFontSizeInput(e: Event) {
+        const val = Number((e.target as HTMLInputElement).value)
+        if (!isNaN(val)) {
+            setFontSize(val)
+        }
+    }
+
+    function stepFontSize(delta: number) {
+        const next = Math.max(70, Math.min(150, currentFontSize + delta))
+        setFontSize(next)
+    }
+
+    function setFontSize(val: number) {
+        currentFontSize = val
+        storage.settings = new Settings({
+            ...storage.settings,
+            paperOptions: {
+                ...storage.settings.paperOptions,
+                fontSize: val
+            }
+        })
+        storage.persist()
+    }
+
+    function resetPaperDefaults() {
+        selectBackground("#ffffff")
+        setFontSize(100)
+    }
 
     function closeDialog() {
         setActivePopup(null)
@@ -102,92 +161,159 @@
     }
 </script>
 
-<md-dialog open onclosed={closeDialog}>
+<md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
     <div slot="headline" class="settings-headline">
-        <span class="material-symbols-outlined settings-icon">settings</span>
-        {t("settings", "title")}
+        <span class="material-symbols-outlined settings-icon">{isSongSettings ? "tune" : "settings"}</span>
+        {isSongSettings ? t("song_fullscreen", "settings_title") : t("settings", "title")}
     </div>
 
     <div slot="content" class="settings-content">
-        <!-- Theme Color Section -->
-        <div class="settings-section">
-            <div class="section-title">
-                <span class="material-symbols-outlined section-icon">palette</span>
-                {t("settings", "theme")}
-            </div>
-            <div class="theme-circles">
-                {#each SUPPORTED_THEMES as themeOption}
-                    <button
-                        type="button"
-                        class="color-circle"
-                        class:active={currentTheme === themeOption.id}
-                        style="background-color: {themeOption.color};"
-                        aria-label={themeOption.labelKey}
-                        title={themeOption.labelKey}
-                        onclick={() => selectTheme(themeOption.id)}
-                    >
-                        {#if currentTheme === themeOption.id}
-                            <span class="material-symbols-outlined check-icon">check</span>
-                        {/if}
-                    </button>
-                {/each}
-            </div>
-        </div>
-
-        <hr class="section-divider" />
-
-        <!-- Language Section -->
-        <div class="settings-section">
-            <div class="section-title">
-                <span class="material-symbols-outlined section-icon">language</span>
-                {t("settings", "language")}
-            </div>
-            <div class="language-options">
-                {#each SUPPORTED_LANGUAGES as lang}
-                    <button type="button" class="lang-chip" class:active={currentLanguage === lang.code} onclick={() => selectLanguage(lang.code)}>
-                        {lang.label}
-                    </button>
-                {/each}
-            </div>
-        </div>
-
-        <hr class="section-divider" />
-
-        <!-- Data Management Section -->
-        <div class="settings-section">
-            <div class="section-title">
-                <span class="material-symbols-outlined section-icon">database</span>
-                {t("settings", "data_management")}
+        {#if isSongSettings}
+            <!-- Background Color Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">palette</span>
+                    {t("song_fullscreen", "page_background")}
+                </div>
+                <div class="color-options">
+                    {#each BACKGROUND_PRESETS as preset}
+                        {@const isSelected = currentBg.toLowerCase() === preset.color.toLowerCase()}
+                        {@const isDarkPreset = preset.color === "#222222" || preset.color === "#000000"}
+                        <button
+                            type="button"
+                            class="color-circle"
+                            class:active={isSelected}
+                            style="background-color: {preset.color}; border-color: {preset.border};"
+                            aria-label={preset.label}
+                            title={preset.label}
+                            onclick={() => selectBackground(preset.color)}
+                        >
+                            {#if isSelected}
+                                <span class="material-symbols-outlined check-icon" class:light-check={isDarkPreset} class:dark-check={!isDarkPreset}>
+                                    check
+                                </span>
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
             </div>
 
-            <input bind:this={fileInputRef} type="file" accept=".json,application/json" style="display: none;" onchange={handleFileImport} />
+            <hr class="section-divider" />
 
-            <div class="settings-actions">
-                <div class="data-actions-row">
-                    <md-outlined-button onclick={exportBackup}>
-                        <span class="material-symbols-outlined" slot="icon">download</span>
-                        {t("settings", "export_data")}
-                    </md-outlined-button>
-
-                    <md-outlined-button onclick={triggerImport}>
-                        <span class="material-symbols-outlined" slot="icon">upload</span>
-                        {t("settings", "import_data")}
-                    </md-outlined-button>
+            <!-- Font / Text Size Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">format_size</span>
+                    {t("song_fullscreen", "text_size")}
                 </div>
 
-                {#if importStatus}
-                    <div class="status-msg">{importStatus}</div>
-                {/if}
+                <div class="font-size-row">
+                    <md-filled-tonal-icon-button onclick={() => stepFontSize(-5)} disabled={currentFontSize <= 70} aria-label="Decrease text size">
+                        <span class="material-symbols-outlined">remove</span>
+                    </md-filled-tonal-icon-button>
 
-                <md-text-button class="danger-btn" onclick={confirmReset}>
-                    <span class="material-symbols-outlined" slot="icon">delete_forever</span>
-                    {t("settings", "reset_data")}
-                </md-text-button>
+                    <div class="font-size-slider-wrapper">
+                        <md-slider
+                            min="70"
+                            max="150"
+                            value={currentFontSize}
+                            step="5"
+                            labeled
+                            oninput={handleFontSizeInput}
+                            class="font-slider"
+                        ></md-slider>
+                        <span class="font-size-label">{currentFontSize}%</span>
+                    </div>
+
+                    <md-filled-tonal-icon-button onclick={() => stepFontSize(5)} disabled={currentFontSize >= 150} aria-label="Increase text size">
+                        <span class="material-symbols-outlined">add</span>
+                    </md-filled-tonal-icon-button>
+                </div>
             </div>
-        </div>
+        {:else}
+            <!-- Theme Color Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">palette</span>
+                    {t("settings", "theme")}
+                </div>
+                <div class="theme-circles">
+                    {#each SUPPORTED_THEMES as themeOption}
+                        <button
+                            type="button"
+                            class="color-circle"
+                            class:active={currentTheme === themeOption.id}
+                            style="background-color: {themeOption.color};"
+                            aria-label={themeOption.labelKey}
+                            title={themeOption.labelKey}
+                            onclick={() => selectTheme(themeOption.id)}
+                        >
+                            {#if currentTheme === themeOption.id}
+                                <span class="material-symbols-outlined check-icon">check</span>
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+
+            <hr class="section-divider" />
+
+            <!-- Language Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">language</span>
+                    {t("settings", "language")}
+                </div>
+                <div class="language-options">
+                    {#each SUPPORTED_LANGUAGES as lang}
+                        <button type="button" class="lang-chip" class:active={currentLanguage === lang.code} onclick={() => selectLanguage(lang.code)}>
+                            {lang.label}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+
+            <hr class="section-divider" />
+
+            <!-- Data Management Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">database</span>
+                    {t("settings", "data_management")}
+                </div>
+
+                <input bind:this={fileInputRef} type="file" accept=".json,application/json" style="display: none;" onchange={handleFileImport} />
+
+                <div class="settings-actions">
+                    <div class="data-actions-row">
+                        <md-outlined-button onclick={exportBackup}>
+                            <span class="material-symbols-outlined" slot="icon">download</span>
+                            {t("settings", "export_data")}
+                        </md-outlined-button>
+
+                        <md-outlined-button onclick={triggerImport}>
+                            <span class="material-symbols-outlined" slot="icon">upload</span>
+                            {t("settings", "import_data")}
+                        </md-outlined-button>
+                    </div>
+
+                    {#if importStatus}
+                        <div class="status-msg">{importStatus}</div>
+                    {/if}
+
+                    <md-text-button class="danger-btn" onclick={confirmReset}>
+                        <span class="material-symbols-outlined" slot="icon">delete_forever</span>
+                        {t("settings", "reset_data")}
+                    </md-text-button>
+                </div>
+            </div>
+        {/if}
     </div>
 
     <div slot="actions">
+        {#if isSongSettings}
+            <md-text-button onclick={resetPaperDefaults}>{t("common", "reset")}</md-text-button>
+        {/if}
         <md-filled-button role="button" tabindex="0" onclick={closeDialog}>{t("settings", "done")}</md-filled-button>
     </div>
 </md-dialog>
@@ -337,5 +463,47 @@
 
     .danger-btn {
         color: var(--md-sys-color-error, #ba1a1a);
+    }
+
+    .color-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        padding: 4px 0;
+    }
+
+    .check-icon.dark-check {
+        color: #1d1b20;
+    }
+
+    .check-icon.light-check {
+        color: #ffffff;
+    }
+
+    .font-size-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .font-size-slider-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .font-slider {
+        width: 100%;
+        --md-slider-active-track-color: var(--md-sys-color-primary, #6750a4);
+        --md-slider-handle-color: var(--md-sys-color-primary, #6750a4);
+    }
+
+    .font-size-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
     }
 </style>

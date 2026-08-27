@@ -73,6 +73,7 @@
         "section": "Endre navn på seksjon"
     },
     "menu": {
+        "more_options": "Flere valg",
         "settings": "Innstillinger",
         "about": "Om appen",
         "share_song": "Del sang",
@@ -213,6 +214,9 @@
     },
     "song_fullscreen": {
         "lyrics_only": "Kun tekst",
-        "show_chords": "Vis akkorder"
+        "show_chords": "Vis akkorder",
+        "settings_title": "Ark-innstillinger",
+        "page_background": "Sidebakgrunn",
+        "text_size": "Tekststørrelse"
     }
 }

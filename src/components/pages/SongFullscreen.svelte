@@ -1,15 +1,15 @@
 <script lang="ts">
     import type { ListSongItem } from "$lib/models/List"
-    import { onMount, tick } from "svelte"
-    import { slide } from "svelte/transition"
-    import { goBack, menuState, setActivePage, savedFullscreenPosition, fullscreenState, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import { t } from "$lib/state/i18n.svelte"
+    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePage, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { requestWakeLock, releaseWakeLock } from "$lib/utils/wakeLock"
-    import { enterFullscreen, exitFullscreen, toggleFullscreen, isFullscreenActive } from "$lib/utils/fullscreen"
+    import { exitFullscreen, isFullscreenActive, toggleFullscreen } from "$lib/utils/fullscreen"
+    import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
+    import { onMount } from "svelte"
+    import { slide } from "svelte/transition"
+    import Draw from "../draw/Draw.svelte"
     import ChordPro from "../song/ChordPro.svelte"
     import Paper from "../song/Paper.svelte"
-    import Draw from "../draw/Draw.svelte"
     import TransposeButton from "../song/TransposeButton.svelte"
 
     type FullscreenSlide = { type: "song"; songItem: ListSongItem; originalIndex: number } | { type: "section"; sections: Array<{ name: string; originalIndex: number }>; originalIndex: number }
@@ -112,11 +112,24 @@
         }
     }
 
+    let moreMenuOpen = $state(false)
+
     // --- Actions Header Toggle & Click Navigation ---
     function windowClick(e: MouseEvent) {
         if (didDrag) return
+        if (popupState.popupId !== null) return
         const target = e.target as HTMLElement | null
-        if (target?.closest("header") || target?.closest("footer") || target?.closest("md-icon-button")) return
+        if (
+            target?.closest("header") ||
+            target?.closest("footer") ||
+            target?.closest("md-icon-button") ||
+            target?.closest("md-menu") ||
+            target?.closest("md-menu-item") ||
+            target?.closest("md-dialog") ||
+            target?.closest(".md-dialog") ||
+            target?.closest("[role='dialog']")
+        )
+            return
 
         const screenWidth = window.innerWidth
         const clickX = e.clientX
@@ -382,6 +395,31 @@
                     <md-icon>draw</md-icon>
                 </md-icon-button>
             {/if}
+
+            <div class="more-menu-wrapper">
+                <md-icon-button
+                    id="fullscreen-more-btn"
+                    aria-label={t("menu", "more_options")}
+                    onclick={() => {
+                        moreMenuOpen = !moreMenuOpen
+                        clearTimeout(hideTimeout)
+                    }}
+                >
+                    <md-icon>more_vert</md-icon>
+                </md-icon-button>
+
+                <md-menu id="fullscreen-more-menu" anchor="fullscreen-more-btn" open={moreMenuOpen} onclosed={() => (moreMenuOpen = false)} quick>
+                    <md-menu-item
+                        onclick={() => {
+                            moreMenuOpen = false
+                            setActivePopup("settings")
+                        }}
+                    >
+                        <span class="material-symbols-outlined" slot="start">tune</span>
+                        <div slot="headline">{t("menu", "settings")}</div>
+                    </md-menu-item>
+                </md-menu>
+            </div>
         </div>
     </header>
 
@@ -415,16 +453,21 @@
                     {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
                     {@const hasMedia = !!song?.images.length}
 
-                    <div class="slide">
-                        <Paper padding={hasMedia ? 0 : 10} background={hasMedia ? "black" : "white"} headerText={song?.name ?? ""}>
-                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly}
+                    {@const customBg = storage.settings.paperOptions?.background || "white"}
+                    {@const paperBg = hasMedia ? "black" : customBg}
+                    {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
+
+                    <div class="slide" style="--font-scale: {fontScale};">
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""}>
+                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
                                 <ChordPro {songId} {targetKey} numColumns={2} lightMode={Math.abs(i - currentPageIndex) > 1} hideChords={fullscreenState.lyricsOnly} showMeta />
                             {/key}
                         </Paper>
                     </div>
                 {:else if slideItem.type === "section"}
+                    {@const customBg = storage.settings.paperOptions?.background || "white"}
                     <div class="slide">
-                        <Paper padding={16} background="white" headerText="">
+                        <Paper padding={16} background={customBg} headerText="">
                             <div class="fullscreen-section-container">
                                 <div class="fullscreen-section-badge">
                                     <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
@@ -644,5 +687,20 @@
         background: white;
         transform: scale(1.4);
         opacity: 1;
+    }
+
+    .more-menu-wrapper {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    md-menu {
+        min-width: 180px;
+    }
+
+    md-menu-item {
+        white-space: nowrap;
     }
 </style>

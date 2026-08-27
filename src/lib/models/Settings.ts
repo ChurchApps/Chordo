@@ -4,6 +4,11 @@ import type { NonFunctionProperties } from "../utils/common"
 
 export type SettingsKeys = NonFunctionProperties<Settings>
 
+export interface SongPaperOptions {
+    background?: string
+    fontSize?: number
+}
+
 export interface DrawSettings {
     color?: string
     brushSize?: number
@@ -18,12 +23,14 @@ export class Settings {
     locale?: SupportedLocale
     theme?: SupportedTheme
     draw?: DrawSettings
+    paperOptions?: SongPaperOptions
     shareCache?: Record<string, ShareCacheEntry>
 
     constructor(data: Partial<SettingsKeys> = {}) {
         if (data.locale) this.locale = data.locale
         if (data.theme) this.theme = data.theme
         if (data.draw) this.draw = { ...data.draw }
+        if (data.paperOptions) this.paperOptions = { ...data.paperOptions }
         if (data.shareCache) this.shareCache = this.initShareCache(data)
     }
 

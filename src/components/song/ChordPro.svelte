@@ -208,7 +208,7 @@
 
     .lyrics-line {
         white-space: pre-wrap;
-        font-size: 1rem;
+        font-size: calc(1rem * var(--font-scale, 1));
         line-height: 1.4;
         word-break: normal;
         overflow-wrap: break-word;
@@ -237,9 +237,9 @@
         line-height: 0.9;
         font-family: monospace;
         font-weight: 700;
-        font-size: 1rem;
+        font-size: calc(1rem * var(--font-scale, 1));
         margin-bottom: 1px;
-        color: #5498be;
+        color: var(--chord-color, #5498be);
         text-align: left;
         white-space: pre-wrap;
         word-break: normal;
@@ -263,16 +263,16 @@
 
     .directive {
         font-weight: 500;
-        color: #5498be;
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        color: var(--chord-color, #5498be);
         margin: 4px 0;
 
         text-transform: capitalize;
     }
     .comment {
         font-weight: 600;
-        font-size: 0.95rem;
-        /* color: #2e7d32; */
-        color: #306685;
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        color: var(--comment-color, #306685);
         margin: 4px 0;
 
         /* text-transform: uppercase; */
@@ -281,7 +281,7 @@
         height: 8px;
     }
     .song-title {
-        font-size: 1.6rem;
+        font-size: calc(1.6rem * var(--font-scale, 1));
         font-weight: 800;
         margin-bottom: 2px;
     }
@@ -289,8 +289,8 @@
         display: flex;
         flex-direction: column;
 
-        font-size: 0.95rem;
-        color: #444;
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        opacity: 0.75;
     }
     .song-meta .row {
         display: flex;

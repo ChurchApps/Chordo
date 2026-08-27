@@ -220,9 +220,23 @@
             sourceEl?.removeEventListener("load", handleImageLoad, true)
         }
     })
+
+    let isDarkBackground = $derived.by(() => {
+        if (!background) return false
+        const bg = background.toLowerCase().trim()
+        if (bg === "black" || bg === "#000000" || bg === "#000" || bg === "#222222" || bg === "#1e1e1e" || bg === "#242424") return true
+        if (bg.startsWith("#") && bg.length === 7) {
+            const r = parseInt(bg.slice(1, 3), 16)
+            const g = parseInt(bg.slice(3, 5), 16)
+            const b = parseInt(bg.slice(5, 7), 16)
+            const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            return luma < 128
+        }
+        return false
+    })
 </script>
 
-<div class="paper-viewer" bind:this={containerEl} style="--background: {background};">
+<div class="paper-viewer" class:dark-paper={isDarkBackground} bind:this={containerEl} style="--background: {background}; --paper-text-color: {isDarkBackground ? '#e6e1e5' : '#111111'};">
     <!-- Offscreen Slot Container (used for layout reference & reading DOM nodes) -->
     <div class="source-container" bind:this={sourceEl}>
         {@render children()}
@@ -247,7 +261,7 @@
         left: 50%;
         transform: translateX(-50%);
 
-        color: black;
+        color: inherit;
         font-size: 0.8rem;
         opacity: 0.4;
 
@@ -279,7 +293,7 @@
         box-sizing: border-box;
         position: relative;
         overflow: hidden;
-        color: #111111;
+        color: var(--paper-text-color, #111111);
         display: flex;
         flex-direction: column;
         justify-content: space-between;

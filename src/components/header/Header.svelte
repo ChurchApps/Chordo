@@ -209,7 +209,7 @@
                 {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}
                 {#if menuState.activePage !== "share_preview" && !(menuState.activePage === "folder" && activeFolder?.type === "shared")}
                     <div class="more-menu-wrapper">
-                        <md-icon-button id="more-options-btn" aria-label="More options" onclick={() => (moreMenuOpen = !moreMenuOpen)}>
+                        <md-icon-button id="more-options-btn" aria-label={t("menu", "more_options")} onclick={() => (moreMenuOpen = !moreMenuOpen)}>
                             <span class="material-symbols-outlined">more_vert</span>
                         </md-icon-button>
 

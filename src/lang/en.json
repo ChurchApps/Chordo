@@ -73,6 +73,7 @@
         "section": "Rename section"
     },
     "menu": {
+        "more_options": "More options",
         "settings": "Settings",
         "about": "About",
         "share_song": "Share song",
@@ -213,6 +214,9 @@
     },
     "song_fullscreen": {
         "lyrics_only": "Lyrics only",
-        "show_chords": "Show chords"
+        "show_chords": "Show chords",
+        "settings_title": "Sheet Settings",
+        "page_background": "Page background",
+        "text_size": "Text size"
     }
 }
