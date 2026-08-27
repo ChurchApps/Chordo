@@ -39,7 +39,7 @@ export class Lists {
         }
         if (!parentFolder) return null
 
-        const copySuffix = t("common", "copy") || "Copy"
+        const copySuffix = t("common", "copy")
         const newList = new List({
             name: `${list.name} (${copySuffix})`,
             songs: list.songs.map((s) => ({ ...s }))

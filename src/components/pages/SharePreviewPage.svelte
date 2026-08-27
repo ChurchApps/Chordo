@@ -84,12 +84,12 @@
     }
 
     function askNameConflict(songName: string): Promise<boolean> {
-        const msg = (t("confirm", "song_name_conflict_msg") || 'A song named "{name}" already exists in your library. Do you want to overwrite it, or import this as a separate song?').replace("{name}", songName)
+        const msg = t("confirm", "song_name_conflict_msg").replace("{name}", songName)
         return promptConfirm({
-            title: t("confirm", "name_conflict_title") || "Song already exists",
+            title: t("confirm", "name_conflict_title"),
             message: msg,
-            confirmLabel: t("confirm", "overwrite") || "Overwrite",
-            cancelLabel: t("confirm", "import_separately") || "Import Separately"
+            confirmLabel: t("confirm", "overwrite"),
+            cancelLabel: t("confirm", "import_separately")
         })
     }
 
@@ -130,15 +130,15 @@
         if (idMatches.length > 0) {
             const msg = (
                 idMatches.length === 1
-                    ? t("confirm", "overwrite_song_msg") || "1 song in this list already exists in your library. Do you want to overwrite it with the shared version or keep your existing version?"
-                    : t("confirm", "overwrite_songs_msg") || "{count} songs in this list already exist in your library. Do you want to overwrite them with the shared versions or keep your existing versions?"
+                    ? t("confirm", "overwrite_song_msg")
+                    : t("confirm", "overwrite_songs_msg")
             ).replace("{count}", idMatches.length.toString())
 
             overwriteIdMatches = await promptConfirm({
-                title: t("confirm", "overwrite_songs_title") || "Overwrite existing songs?",
+                title: t("confirm", "overwrite_songs_title"),
                 message: msg,
-                confirmLabel: t("confirm", "overwrite") || "Overwrite",
-                cancelLabel: t("confirm", "keep_existing") || "Keep Existing"
+                confirmLabel: t("confirm", "overwrite"),
+                cancelLabel: t("confirm", "keep_existing")
             })
         }
 

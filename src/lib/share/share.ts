@@ -133,7 +133,7 @@ export async function copyUrlToClipboard(url: string, title?: string, hasMedia =
         showToast(copyMsg, "success", duration)
         return true
     } catch {
-        showToast(t("share", "copy_failed") || "Failed to copy link", "error")
+        showToast(t("share", "copy_failed"), "error")
         return false
     }
 }
