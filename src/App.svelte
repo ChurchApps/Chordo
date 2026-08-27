@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { setSharePayload } from "$lib/share/share.svelte"
     import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
+    import { setSharePayload } from "$lib/share/share.svelte"
     import { setActivePage } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
@@ -20,6 +20,7 @@
     import { onMount } from "svelte"
     import Toast from "./components/common/Toast.svelte"
     import Header from "./components/header/Header.svelte"
+    import IosInstallPrompt from "./components/header/IosInstallPrompt.svelte"
     import PwaReloadPrompt from "./components/header/PwaReloadPrompt.svelte"
     import Page from "./components/pages/Page.svelte"
     import PlaybackBar from "./components/playback/PlaybackBar.svelte"
@@ -65,6 +66,7 @@
     <Popup />
 
     <PwaReloadPrompt />
+    <IosInstallPrompt />
 
     <Toast />
 </div>

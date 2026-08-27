@@ -30,7 +30,9 @@
         "shared": "Delt med deg"
     },
     "home": {
-        "recently_used": "Nylig brukt"
+        "recently_used": "Nylig brukt",
+        "paste_shared": "Lim inn delt lenke",
+        "paste_shared_desc": "Åpne delt sang eller setliste kopiert fra nettleser"
     },
     "search": {
         "placeholder_all": "Søk i mapper, setlister, sanger...",
@@ -175,12 +177,20 @@
         "offline_ready": "Appen er klar til bruk offline",
         "update_available": "Ny versjon tilgjengelig!",
         "reload": "Last inn på nytt",
-        "dismiss": "Lukk"
+        "dismiss": "Lukk",
+        "install_ios_title": "Installer app",
+        "install_ios_step1": "Trykk på Del-knappen",
+        "install_ios_step2": "Rull ned og velg «Legg til på Hjem-skjerm»",
+        "install_ios_action": "Installer"
     },
     "list": {
         "deleted": "Slettet"
     },
     "share": {
+        "copy_share_link": "Kopier lenke til PWA",
+        "copy_share_link_short": "Kopier lenke",
+        "paste_no_link": "Ingen delt Chordo-lenke funnet i utklippstavlen",
+        "paste_reading_error": "Kunne ikke lese utklippstavlen. Vennligst gi tillatelse.",
         "link_copied": "Delingslenke kopiert til utklippstavlen!",
         "link_copied_no_media": "Delingslenke kopiert! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
         "shared_success": "Delt!",

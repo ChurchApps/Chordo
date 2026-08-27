@@ -1,14 +1,16 @@
 <script lang="ts">
-    import { openConfirm, promptConfirm } from "$lib/state/confirm.svelte"
     import { Folder } from "$lib/models/Folder"
     import { List } from "$lib/models/List"
     import { Song } from "$lib/models/Song"
+    import { copyCurrentShareLink } from "$lib/share/share"
     import { clearSharePayload, sharePreviewState } from "$lib/share/share.svelte"
+    import { promptConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { setActivePage } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { isIosSafariNonStandalone } from "$lib/utils/iosPwa"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import ChordPro from "../song/ChordPro.svelte"
 
@@ -53,6 +55,8 @@
         if (!url) return
         togglePlayback(song.id || null, url, song.name)
     }
+
+    let isIosBrowser = $derived(isIosSafariNonStandalone())
 
     // --- Helpers for import operations ---
 
@@ -128,11 +132,7 @@
         const idMatches = sharedList.songs.filter((s) => s.id && storage.songs.some((e) => e.id === s.id))
         let overwriteIdMatches = false
         if (idMatches.length > 0) {
-            const msg = (
-                idMatches.length === 1
-                    ? t("confirm", "overwrite_song_msg")
-                    : t("confirm", "overwrite_songs_msg")
-            ).replace("{count}", idMatches.length.toString())
+            const msg = (idMatches.length === 1 ? t("confirm", "overwrite_song_msg") : t("confirm", "overwrite_songs_msg")).replace("{count}", idMatches.length.toString())
 
             overwriteIdMatches = await promptConfirm({
                 title: t("confirm", "overwrite_songs_title"),
@@ -273,14 +273,16 @@
             </div>
 
             <div class="bottom-center-action">
+                {#if isIosBrowser}
+                    <md-outlined-button onclick={copyCurrentShareLink} class="copy-link-btn">
+                        <span class="material-symbols-outlined" slot="icon">content_copy</span>
+                        {t("share", "copy_share_link")}
+                    </md-outlined-button>
+                {/if}
                 <md-filled-button onclick={importSong} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
-                    <!-- {#if existingSong}
-                        Update / Replace Song
-                    {:else} -->
                     {t("common", "import")}
                     {t("pages", "song")}
-                    <!-- {/if} -->
                 </md-filled-button>
             </div>
         </div>
@@ -358,6 +360,12 @@
             </div>
 
             <div class="bottom-center-action">
+                {#if isIosBrowser}
+                    <md-outlined-button onclick={copyCurrentShareLink} class="copy-link-btn">
+                        <span class="material-symbols-outlined" slot="icon">content_copy</span>
+                        {t("share", "copy_share_link")}
+                    </md-outlined-button>
+                {/if}
                 <md-filled-button onclick={importList} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
                     {t("common", "import")}
@@ -623,15 +631,24 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 16px 0 8px 0;
+        gap: 12px;
+        padding: 16px 16px 8px 16px;
         width: 100%;
+        max-width: 600px;
+        box-sizing: border-box;
     }
 
-    .bottom-center-action :global(md-filled-button) {
-        min-width: 220px;
+    .bottom-center-action :global(md-filled-button),
+    .bottom-center-action :global(md-outlined-button) {
+        min-width: 180px;
         height: 48px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
+        flex: 1;
+    }
+
+    .bottom-center-action :global(md-outlined-button) {
+        background-color: var(--md-sys-color-surface, #ffffff);
     }
 
     @media (max-width: 600px) {
@@ -643,8 +660,16 @@
             padding: 20px 16px;
         }
 
-        .bottom-center-action :global(md-filled-button) {
+        .bottom-center-action {
+            flex-direction: column;
+            gap: 8px;
+            bottom: 12px;
+        }
+
+        .bottom-center-action :global(md-filled-button),
+        .bottom-center-action :global(md-outlined-button) {
             width: 100%;
+            min-width: 100%;
         }
     }
 </style>

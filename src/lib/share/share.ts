@@ -138,6 +138,59 @@ export async function copyUrlToClipboard(url: string, title?: string, hasMedia =
     }
 }
 
+export async function copyCurrentShareLink(): Promise<boolean> {
+    if (typeof window === "undefined") return false
+    const currentUrl = window.location.href
+    if (navigator?.clipboard) {
+        try {
+            await navigator.clipboard.writeText(currentUrl)
+            showToast(t("share", "link_copied"), "success")
+            return true
+        } catch (e) {
+            console.error("Clipboard write error:", e)
+        }
+    }
+    return copyUrlToClipboard(currentUrl)
+}
+
+export async function pasteSharedFromClipboard(): Promise<boolean> {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+        showToast(t("share", "paste_reading_error"), "error")
+        return false
+    }
+
+    try {
+        const text = await navigator.clipboard.readText()
+        if (!text || !text.trim()) {
+            showToast(t("share", "paste_no_link"), "warning")
+            return false
+        }
+
+        const rawPayload = extractSharePayloadFromUrl(text.trim())
+        if (!rawPayload) {
+            showToast(t("share", "paste_no_link"), "warning")
+            return false
+        }
+
+        const decoded = await resolveSharePayload(rawPayload)
+        if (decoded) {
+            const { setSharePayload } = await import("./share.svelte")
+            const { setActivePage } = await import("$lib/state/menu.svelte")
+            setSharePayload(decoded, rawPayload)
+            const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
+            setActivePage("share_preview", null, title)
+            return true
+        } else {
+            showToast(t("share", "generate_failed"), "error")
+            return false
+        }
+    } catch (err) {
+        console.error("Failed to read clipboard:", err)
+        showToast(t("share", "paste_reading_error"), "error")
+        return false
+    }
+}
+
 // --- Exported Share Handlers ---
 
 export async function shareSong(song: Song): Promise<boolean> {
