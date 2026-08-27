@@ -334,3 +334,33 @@ md-list-item [slot="headline"] {
 .scroll-list::-webkit-scrollbar-track {
     background: transparent;
 }
+
+@media print {
+    body,
+    .app-layout {
+        background: white !important;
+        color: black !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    header,
+    .top-app-bar,
+    .fab-container,
+    .playback-bar,
+    md-dialog,
+    .toast-container {
+        display: none !important;
+    }
+
+    main {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}

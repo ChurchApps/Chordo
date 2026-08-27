@@ -158,4 +158,10 @@
         color: var(--md-sys-color-primary);
         letter-spacing: 0.5px;
     }
+
+    @media print {
+        .songs {
+            gap: 0 !important;
+        }
+    }
 </style>

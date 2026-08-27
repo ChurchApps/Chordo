@@ -64,6 +64,13 @@
         }
     })
 
+    let metaArtist = $derived(parsed?.metadata.artist || (typeof song?.getMetadata === "function" ? song.getMetadata("artist") : song?.metadata?.artist))
+    let metaKey = $derived(parsed?.metadata.key || (typeof song?.getMetadata === "function" ? song.getMetadata("key") : song?.metadata?.key))
+    let metaTempo = $derived(parsed?.metadata.tempo || (typeof song?.getMetadata === "function" ? song.getMetadata("tempo") : song?.metadata?.tempo))
+    let metaTimeSig = $derived(parsed?.metadata.timeSignature || (typeof song?.getMetadata === "function" ? song.getMetadata("timeSignature") : song?.metadata?.timeSignature))
+    let metaCapo = $derived(parsed?.metadata.capo || (typeof song?.getMetadata === "function" ? song.getMetadata("capo") : song?.metadata?.capo))
+    let metaTempoFormatted = $derived(metaTempo ? (metaTimeSig ? `${metaTempo} BPM ${metaTimeSig}` : `${metaTempo} BPM`) : metaTimeSig)
+
     function isMetadataDirective(key: string | undefined) {
         if (!key) return false
         return ALL_METADATA_ALIASES.has(key.toLowerCase())
@@ -84,31 +91,25 @@
             {#if song?.name}
                 <div class="song-title">{song.name}</div>
             {/if}
-            {#if showMeta}
-                {@const artist = parsed.metadata.artist || (typeof song?.getMetadata === "function" ? song.getMetadata("artist") : song?.metadata?.artist)}
-                {@const keyVal = parsed.metadata.key || (typeof song?.getMetadata === "function" ? song.getMetadata("key") : song?.metadata?.key)}
-                {@const tempo = parsed.metadata.tempo || (typeof song?.getMetadata === "function" ? song.getMetadata("tempo") : song?.metadata?.tempo)}
-                {@const timeSig = parsed.metadata.timeSignature || (typeof song?.getMetadata === "function" ? song.getMetadata("timeSignature") : song?.metadata?.timeSignature)}
-                {@const capo = parsed.metadata.capo || (typeof song?.getMetadata === "function" ? song.getMetadata("capo") : song?.metadata?.capo)}
-                {@const tempoFormatted = tempo ? (timeSig ? `${tempo} BPM ${timeSig}` : `${tempo} BPM`) : timeSig}
-                <div class="song-meta">
-                    {#if artist}
+            {#if metaArtist || metaKey || metaTempoFormatted || metaCapo}
+                <div class="song-meta" class:hide-on-screen={!showMeta}>
+                    {#if metaArtist}
                         <div class="row">
-                            <span class="meta-item">{artist}</span>
+                            <span class="meta-item">{metaArtist}</span>
                         </div>
                     {/if}
 
                     <div class="row">
-                        {#if keyVal}
-                            <span class="meta-item">Key: {keyVal}</span>
+                        {#if metaKey}
+                            <span class="meta-item">Key: {metaKey}</span>
                         {/if}
-                        {#if tempoFormatted}
-                            <span class="meta-item"> • </span>
-                            <span class="meta-item">{tempo ? tempoFormatted : tempoFormatted}</span>
+                        {#if metaTempoFormatted}
+                            {#if metaKey}<span class="meta-item"> • </span>{/if}
+                            <span class="meta-item">{metaTempoFormatted}</span>
                         {/if}
-                        {#if capo}
-                            <span class="meta-item"> • </span>
-                            <span class="meta-item">Capo: {capo}</span>
+                        {#if metaCapo}
+                            {#if metaKey || metaTempoFormatted}<span class="meta-item"> • </span>{/if}
+                            <span class="meta-item">Capo: {metaCapo}</span>
                         {/if}
                     </div>
                 </div>
@@ -292,12 +293,27 @@
         font-size: calc(0.95rem * var(--font-scale, 1));
         opacity: 0.75;
     }
+    .song-meta.hide-on-screen {
+        display: none;
+    }
     .song-meta .row {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
+    }
+
+    @media print {
+        .chordpro-container {
+            column-count: 2 !important;
+            -webkit-column-count: 2 !important;
+            column-gap: 24px !important;
+        }
+
+        .song-meta.hide-on-screen {
+            display: flex !important;
+        }
     }
 
     /* image */

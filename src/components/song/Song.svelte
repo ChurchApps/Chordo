@@ -43,4 +43,11 @@
     .paper.hasMedia {
         padding: 0;
     }
+
+    @media print {
+        .paper {
+            padding: 0 !important;
+            border-radius: 0 !important;
+        }
+    }
 </style>

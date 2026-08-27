@@ -215,22 +215,36 @@
 
                         <md-menu id="more-options-menu" anchor="more-options-btn" open={moreMenuOpen} onclosed={() => (moreMenuOpen = false)} quick>
                             {#if menuState.activePage === "all_songs"}
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        const fileInput = document.createElement("input")
-                                        fileInput.type = "file"
-                                        fileInput.accept = ".json,application/json"
-                                        fileInput.onchange = (e) => {
-                                            const file = (e.target as HTMLInputElement).files?.[0]
-                                            if (file) importSetlistFile(file)
-                                        }
-                                        fileInput.click()
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">upload</span>
-                                    <div slot="headline">{t("menu", "import_song")}</div>
-                                </md-menu-item>
+                                {#if menuState.contentId}
+                                    <!-- don't show if adding to list -->
+
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            setActivePopup("about")
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">info</span>
+                                        <div slot="headline">{t("menu", "about")}</div>
+                                    </md-menu-item>
+                                {:else}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            const fileInput = document.createElement("input")
+                                            fileInput.type = "file"
+                                            fileInput.accept = ".json,application/json"
+                                            fileInput.onchange = (e) => {
+                                                const file = (e.target as HTMLInputElement).files?.[0]
+                                                if (file) importSetlistFile(file)
+                                            }
+                                            fileInput.click()
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">upload</span>
+                                        <div slot="headline">{t("menu", "import_song")}</div>
+                                    </md-menu-item>
+                                {/if}
                             {:else if menuState.activePage === "home"}
                                 <md-menu-item
                                     onclick={() => {
@@ -241,15 +255,7 @@
                                     <span class="material-symbols-outlined" slot="start">settings</span>
                                     <div slot="headline">{t("menu", "settings")}</div>
                                 </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        setActivePopup("about")
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">info</span>
-                                    <div slot="headline">{t("menu", "about")}</div>
-                                </md-menu-item>
+                                c
                             {:else if menuState.activePage === "song"}
                                 <md-menu-item
                                     onclick={() => {
@@ -259,6 +265,15 @@
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
                                     <div slot="headline">{t("menu", "share_song")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        window.print()
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">print</span>
+                                    <div slot="headline">{t("menu", "print")}</div>
                                 </md-menu-item>
                                 <md-menu-item
                                     onclick={() => {
