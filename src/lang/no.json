@@ -177,7 +177,7 @@
         "import_confirm_btn": "Importer"
     },
     "about": {
-        "title": "Chordo: Chords Manager",
+        "tagline": "Chordo: Chord Sheet Manager",
         "version": "Versjon",
         "desc": "Organiser, transponer, annoter og vis akkordark.",
         "source_code": "Kildekode",
@@ -201,7 +201,7 @@
     "share": {
         "copy_share_link": "Kopier lenke til PWA",
         "copy_share_link_short": "Kopier lenke",
-        "paste_no_link": "Ingen delt Chordo-lenke funnet i utklippstavlen",
+        "paste_no_link": "Ingen delt lenke funnet i utklippstavlen",
         "paste_reading_error": "Kunne ikke lese utklippstavlen. Vennligst gi tillatelse.",
         "link_copied": "Delingslenke kopiert til utklippstavlen!",
         "link_copied_no_media": "Delingslenke kopiert! Merk: Bilder/PDF-vedlegg er ikke inkludert.",

@@ -104,9 +104,9 @@ export default defineConfig({
             registerType: "autoUpdate",
             includeAssets: ["icons/icon.svg", "icons/maskable-icon.svg"],
             manifest: {
-                name: "Chordo: Chords Manager",
+                name: "Chordo: Chord Sheet Manager",
                 short_name: "Chordo",
-                description: "Organize, transpose, annotate, and view chord sheets",
+                description: "Everything you need to manage, transpose, and annotate your chord sheets in one place. Import from ChordPro, PDF, or URLs, build setlists in seconds, and run your show completely offline.",
                 theme_color: "#f5aa67",
                 background_color: "#feddc2",
                 display: "standalone",
