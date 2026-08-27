@@ -387,10 +387,10 @@
                         class="content-action-btn"
                         disabled={!contentHistory.canUndo}
                         onclick={() => contentHistory.undo()}
-                        title={`${t("song_edit", "undo")} (Ctrl+Z)`}
+                        title={`${t("common", "undo")} (Ctrl+Z)`}
                     >
                         <span class="material-symbols-outlined" style="font-size: 16px;">undo</span>
-                        <span>{t("song_edit", "undo")}</span>
+                        <span>{t("common", "undo")}</span>
                     </button>
 
                     <button
@@ -398,10 +398,10 @@
                         class="content-action-btn"
                         disabled={!contentHistory.canRedo}
                         onclick={() => contentHistory.redo()}
-                        title={`${t("song_edit", "redo")} (Ctrl+Y)`}
+                        title={`${t("common", "redo")} (Ctrl+Y)`}
                     >
                         <span class="material-symbols-outlined" style="font-size: 16px;">redo</span>
-                        <span>{t("song_edit", "redo")}</span>
+                        <span>{t("common", "redo")}</span>
                     </button>
 
                     {#if hasContent}
