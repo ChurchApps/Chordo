@@ -65,7 +65,7 @@
                 return
             }
 
-            if (parsed.type === "list" && parsed.list) {
+            if ((parsed.type === "list" && parsed.list) || (parsed.type === "song" && parsed.song)) {
                 closeDialog()
                 await importSetlistFile(file)
                 if (target) target.value = ""

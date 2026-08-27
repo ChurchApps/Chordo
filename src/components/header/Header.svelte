@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { exportSetlistAsJson, importSetlistFile } from "$lib/export/exportHelper"
+    import { exportSetlistAsJson, exportSongAsJson, importSetlistFile } from "$lib/export/exportHelper"
     import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
     import type { Folder } from "$lib/models/Folder"
     import { Lists, type List } from "$lib/models/List"
@@ -201,7 +201,6 @@
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
                 {:else if menuState.activePage === "home" || menuState.activePage === "all_songs"}
-                    <!-- || menuState.activePage === "folder" || menuState.activePage === "list" -->
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>
@@ -215,7 +214,24 @@
                         </md-icon-button>
 
                         <md-menu id="more-options-menu" anchor="more-options-btn" open={moreMenuOpen} onclosed={() => (moreMenuOpen = false)} quick>
-                            {#if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                            {#if menuState.activePage === "all_songs"}
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        const fileInput = document.createElement("input")
+                                        fileInput.type = "file"
+                                        fileInput.accept = ".json,application/json"
+                                        fileInput.onchange = (e) => {
+                                            const file = (e.target as HTMLInputElement).files?.[0]
+                                            if (file) importSetlistFile(file)
+                                        }
+                                        fileInput.click()
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">upload</span>
+                                    <div slot="headline">{t("menu", "import_song")}</div>
+                                </md-menu-item>
+                            {:else if menuState.activePage === "home"}
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
@@ -243,6 +259,15 @@
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
                                     <div slot="headline">{t("menu", "share_song")}</div>
+                                </md-menu-item>
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        if (currentSong) exportSongAsJson(currentSong)
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">download</span>
+                                    <div slot="headline">{t("menu", "export_as")} JSON</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song_edit"}
                                 {@const editSong = storage.getSongById(menuState.contentId)}

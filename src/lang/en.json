@@ -72,6 +72,7 @@
         "settings": "Settings",
         "about": "About",
         "share_song": "Share song",
+        "import_song": "Import song",
         "delete_song": "Delete song",
         "rename_list": "Rename setlist",
         "duplicate_list": "Duplicate setlist",
