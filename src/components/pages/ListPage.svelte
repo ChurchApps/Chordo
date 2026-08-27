@@ -5,7 +5,7 @@
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, resetDragState, type ReorderState } from "$lib/utils/rearrange"
+    import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
 
     let listId = $derived(menuState.contentId)
     let list = $derived(storage.getListById(listId, storage.lists))
@@ -19,7 +19,6 @@
 
     function removeSelectedSongs() {
         if (!list || selectedIndices.length === 0) return
-        // Sort indices in descending order to avoid index shifts during removal
         const sorted = [...selectedIndices].sort((a, b) => b - a)
         for (const idx of sorted) {
             list.removeSong(idx)
@@ -61,11 +60,7 @@
     let displaySongs = $derived.by(() => {
         const base = getDisplayList(listItems, reorderState)
         if (!isSearching) return base
-        return base.filter(
-            ({ item: songItem }) =>
-                songItem.name.toLowerCase().includes(searchQuery) ||
-                (songItem.song?.metadata?.artist && songItem.song.metadata.artist.toLowerCase().includes(searchQuery))
-        )
+        return base.filter(({ item: songItem }) => songItem.name.toLowerCase().includes(searchQuery) || (songItem.song?.metadata?.artist && songItem.song.metadata.artist.toLowerCase().includes(searchQuery)))
     })
 
     function onBatchMove(fromIndices: number[], targetIdx: number) {
@@ -93,6 +88,29 @@
             clearTimeout(longPressTimer)
             longPressTimer = null
         }
+    }
+
+    /**
+     * Ensures edit mode is active and the targeted item is part of the batch before dragging.
+     */
+    function prepareImmediateDrag(originalIdx: number) {
+        endPress()
+        if (!listEditingState.isEditing) {
+            listEditingState.isEditing = true
+        }
+        if (!selectedIndices.includes(originalIdx)) {
+            selectedIndices = [originalIdx]
+        }
+    }
+
+    function handleImmediateDragStart(e: DragEvent, originalIdx: number) {
+        prepareImmediateDrag(originalIdx)
+        handleItemDragStart(e, originalIdx, selectedIndices, reorderState)
+    }
+
+    function handleImmediatePointerDragStart(e: PointerEvent, originalIdx: number) {
+        prepareImmediateDrag(originalIdx)
+        handlePointerDragStart(e, originalIdx, selectedIndices, reorderState, onBatchMove)
     }
 
     function handleContextMenu(e: MouseEvent, originalIdx: number) {
@@ -136,9 +154,10 @@
                     role="listitem"
                     class="song-item-wrapper"
                     class:ghost={isGhost}
+                    data-reorder-idx={idx}
                     transition:slide={{ duration: 250 }}
-                    draggable={isEditing}
-                    ondragstart={(e) => handleItemDragStart(e, originalIdx, selectedIndices, reorderState)}
+                    draggable="true"
+                    ondragstart={(e) => handleImmediateDragStart(e, originalIdx)}
                     ondragover={(e) => handleItemDragOver(e, idx, reorderState)}
                     ondrop={(e) => handleItemDrop(e, idx, reorderState, onBatchMove)}
                     ondragend={() => resetDragState(reorderState)}
@@ -155,7 +174,8 @@
                         onclick={() => handleItemClick(songItem, originalIdx)}
                     >
                         {#if isEditing}
-                            <div slot="start" class="drag-handle-container" title="Drag to reorder">
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <div slot="start" class="drag-handle-container" title="Drag to reorder" onpointerdown={(e) => handleImmediatePointerDragStart(e, originalIdx)}>
                                 <span class="material-symbols-outlined drag-handle">drag_handle</span>
                             </div>
                         {:else if songItem.isDeleted}
@@ -174,7 +194,9 @@
                         {#if !songItem.isDeleted && (artist || key)}
                             <div slot="supporting-text">
                                 {artist || ""}
-                                {#if artist && key} • {/if}
+                                {#if artist && key}
+                                    •
+                                {/if}
                                 {#if key}{t("common", "key")}: {key}{/if}
                             </div>
                         {/if}
@@ -234,6 +256,9 @@
         flex-direction: column;
         flex: 1;
         min-height: 100%;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
 
     .song-item-wrapper {
@@ -241,6 +266,9 @@
         transition:
             transform 0.2s cubic-bezier(0.2, 0, 0, 1),
             opacity 0.2s ease;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .song-item-wrapper.ghost {
         opacity: 0.25;
@@ -249,6 +277,9 @@
     }
     md-list-item {
         min-height: 56px;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     md-list-item.selected {
         background-color: rgb(0 0 0 / 0.08);
@@ -261,6 +292,10 @@
         width: 24px;
         height: 24px;
         color: var(--md-sys-color-outline, #79747e);
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
     .drag-handle-container:active {
         cursor: grabbing;

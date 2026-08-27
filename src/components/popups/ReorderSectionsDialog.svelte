@@ -48,6 +48,47 @@
         dragOverIndex = null
     }
 
+    function handleSectionPointerDragStart(e: PointerEvent, index: number) {
+        if (e.button !== 0 && e.pointerType === "mouse") return
+        e.stopPropagation()
+        draggedIndex = index
+        dragOverIndex = index
+
+        const onPointerMove = (moveEvent: PointerEvent) => {
+            const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+            if (!el) return
+            const card = el.closest("[data-reorder-section-idx]")
+            if (card) {
+                const rawIdx = card.getAttribute("data-reorder-section-idx")
+                if (rawIdx !== null) {
+                    const targetIdx = parseInt(rawIdx, 10)
+                    if (!isNaN(targetIdx) && dragOverIndex !== targetIdx) {
+                        dragOverIndex = targetIdx
+                    }
+                }
+            }
+        }
+
+        const onPointerUp = () => {
+            window.removeEventListener("pointermove", onPointerMove)
+            window.removeEventListener("pointerup", onPointerUp)
+            window.removeEventListener("pointercancel", onPointerUp)
+
+            if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+                const updated = [...sections]
+                const [movedItem] = updated.splice(draggedIndex, 1)
+                updated.splice(dragOverIndex, 0, movedItem)
+                sections = updated
+            }
+            draggedIndex = null
+            dragOverIndex = null
+        }
+
+        window.addEventListener("pointermove", onPointerMove, { passive: true })
+        window.addEventListener("pointerup", onPointerUp)
+        window.addEventListener("pointercancel", onPointerUp)
+    }
+
     function deleteSection(index: number) {
         const sec = sections[index]
         if (sec && getMatchCount(sec.canonicalKey) > 1) {
@@ -99,13 +140,18 @@
                             class="section-card"
                             class:is-dragging={isDragging}
                             class:is-dragover={isDragOver}
+                            data-reorder-section-idx={index}
                             draggable="true"
                             ondragstart={(e) => handleDragStart(e, index)}
                             ondragover={(e) => handleDragOver(e, index)}
                             ondrop={(e) => handleDrop(e, index)}
                             ondragend={() => { draggedIndex = null; dragOverIndex = null; }}
                         >
-                            <span class="material-symbols-outlined drag-handle" title="Drag to reorder">
+                            <span
+                                class="material-symbols-outlined drag-handle"
+                                title="Drag to reorder"
+                                onpointerdown={(e) => handleSectionPointerDragStart(e, index)}
+                            >
                                 drag_indicator
                             </span>
 
@@ -204,6 +250,8 @@
         padding: 8px 12px;
         cursor: grab;
         user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
         transition: all 0.15s ease;
     }
 
@@ -228,6 +276,10 @@
         font-size: 20px;
         cursor: grab;
         flex-shrink: 0;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
 
     .drag-handle:active {
