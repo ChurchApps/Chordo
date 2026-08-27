@@ -11,10 +11,16 @@ export type ShareEnv = {
     CONTENT_PUBLIC_BASE?: string
 }
 
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+}
+
 function jsonResponse(body: unknown, status: number): Response {
     return new Response(JSON.stringify(body), {
         status,
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS }
     })
 }
 
@@ -28,7 +34,7 @@ function mintId(): string {
 
 export async function handleShare(req: Request, env: ShareEnv): Promise<Response> {
     if (req.method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: { Allow: "POST, OPTIONS" } })
+        return new Response(null, { status: 204, headers: { Allow: "POST, OPTIONS", ...CORS_HEADERS } })
     }
     if (req.method !== "POST") {
         return new Response("Method not allowed", { status: 405, headers: { Allow: "POST, OPTIONS" } })
@@ -43,11 +49,12 @@ export async function handleShare(req: Request, env: ShareEnv): Promise<Response
     } catch {
         return jsonResponse({ error: "Invalid body" }, 400)
     }
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
     if (text.length > MAX_BYTES) return jsonResponse({ error: "Payload too large" }, 400)
 
     let data: unknown
     try {
-        data = JSON.parse(text)
+        data = JSON.parse(text.trim())
     } catch {
         return jsonResponse({ error: "Invalid JSON" }, 400)
     }
