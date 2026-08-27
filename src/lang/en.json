@@ -15,7 +15,9 @@
         "export": "Export",
         "key": "Key",
         "original": "Original",
-        "copy": "Copy"
+        "copy": "Copy",
+        "undo": "Undo",
+        "redo": "Redo"
     },
     "pages": {
         "folder": "Folder",
@@ -30,7 +32,9 @@
         "shared": "Shared with you"
     },
     "home": {
-        "recently_used": "Recently used"
+        "recently_used": "Recently used",
+        "paste_shared": "Paste shared link",
+        "paste_shared_desc": "Open shared song or setlist copied from browser"
     },
     "search": {
         "placeholder_all": "Search folders, setlists, songs...",
@@ -58,20 +62,28 @@
         "list_name_label": "Setlist name",
         "list_name_placeholder": "e.g. Sunday Set",
         "song_title_label": "Song title",
-        "song_title_placeholder": "e.g. Amazing Grace"
+        "song_title_placeholder": "e.g. Amazing Grace",
+        "section": "Create section",
+        "section_name_label": "Section name",
+        "section_name_placeholder": "e.g. Break, Offering"
     },
     "rename": {
         "list": "Rename setlist",
-        "folder": "Rename folder"
+        "folder": "Rename folder",
+        "section": "Rename section"
     },
     "menu": {
+        "more_options": "More options",
         "settings": "Settings",
         "about": "About",
         "share_song": "Share song",
+        "print": "Print",
+        "import_song": "Import song",
         "delete_song": "Delete song",
         "rename_list": "Rename setlist",
         "duplicate_list": "Duplicate setlist",
         "share_list": "Share setlist",
+        "import_list": "Import setlist",
         "export_as": "Export as",
         "delete_list": "Delete setlist",
         "rename_folder": "Rename folder",
@@ -135,7 +147,8 @@
     "transpose": {
         "title": "Transpose",
         "key": "Key",
-        "original": "Original"
+        "original": "Original",
+        "nashville": "Nashville"
     },
     "draw": {
         "clear": "Clear",
@@ -175,21 +188,37 @@
         "offline_ready": "App is ready to work offline",
         "update_available": "New version available!",
         "reload": "Reload",
-        "dismiss": "Dismiss"
+        "dismiss": "Dismiss",
+        "install_ios_title": "Install App",
+        "install_ios_step1": "Tap the Share button",
+        "install_ios_step2": "Scroll down and tap \"Add to Home Screen\"",
+        "install_ios_action": "Install"
     },
     "list": {
-        "deleted": "Deleted"
+        "deleted": "Deleted",
+        "create_section": "Create section"
     },
     "share": {
+        "copy_share_link": "Copy link to PWA",
+        "copy_share_link_short": "Copy link",
+        "paste_no_link": "No shared Chordo link found in clipboard",
+        "paste_reading_error": "Could not read clipboard. Please grant clipboard permission.",
         "link_copied": "Share link copied to clipboard!",
         "link_copied_no_media": "Share link copied! Note: Attached images/PDFs are not included.",
-        "shared_success": "Shared successfully",
+        "shared_success": "Shared!",
         "shared_no_media": "Shared! Note: Attached images/PDFs are not included.",
         "copy_failed": "Failed to copy link",
         "generate_failed": "Failed to generate share link"
     },
+    "export": {
+        "success": "Exported successfully!",
+        "failed": "Failed to export"
+    },
     "song_fullscreen": {
         "lyrics_only": "Lyrics only",
-        "show_chords": "Show chords"
+        "show_chords": "Show chords",
+        "settings_title": "Sheet Settings",
+        "page_background": "Page background",
+        "text_size": "Text size"
     }
 }

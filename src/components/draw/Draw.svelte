@@ -10,6 +10,7 @@
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { createHistory } from "$lib/utils/history.svelte"
 
     interface Props {
         /** Enable or disable drawing capabilities (defaults to false) */
@@ -47,6 +48,15 @@
     let currentColor = $state(storage.settings.draw?.color || "#1d1b20")
     let brushSize = $state(storage.settings.draw?.brushSize ?? 4)
     let lastPoint = $state<{ x: number; y: number } | null>(null)
+
+    // History Manager for Drawing
+    const drawHistory = createHistory<string>(initialData, {
+        debounceMs: 0,
+        onApply: (dataUrl) => {
+            loadInitialData(dataUrl)
+            notifyChange()
+        }
+    })
 
     let initialSyncDone = false
     $effect(() => {
@@ -100,6 +110,7 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
         ctx.restore()
+        drawHistory.push("")
         notifyChange()
     }
 
@@ -198,6 +209,7 @@
                 context.restore()
             } else if (loadedDataProp === undefined && initialData) {
                 loadedDataProp = initialData
+                drawHistory.reset(initialData)
                 loadInitialData(initialData)
             }
         }
@@ -219,6 +231,7 @@
         const data = initialData
         if (ctx && data !== loadedDataProp) {
             loadedDataProp = data
+            drawHistory.reset(data)
             loadInitialData(data)
         }
     })
@@ -267,6 +280,7 @@
         }
         isDrawing = false
         lastPoint = null
+        drawHistory.push(getDrawingData())
         notifyChange()
     }
 
@@ -278,15 +292,27 @@
     }
 </script>
 
+<svelte:window onkeydown={(e) => { if (editable) drawHistory.handleKeyDown(e) }} />
+
 <div class="m3-drawing-container">
     <canvas bind:this={canvasRef} class="drawing-canvas" class:interactive={editable} onpointerdown={startDrawing} onpointermove={draw} onpointerup={stopDrawing} onpointercancel={stopDrawing}></canvas>
 
     {#if editable}
-        <!-- Top Left Toolbar (Clear Action) -->
+        <!-- Top Left Toolbar (Clear, Undo, Redo Actions) -->
         <header class="m3-top-left-bar">
             <md-filled-tonal-button type="button" onclick={handleClearRequest}>
                 <md-icon slot="icon">delete</md-icon>
                 {t("draw", "clear")}
+            </md-filled-tonal-button>
+
+            <md-filled-tonal-button type="button" disabled={!drawHistory.canUndo} onclick={() => drawHistory.undo()} title={`${t("common", "undo")} (Ctrl+Z)`}>
+                <md-icon slot="icon">undo</md-icon>
+                {t("common", "undo")}
+            </md-filled-tonal-button>
+
+            <md-filled-tonal-button type="button" disabled={!drawHistory.canRedo} onclick={() => drawHistory.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
+                <md-icon slot="icon">redo</md-icon>
+                {t("common", "redo")}
             </md-filled-tonal-button>
         </header>
 
@@ -376,6 +402,9 @@
         position: absolute;
         top: 1rem;
         left: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         pointer-events: auto;
         z-index: 12;
     }

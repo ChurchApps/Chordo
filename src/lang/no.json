@@ -15,7 +15,9 @@
         "export": "Eksporter",
         "key": "Toneart",
         "original": "Original",
-        "copy": "Kopi"
+        "copy": "Kopi",
+        "undo": "Angre",
+        "redo": "Gjør om"
     },
     "pages": {
         "folder": "Mappe",
@@ -30,7 +32,9 @@
         "shared": "Delt med deg"
     },
     "home": {
-        "recently_used": "Nylig brukt"
+        "recently_used": "Nylig brukt",
+        "paste_shared": "Lim inn delt lenke",
+        "paste_shared_desc": "Åpne delt sang eller setliste kopiert fra nettleser"
     },
     "search": {
         "placeholder_all": "Søk i mapper, setlister, sanger...",
@@ -58,20 +62,28 @@
         "list_name_label": "Setlistenavn",
         "list_name_placeholder": "f.eks. Søndagssett",
         "song_title_label": "Sangtittel",
-        "song_title_placeholder": "f.eks. Navnet Jesus"
+        "song_title_placeholder": "f.eks. Navnet Jesus",
+        "section": "Opprett seksjon",
+        "section_name_label": "Seksjonsnavn",
+        "section_name_placeholder": "f.eks. Pause, Nattverd"
     },
     "rename": {
         "list": "Endre navn på setliste",
-        "folder": "Endre navn på mappe"
+        "folder": "Endre navn på mappe",
+        "section": "Endre navn på seksjon"
     },
     "menu": {
+        "more_options": "Flere valg",
         "settings": "Innstillinger",
         "about": "Om appen",
         "share_song": "Del sang",
+        "print": "Skriv ut",
+        "import_song": "Importer sang",
         "delete_song": "Slett sang",
         "rename_list": "Endre navn på setliste",
         "duplicate_list": "Dupliser setliste",
         "share_list": "Del setliste",
+        "import_list": "Importer setliste",
         "export_as": "Eksporter som",
         "delete_list": "Slett setliste",
         "rename_folder": "Endre navn på mappe",
@@ -135,7 +147,8 @@
     "transpose": {
         "title": "Transponer",
         "key": "Toneart",
-        "original": "Original"
+        "original": "Original",
+        "nashville": "Nashville"
     },
     "draw": {
         "clear": "Tøm",
@@ -175,12 +188,21 @@
         "offline_ready": "Appen er klar til bruk offline",
         "update_available": "Ny versjon tilgjengelig!",
         "reload": "Last inn på nytt",
-        "dismiss": "Lukk"
+        "dismiss": "Lukk",
+        "install_ios_title": "Installer app",
+        "install_ios_step1": "Trykk på Del-knappen",
+        "install_ios_step2": "Rull ned og velg «Legg til på Hjem-skjerm»",
+        "install_ios_action": "Installer"
     },
     "list": {
-        "deleted": "Slettet"
+        "deleted": "Slettet",
+        "create_section": "Opprett seksjon"
     },
     "share": {
+        "copy_share_link": "Kopier lenke til PWA",
+        "copy_share_link_short": "Kopier lenke",
+        "paste_no_link": "Ingen delt Chordo-lenke funnet i utklippstavlen",
+        "paste_reading_error": "Kunne ikke lese utklippstavlen. Vennligst gi tillatelse.",
         "link_copied": "Delingslenke kopiert til utklippstavlen!",
         "link_copied_no_media": "Delingslenke kopiert! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
         "shared_success": "Delt!",
@@ -188,8 +210,15 @@
         "copy_failed": "Kunne ikke kopiere lenke",
         "generate_failed": "Kunne ikke opprette delingslenke"
     },
+    "export": {
+        "success": "Eksportert!",
+        "failed": "Kunne ikke eksportere"
+    },
     "song_fullscreen": {
         "lyrics_only": "Kun tekst",
-        "show_chords": "Vis akkorder"
+        "show_chords": "Vis akkorder",
+        "settings_title": "Ark-innstillinger",
+        "page_background": "Sidebakgrunn",
+        "text_size": "Tekststørrelse"
     }
 }

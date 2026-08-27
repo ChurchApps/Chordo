@@ -39,7 +39,7 @@ export class Lists {
         }
         if (!parentFolder) return null
 
-        const copySuffix = t("common", "copy") || "Copy"
+        const copySuffix = t("common", "copy")
         const newList = new List({
             name: `${list.name} (${copySuffix})`,
             songs: list.songs.map((s) => ({ ...s }))
@@ -52,14 +52,19 @@ export class Lists {
 }
 
 export type ListSongItem = {
-    songId: string
+    id?: string
+    songId?: string
+    name?: string
+    isSection?: boolean
     lastKnownName?: string
     transposed?: string
 }
 
 export type ListSongDisplayItem = {
-    songId: string
+    id: string
+    songId?: string
     name: string
+    isSection?: boolean
     isDeleted: boolean
     song?: Song
     transposed?: string
@@ -88,20 +93,31 @@ export class List {
 
     getSongs(allSongs: Song[]) {
         const songs = this.songs.map((item) => {
+            if (item.isSection || !item.songId) return null
             return allSongs.find((s) => s.id === item.songId)
         })
-        return songs.filter((s): s is Song => s !== undefined)
+        return songs.filter((s): s is Song => s !== undefined && s !== null)
     }
 
     getListItems(allSongs: Song[]): ListSongDisplayItem[] {
-        return this.songs.map((item) => {
+        return this.songs.map((item, index) => {
+            if (item.isSection) {
+                return {
+                    id: item.id ?? `section-${index}-${item.name ?? ""}`,
+                    name: item.name ?? item.lastKnownName ?? "Section",
+                    isSection: true,
+                    isDeleted: false
+                }
+            }
             const song = allSongs.find((s) => s.id === item.songId)
             if (song && song.name && item.lastKnownName !== song.name) {
                 item.lastKnownName = song.name
             }
             return {
+                id: item.id ?? item.songId ?? `song-${index}`,
                 songId: item.songId,
                 name: song?.name ?? item.lastKnownName ?? "Deleted Song",
+                isSection: false,
                 isDeleted: !song,
                 song,
                 transposed: item.transposed
@@ -129,6 +145,19 @@ export class List {
     addSong(songId: string, songName?: string) {
         const name = songName ?? storage.getSongById(songId)?.name
         this.songs = [...this.songs, { songId, lastKnownName: name }]
+        storage.updateList(this)
+    }
+
+    addSection(name: string) {
+        this.songs = [...this.songs, { id: getId("section"), name, isSection: true }]
+        storage.updateList(this)
+    }
+
+    renameSection(index: number, name: string) {
+        if (index < 0 || index >= this.songs.length) return
+        const updated = [...this.songs]
+        updated[index] = { ...updated[index], name }
+        this.songs = updated
         storage.updateList(this)
     }
 

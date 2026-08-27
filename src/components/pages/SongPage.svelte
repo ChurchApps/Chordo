@@ -89,14 +89,23 @@
 
 <main bind:this={mainElement} onscroll={scrolling}>
     <div class="songs">
-        {#each songs as songItem, idx (songItem?.songId ? songItem.songId + "-" + idx : idx)}
+        {#each songs as songItem, idx ((songItem?.songId ?? songItem?.id ?? "song") + "-" + idx)}
             {@const songId = songItem?.songId ?? null}
             {@const currentSong = songId ? storage.getSongById(songId, allSongs) : null}
             {@const targetKey = songItem?.transposed || currentSong?.lastTransposed}
 
-            <div class="song-wrapper" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
-                <Song {songId} {targetKey} />
-            </div>
+            {#if songItem?.isSection}
+                <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+                <div class="section-divider" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
+                    <div class="section-divider-line"></div>
+                    <div class="section-divider-title">{songItem.name}</div>
+                    <div class="section-divider-line"></div>
+                </div>
+            {:else}
+                <div class="song-wrapper" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
+                    <Song {songId} {targetKey} />
+                </div>
+            {/if}
         {/each}
     </div>
 </main>
@@ -123,5 +132,36 @@
 
     .song-wrapper {
         cursor: pointer;
+    }
+
+    .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 16px;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
+        cursor: pointer;
+    }
+
+    .section-divider-line {
+        flex: 1;
+        height: 1px;
+        background: var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.15));
+    }
+
+    .section-divider-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--md-sys-color-primary);
+        letter-spacing: 0.5px;
+    }
+
+    @media print {
+        .songs {
+            gap: 0 !important;
+        }
     }
 </style>

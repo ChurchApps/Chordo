@@ -1,9 +1,11 @@
 <script lang="ts">
     import { Folders } from "$lib/models/Folder"
+    import { pasteSharedFromClipboard } from "$lib/share/share"
     import { t } from "$lib/state/i18n.svelte"
     import { setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { isIosStandalone } from "$lib/utils/iosPwa"
 
     let folders = $derived(Folders.get(storage.folders))
 
@@ -43,6 +45,8 @@
             .slice(0, 3)
             .map(({ list }) => list)
     })
+
+    let isIosPwa = $derived(isIosStandalone())
 
     function openFolder(id: string, name: string) {
         setActivePage("folder", id, name)
@@ -85,7 +89,7 @@
                     <div class="search-category-title">{t("search", "category_lists")} ({matchedLists.length})</div>
                     <md-list class="folders-list">
                         {#each matchedLists as list}
-                            {@const count = list.songs?.length ?? 0}
+                            {@const count = list.songs?.filter((s) => !s.isSection).length ?? 0}
                             <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                                 <div slot="headline">{list.name}</div>
                                 <md-icon slot="start">list</md-icon>
@@ -131,6 +135,14 @@
         {/if}
     {:else}
         <md-list class="folders-list scroll-list" style="overflow: initial;">
+            {#if isIosPwa}
+                <md-list-item type="button" onclick={() => pasteSharedFromClipboard()} class="paste-shared-item">
+                    <div slot="headline">{t("home", "paste_shared")}</div>
+                    <div slot="supporting-text">{t("home", "paste_shared_desc")}</div>
+                    <md-icon slot="start">content_paste</md-icon>
+                    <md-icon slot="end" style="opacity: 0.8;">arrow_forward</md-icon>
+                </md-list-item>
+            {/if}
             <md-list-item type="button" onclick={() => openAllSongs()}>
                 <div slot="headline">{t("pages", "all_songs")}</div>
                 <md-icon slot="start">library_music</md-icon>
@@ -145,7 +157,7 @@
             <div class="section-title">{t("home", "recently_used")}</div>
             <md-list class="folders-list scroll-list" style="overflow: initial;">
                 {#each recentLists as list}
-                    {@const count = list.songs?.length ?? 0}
+                    {@const count = list.songs?.filter((s) => !s.isSection).length ?? 0}
                     <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                         <div slot="headline">{list.name}</div>
                         <md-icon slot="start">list</md-icon>

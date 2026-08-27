@@ -130,3 +130,93 @@ export function applyBatchMove<T>(list: T[], fromIndices: number[], dragOverIdx:
         newSelectedIndices: Array.from({ length: count }, (_, i) => insertAt + i)
     }
 }
+
+/**
+ * Handles touch and pointer-based drag reordering for mobile and pointer devices.
+ */
+export function handlePointerDragStart(
+    e: PointerEvent,
+    originalIdx: number,
+    selectedIndices: number[],
+    state: ReorderState,
+    onMoveBatch: (fromIndices: number[], targetIdx: number) => void,
+    itemSelector: string = "[data-reorder-idx]"
+): void {
+    if (e.button !== 0 && e.pointerType === "mouse") return
+    e.stopPropagation()
+
+    state.draggedIdx = originalIdx
+    state.draggedIndices = selectedIndices.includes(originalIdx) ? [...selectedIndices] : [originalIdx]
+    state.dragOverIdx = originalIdx
+
+    let scrollParent: HTMLElement | null = null
+    const target = e.currentTarget as HTMLElement | null
+    if (target) {
+        scrollParent = target.closest(".scroll-list")
+    }
+
+    let scrollRaf: number | null = null
+    let latestClientY = e.clientY
+
+    const checkAutoScroll = () => {
+        if (state.draggedIdx === null) return
+        if (scrollParent) {
+            const rect = scrollParent.getBoundingClientRect()
+            const edge = 50
+            if (latestClientY < rect.top + edge) {
+                scrollParent.scrollTop -= 8
+            } else if (latestClientY > rect.bottom - edge) {
+                scrollParent.scrollTop += 8
+            }
+        } else {
+            const edge = 50
+            if (latestClientY < edge) {
+                window.scrollBy(0, -8)
+            } else if (latestClientY > window.innerHeight - edge) {
+                window.scrollBy(0, 8)
+            }
+        }
+        scrollRaf = requestAnimationFrame(checkAutoScroll)
+    }
+    scrollRaf = requestAnimationFrame(checkAutoScroll)
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+        latestClientY = moveEvent.clientY
+        const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+        if (!el) return
+        const targetWrapper = el.closest(itemSelector)
+        if (targetWrapper) {
+            const rawIdx = targetWrapper.getAttribute(itemSelector.replace(/[\[\]]/g, ""))
+            if (rawIdx !== null) {
+                const targetVisualIdx = parseInt(rawIdx, 10)
+                if (!isNaN(targetVisualIdx) && state.dragOverIdx !== targetVisualIdx) {
+                    state.dragOverIdx = targetVisualIdx
+                }
+            }
+        }
+    }
+
+    const onPointerUp = () => {
+        if (scrollRaf !== null) {
+            cancelAnimationFrame(scrollRaf)
+            scrollRaf = null
+        }
+        window.removeEventListener("pointermove", onPointerMove)
+        window.removeEventListener("pointerup", onPointerUp)
+        window.removeEventListener("pointercancel", onPointerUp)
+
+        if (state.draggedIdx !== null) {
+            const indices = state.draggedIndices.length > 0 ? state.draggedIndices : [state.draggedIdx]
+            const target = state.dragOverIdx !== null ? state.dragOverIdx : originalIdx
+            if (state.dragOverIdx !== null && state.dragOverIdx !== state.draggedIdx) {
+                onMoveBatch(indices, target)
+            }
+        }
+        resetDragState(state)
+    }
+
+    window.addEventListener("pointermove", onPointerMove, { passive: true })
+    window.addEventListener("pointerup", onPointerUp)
+    window.addEventListener("pointercancel", onPointerUp)
+}
+

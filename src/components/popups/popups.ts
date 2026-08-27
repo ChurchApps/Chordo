@@ -19,6 +19,12 @@ export const popups = {
     rename_folder: {
         component: TextInputDialog
     },
+    create_section: {
+        component: TextInputDialog
+    },
+    rename_section: {
+        component: TextInputDialog
+    },
     transpose: {
         component: TransposeDialog
     },

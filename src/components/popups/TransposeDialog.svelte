@@ -20,11 +20,13 @@
     let selectedKey = $state<string>("")
 
     // Enharmonic pitch indices for accurate matching
-    let selectedPitchIndex = $derived(getNotePitchIndex(selectedKey || originalKey))
+    let isNashville = $derived(selectedKey === "NNS")
+    let selectedPitchIndex = $derived(isNashville ? -1 : getNotePitchIndex(selectedKey || originalKey))
     let originalPitchIndex = $derived(getNotePitchIndex(originalKey))
 
     // Display formatted selected key based on original scale preference
     let displayedSelectedKey = $derived.by(() => {
+        if (isNashville) return "1 2 3"
         if (selectedPitchIndex !== -1 && displayedScale[selectedPitchIndex]) {
             return displayedScale[selectedPitchIndex]
         }
@@ -56,9 +58,17 @@
     }
 
     function stepSemitone(delta: number) {
-        const currentNorm = displayedSelectedKey || originalKey
+        const currentNorm = !isNashville && displayedSelectedKey ? displayedSelectedKey : originalKey
         const nextKey = transposeNote(currentNorm, delta, preferFlats)
         applyKey(nextKey)
+    }
+
+    function toggleNashville() {
+        if (isNashville) {
+            applyKey(originalKey)
+        } else {
+            applyKey("NNS")
+        }
     }
 
     function resetToOriginal() {
@@ -83,8 +93,8 @@
 
             <div class="current-key-display">
                 <span class="key-label">{t("transpose", "key")}</span>
-                <span class="key-value">{displayedSelectedKey}</span>
-                {#if originalKey && selectedPitchIndex !== originalPitchIndex}
+                <span class="key-value" class:nashville-val={isNashville}>{displayedSelectedKey}</span>
+                {#if originalKey && (isNashville || selectedPitchIndex !== originalPitchIndex)}
                     <span class="original-hint">{t("transpose", "original")}: {originalKey}</span>
                 {/if}
             </div>
@@ -98,12 +108,19 @@
         <div class="keys-grid">
             {#each displayedScale as note}
                 {@const pitchIndex = getNotePitchIndex(note)}
-                {@const isSelected = selectedPitchIndex === pitchIndex}
+                {@const isSelected = !isNashville && selectedPitchIndex === pitchIndex}
                 {@const isOriginal = originalPitchIndex === pitchIndex}
                 <button type="button" class="key-chip" class:selected={isSelected} class:original={isOriginal && !isSelected} onclick={() => applyKey(note)}>
                     {note}
                 </button>
             {/each}
+        </div>
+
+        <div class="special-modes">
+            <button type="button" class="key-chip mode-chip" class:selected={isNashville} onclick={toggleNashville}>
+                <span class="material-symbols-outlined mode-icon">tag</span>
+                {t("transpose", "nashville")}
+            </button>
         </div>
     </div>
 
@@ -202,5 +219,27 @@
 
     .key-chip.original {
         border: 2px dashed var(--md-sys-color-primary, #6750a4);
+    }
+
+    .special-modes {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+    }
+
+    .mode-chip {
+        width: 100%;
+        gap: 8px;
+        font-size: 0.95rem;
+    }
+
+    .mode-icon {
+        font-size: 1.15rem;
+    }
+
+    .key-value.nashville-val {
+        font-size: 1.45rem;
+        letter-spacing: 1px;
     }
 </style>

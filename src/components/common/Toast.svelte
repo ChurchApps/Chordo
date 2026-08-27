@@ -11,6 +11,8 @@
                         check_circle
                     {:else if toast.type === "error"}
                         error
+                    {:else if toast.type === "warning"}
+                        warning
                     {:else}
                         info
                     {/if}
@@ -60,6 +62,10 @@
 
     .toast-item.error .icon {
         color: #f44336;
+    }
+
+    .toast-item.warning .icon {
+        color: #ffa000;
     }
 
     .toast-item.info .icon {

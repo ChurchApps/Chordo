@@ -1,15 +1,18 @@
 <script lang="ts">
-    import { openConfirm, promptConfirm } from "$lib/state/confirm.svelte"
     import { Folder } from "$lib/models/Folder"
     import { List } from "$lib/models/List"
     import { Song } from "$lib/models/Song"
+    import { copyCurrentShareLink } from "$lib/share/share"
     import { clearSharePayload, sharePreviewState } from "$lib/share/share.svelte"
+    import { promptConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
-    import { setActivePage } from "$lib/state/menu.svelte"
+    import { menuState, setActivePage } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { isIosSafariNonStandalone } from "$lib/utils/iosPwa"
     import { parsePlaybackUrl } from "$lib/utils/playback"
+    import { getId } from "$lib/utils/common"
     import ChordPro from "../song/ChordPro.svelte"
 
     let payload = $derived(sharePreviewState.payload)
@@ -54,6 +57,8 @@
         togglePlayback(song.id || null, url, song.name)
     }
 
+    let isIosBrowser = $derived(isIosSafariNonStandalone())
+
     // --- Helpers for import operations ---
 
     function applySongData(target: Song, source: any): Song {
@@ -84,12 +89,12 @@
     }
 
     function askNameConflict(songName: string): Promise<boolean> {
-        const msg = (t("confirm", "song_name_conflict_msg") || 'A song named "{name}" already exists in your library. Do you want to overwrite it, or import this as a separate song?').replace("{name}", songName)
+        const msg = t("confirm", "song_name_conflict_msg").replace("{name}", songName)
         return promptConfirm({
-            title: t("confirm", "name_conflict_title") || "Song already exists",
+            title: t("confirm", "name_conflict_title"),
             message: msg,
-            confirmLabel: t("confirm", "overwrite") || "Overwrite",
-            cancelLabel: t("confirm", "import_separately") || "Import Separately"
+            confirmLabel: t("confirm", "overwrite"),
+            cancelLabel: t("confirm", "import_separately")
         })
     }
 
@@ -128,17 +133,13 @@
         const idMatches = sharedList.songs.filter((s) => s.id && storage.songs.some((e) => e.id === s.id))
         let overwriteIdMatches = false
         if (idMatches.length > 0) {
-            const msg = (
-                idMatches.length === 1
-                    ? t("confirm", "overwrite_song_msg") || "1 song in this list already exists in your library. Do you want to overwrite it with the shared version or keep your existing version?"
-                    : t("confirm", "overwrite_songs_msg") || "{count} songs in this list already exist in your library. Do you want to overwrite them with the shared versions or keep your existing versions?"
-            ).replace("{count}", idMatches.length.toString())
+            const msg = (idMatches.length === 1 ? t("confirm", "overwrite_song_msg") : t("confirm", "overwrite_songs_msg")).replace("{count}", idMatches.length.toString())
 
             overwriteIdMatches = await promptConfirm({
-                title: t("confirm", "overwrite_songs_title") || "Overwrite existing songs?",
+                title: t("confirm", "overwrite_songs_title"),
                 message: msg,
-                confirmLabel: t("confirm", "overwrite") || "Overwrite",
-                cancelLabel: t("confirm", "keep_existing") || "Keep Existing"
+                confirmLabel: t("confirm", "overwrite"),
+                cancelLabel: t("confirm", "keep_existing")
             })
         }
 
@@ -154,33 +155,43 @@
             }
         }
 
-        // 3. Resolve all songs for list
-        const resolvedSongs = sharedList.songs.map((sharedSong, i) => {
-            const item = sharedList.listItems[i] || { songId: sharedSong.id || "", transposed: sharedSong.lastTransposed }
-            const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
-            const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
+        // 3. Resolve all songs and sections for list
+        const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0
+            ? sharedList.listItems
+            : sharedList.songs.map((s) => ({ songId: s.id || "", transposed: s.lastTransposed }))
 
-            let songId = ""
-            let songName = sharedSong.name
-
-            if (matchById) {
-                if (overwriteIdMatches) applySongData(matchById, sharedSong)
-                songId = matchById.id
-                songName = matchById.name
-            } else if (matchByName) {
-                if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
-                    applySongData(matchByName, sharedSong)
-                    songId = matchByName.id
-                    songName = matchByName.name
-                } else {
-                    songId = createNewSong(sharedSong, true).id
+        const resolvedSongs = itemsToResolve
+            .map((item: any, i: number) => {
+                if (item.isSection) {
+                    return { id: getId("section"), name: item.name || "Section", isSection: true }
                 }
-            } else {
-                songId = createNewSong(sharedSong).id
-            }
+                const sharedSong = sharedList.songs.find((s) => s.id === item.songId) || sharedList.songs[i]
+                if (!sharedSong) return null
+                const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
+                const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
 
-            return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
-        })
+                let songId = ""
+                let songName = sharedSong.name
+
+                if (matchById) {
+                    if (overwriteIdMatches) applySongData(matchById, sharedSong)
+                    songId = matchById.id
+                    songName = matchById.name
+                } else if (matchByName) {
+                    if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
+                        applySongData(matchByName, sharedSong)
+                        songId = matchByName.id
+                        songName = matchByName.name
+                    } else {
+                        songId = createNewSong(sharedSong, true).id
+                    }
+                } else {
+                    songId = createNewSong(sharedSong).id
+                }
+
+                return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
+            })
+            .filter(Boolean) as any[]
 
         // 4. Create or replace list
         const existingListMatch = sharedList.id ? storage.lists.find((l) => l.id === sharedList.id) : null
@@ -199,16 +210,22 @@
                 songs: resolvedSongs,
                 createdAt: sharedList.createdAt || Date.now()
             })
-            let sharedFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared")
-            if (!sharedFolder) {
-                sharedFolder = new Folder({ name: "Shared", type: "shared" })
-                storage.addFolder(sharedFolder)
+            const lastPage = menuState.previousPages.at(-1)
+            const targetFolderId = lastPage?.activePage === "folder" && lastPage.contentId ? lastPage.contentId : null
+            let targetFolder = targetFolderId ? storage.getFolderById(targetFolderId) : null
+
+            if (!targetFolder) {
+                targetFolder = storage.folders.find((f) => f.name.trim().toLowerCase() === "shared") ?? null
             }
-            sharedFolder.addList(newList.id)
-            storage.updateFolder(sharedFolder)
+            if (!targetFolder) {
+                targetFolder = new Folder({ name: "Shared", type: "shared" })
+                storage.addFolder(targetFolder)
+            }
+            targetFolder.addList(newList.id)
+            storage.updateFolder(targetFolder)
             storage.addList(newList)
             listToOpen = newList
-            showToast(`Imported "${newList.name}" into Shared`, "success")
+            showToast(`Imported "${newList.name}" into ${targetFolder.name}`, "success")
         }
 
         storage.persist()
@@ -273,14 +290,16 @@
             </div>
 
             <div class="bottom-center-action">
+                {#if isIosBrowser}
+                    <md-outlined-button onclick={copyCurrentShareLink} class="copy-link-btn">
+                        <span class="material-symbols-outlined" slot="icon">content_copy</span>
+                        {t("share", "copy_share_link")}
+                    </md-outlined-button>
+                {/if}
                 <md-filled-button onclick={importSong} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
-                    <!-- {#if existingSong}
-                        Update / Replace Song
-                    {:else} -->
                     {t("common", "import")}
                     {t("pages", "song")}
-                    <!-- {/if} -->
                 </md-filled-button>
             </div>
         </div>
@@ -315,7 +334,7 @@
                         {@const pbUrl = song.playbackUrl || song.spotify || song.getMetadata("playback") || song.getMetadata("spotify")}
                         {@const pbInfo = parsePlaybackUrl(pbUrl)}
                         {@const isPlaying = playbackState.isOpen && (playbackState.songId === song.id || (pbUrl && playbackState.customPlaybackUrl === pbUrl))}
-                        {@const isExisting = storage.songs.some((s) => (song.id && s.id === song.id) || s.name.trim().toLowerCase() === song.name.trim().toLowerCase())}
+                        <!-- {@const isExisting = storage.songs.some((s) => (song.id && s.id === song.id) || s.name.trim().toLowerCase() === song.name.trim().toLowerCase())} -->
 
                         <div class="song-row">
                             <span class="track-num">{idx + 1}</span>
@@ -333,11 +352,23 @@
                                 {/if}
 
                                 {#if pbInfo}
-                                    <button class="play-btn" class:active={isPlaying} onclick={() => handleSongPlayback(song)} title={`Play on ${pbInfo.provider}`} aria-label={`Play ${song.name}`}>
+                                    <button
+                                        class="play-btn"
+                                        class:active={isPlaying}
+                                        onclick={() => handleSongPlayback(song)}
+                                        title={`Play with ${pbInfo.provider === "spotify" ? "Spotify" : pbInfo.provider === "youtube" ? "YouTube" : pbInfo.provider}`}
+                                        aria-label={`Play ${song.name}`}
+                                    >
                                         {#if pbInfo.provider === "spotify"}
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill={isPlaying ? "#1DB954" : "currentColor"}>
                                                 <path
                                                     d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"
+                                                />
+                                            </svg>
+                                        {:else if pbInfo.provider === "youtube"}
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill={isPlaying ? "#FF0000" : "currentColor"}>
+                                                <path
+                                                    d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
                                                 />
                                             </svg>
                                         {:else}
@@ -358,6 +389,12 @@
             </div>
 
             <div class="bottom-center-action">
+                {#if isIosBrowser}
+                    <md-outlined-button onclick={copyCurrentShareLink} class="copy-link-btn">
+                        <span class="material-symbols-outlined" slot="icon">content_copy</span>
+                        {t("share", "copy_share_link")}
+                    </md-outlined-button>
+                {/if}
                 <md-filled-button onclick={importList} class="import-btn">
                     <span class="material-symbols-outlined" slot="icon">download</span>
                     {t("common", "import")}
@@ -521,7 +558,7 @@
         gap: 8px;
         background: var(--md-sys-color-surface-container, #f4f4f7);
         border-radius: 12px;
-        padding: 14px 16px;
+        padding: 8px;
         box-sizing: border-box;
     }
 
@@ -623,15 +660,24 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 16px 0 8px 0;
+        gap: 12px;
+        padding: 16px 16px 8px 16px;
         width: 100%;
+        max-width: 600px;
+        box-sizing: border-box;
     }
 
-    .bottom-center-action :global(md-filled-button) {
-        min-width: 220px;
+    .bottom-center-action :global(md-filled-button),
+    .bottom-center-action :global(md-outlined-button) {
+        min-width: 180px;
         height: 48px;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
+        flex: 1;
+    }
+
+    .bottom-center-action :global(md-outlined-button) {
+        background-color: var(--md-sys-color-surface, #ffffff);
     }
 
     @media (max-width: 600px) {
@@ -643,8 +689,16 @@
             padding: 20px 16px;
         }
 
-        .bottom-center-action :global(md-filled-button) {
+        .bottom-center-action {
+            flex-direction: column;
+            gap: 8px;
+            bottom: 12px;
+        }
+
+        .bottom-center-action :global(md-filled-button),
+        .bottom-center-action :global(md-outlined-button) {
             width: 100%;
+            min-width: 100%;
         }
     }
 </style>

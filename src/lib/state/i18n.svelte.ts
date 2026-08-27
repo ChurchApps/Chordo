@@ -1,4 +1,4 @@
-import type enJson from "../../lang/en.json"
+import enJson from "../../lang/en.json"
 
 export type TranslationsSchema = typeof enJson
 
@@ -72,12 +72,13 @@ export function getIsLoaded(): boolean {
 
 /**
  * Type-safe translation function requiring valid section and key derived from src/lang/en.json.
+ * Falls back to the value in en.json if the loaded translation is missing the key.
  */
 export function t<S extends SectionKey>(section: S, key: ItemKey<S>): string {
-    if (!isLoaded) return ""
+    const enFallback = (enJson as Record<string, Record<string, string>>)[section]?.[key] ?? `${section}.${key}`
+    if (!isLoaded) return enFallback
 
-    const fallback = `${section}.${key}`
-    return currentTranslations[section]?.[key] ?? fallback
+    return currentTranslations[section]?.[key] ?? enFallback
 }
 
 // Initial load for default locale

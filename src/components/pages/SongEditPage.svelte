@@ -7,6 +7,7 @@
     import { goBack, menuState, updatePageTitle } from "$lib/state/menu.svelte"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { createHistory } from "$lib/utils/history.svelte"
     import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "$lib/utils/mediaManager"
     import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
@@ -27,6 +28,24 @@
     let contentInputEl = $state<any>(null)
     let imageWebUrls = $state<string[]>([])
 
+    // Universal History for Song Content
+    let isInitialized = false
+    const contentHistory = createHistory<string>("", {
+        debounceMs: 400,
+        onApply: (newVal) => {
+            if (!song) return
+            song.content = newVal
+            if (contentInputEl) {
+                contentInputEl.value = newVal
+            }
+            if (newVal.trim()) {
+                syncMetadataFromText(newVal)
+            }
+            storage.updateSong(song)
+            storage.persist()
+        }
+    })
+
     // URL Pull State
     let urlInput = $state("")
     let isPulling = $state(false)
@@ -46,6 +65,13 @@
             })
         } else {
             imageWebUrls = []
+        }
+    })
+
+    $effect(() => {
+        if (!isInitialized && song) {
+            contentHistory.reset(song.content || "")
+            isInitialized = true
         }
     })
 
@@ -97,6 +123,10 @@
         if (key === "name" && !value.trim()) return
         if (key === "createdAt" || key === "drawings" || key === "images" || key === "metadata" || key === "lastTransposed") return
 
+        if (key === "content") {
+            contentHistory.set(value)
+        }
+
         song[key] = value
 
         if (key === "content" && value.trim()) {
@@ -118,6 +148,7 @@
 
     function applyReorderedContent(newContent: string) {
         if (!song) return
+        contentHistory.push(newContent)
         song.content = newContent
         reorderInitialText = newContent
         if (contentInputEl) {
@@ -164,6 +195,7 @@
 
         try {
             const result = await pullAndConvertUrl(targetUrl)
+            contentHistory.push(result.content)
             song.content = result.content
             song.url = targetUrl
 
@@ -349,19 +381,41 @@
             {/if}
 
             <div class="textarea-wrapper" style="{hasContent && !hasMedia ? 'flex: 1; display: flex; flex-direction: column;' : ''}">
-                {#if hasContent}
-                    <div class="reorder-button-container">
+                <div class="content-actions-container">
+                    <button
+                        type="button"
+                        class="content-action-btn"
+                        disabled={!contentHistory.canUndo}
+                        onclick={() => contentHistory.undo()}
+                        title={`${t("common", "undo")} (Ctrl+Z)`}
+                    >
+                        <span class="material-symbols-outlined" style="font-size: 16px;">undo</span>
+                        <span>{t("common", "undo")}</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        class="content-action-btn"
+                        disabled={!contentHistory.canRedo}
+                        onclick={() => contentHistory.redo()}
+                        title={`${t("common", "redo")} (Ctrl+Y)`}
+                    >
+                        <span class="material-symbols-outlined" style="font-size: 16px;">redo</span>
+                        <span>{t("common", "redo")}</span>
+                    </button>
+
+                    {#if hasContent}
                         <button
                             type="button"
-                            class="reorder-btn"
+                            class="content-action-btn"
                             onclick={openReorderDialog}
                             title={t("song_edit", "reorder_sections")}
                         >
                             <span class="material-symbols-outlined" style="font-size: 16px;">reorder</span>
                             <span>{t("song_edit", "reorder")}</span>
                         </button>
-                    </div>
-                {/if}
+                    {/if}
+                </div>
 
                 <md-outlined-text-field
                     id="song-content-input"
@@ -372,6 +426,7 @@
                     rows={8}
                     value={song.content}
                     oninput={(e: Event) => updateValue(e, "content")}
+                    onkeydown={contentHistory.handleKeyDown}
                     style="width: 100%;resize: none;{hasContent && !hasMedia ? 'flex: 1;' : ''}"
                 >
                 </md-outlined-text-field>
@@ -586,18 +641,21 @@
         width: 100%;
     }
 
-    .reorder-button-container {
+    .content-actions-container {
         position: absolute;
         top: 8px;
         right: 12px;
         z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
 
-    .reorder-btn {
+    .content-action-btn {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 3px 10px;
+        padding: 3px 8px;
         border-radius: 16px;
         border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
         background: var(--md-sys-color-surface-container-high, #f7f2fa);
@@ -609,9 +667,15 @@
         transition: all 0.15s ease;
     }
 
-    .reorder-btn:hover {
+    .content-action-btn:hover:not(:disabled) {
         background: var(--md-sys-color-primary-container, #eaddff);
         color: var(--md-sys-color-on-primary-container, #21005d);
         border-color: var(--md-sys-color-primary, #6750a4);
+    }
+
+    .content-action-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        box-shadow: none;
     }
 </style>

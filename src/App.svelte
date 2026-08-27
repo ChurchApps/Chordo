@@ -1,6 +1,6 @@
 <script lang="ts">
+    import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
     import { setSharePayload } from "$lib/share/share.svelte"
-    import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/shareCodec"
     import { setActivePage } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
@@ -20,6 +20,7 @@
     import { onMount } from "svelte"
     import Toast from "./components/common/Toast.svelte"
     import Header from "./components/header/Header.svelte"
+    import IosInstallPrompt from "./components/header/IosInstallPrompt.svelte"
     import PwaReloadPrompt from "./components/header/PwaReloadPrompt.svelte"
     import Page from "./components/pages/Page.svelte"
     import PlaybackBar from "./components/playback/PlaybackBar.svelte"
@@ -35,9 +36,7 @@
                 const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
                 setActivePage("share_preview", null, title, "replace")
             } else {
-                // service rate limited or expired
-                // cellular networks quickly get IP rate limited
-                showToast("Could not load shared link, make sure you are on WiFi, or it has expired", "error", 5000)
+                showToast("Could not load shared content! The link might have expired.", "error", 5000)
             }
         }
     }
@@ -67,6 +66,7 @@
     <Popup />
 
     <PwaReloadPrompt />
+    <IosInstallPrompt />
 
     <Toast />
 </div>
@@ -81,6 +81,8 @@
         height: 100vh;
         height: 100dvh;
         overflow: hidden;
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
 
         background-color: var(--md-sys-color-primary-background);
         color: var(--md-sys-color-on-primary-container);

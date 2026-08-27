@@ -29,8 +29,8 @@
         <span class="material-symbols-outlined">swap_vert</span>
     </md-icon-button>
     {#if transposeCount !== 0}
-        <span class="badge" class:negative={transposeCount < 0}>
-            {transposeCount > 0 ? "+" + transposeCount : transposeCount}
+        <span class="badge" class:negative={typeof transposeCount === "number" && transposeCount < 0}>
+            {typeof transposeCount === "number" ? (transposeCount > 0 ? "+" + transposeCount : transposeCount) : "NNS"}
         </span>
     {/if}
 </div>

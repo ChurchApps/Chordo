@@ -17,10 +17,18 @@
     --md-icon-button-icon-color: var(--md-sys-color-on-primary);
     --md-list-container-color: transparent;
 
-    /* draw */
+    /* draw & settings */
     --md-filled-tonal-button-container-color: var(--md-sys-color-primary);
     --md-filled-tonal-button-label-text-color: var(--md-sys-color-on-primary);
+    --md-filled-tonal-icon-button-container-color: var(--md-sys-color-primary);
+    --md-filled-tonal-icon-button-label-text-color: var(--md-sys-color-on-primary);
     --md-sys-color-surface-container-high: var(--md-sys-color-primary-container);
+}
+
+html,
+body {
+    overscroll-behavior-y: none;
+    overscroll-behavior: none;
 }
 
 body,
@@ -39,6 +47,7 @@ body {
     font-family: "Open Sans", sans-serif;
     background: var(--md-sys-color-primary-background);
     color: var(--md-sys-color-on-primary-container);
+    touch-action: pan-x pan-y;
 }
 
 main {
@@ -324,4 +333,34 @@ md-list-item [slot="headline"] {
 }
 .scroll-list::-webkit-scrollbar-track {
     background: transparent;
+}
+
+@media print {
+    body,
+    .app-layout {
+        background: white !important;
+        color: black !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    header,
+    .top-app-bar,
+    .fab-container,
+    .playback-bar,
+    md-dialog,
+    .toast-container {
+        display: none !important;
+    }
+
+    main {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
 }

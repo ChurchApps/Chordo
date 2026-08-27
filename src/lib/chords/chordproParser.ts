@@ -1,4 +1,4 @@
-import { transposeChord, isChordToken } from "./transpose"
+import { transposeChord, chordToNashville, isChordToken, extractBaseKey } from "./transpose"
 import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
 
 export { isChordToken } from "./transpose"
@@ -107,13 +107,15 @@ const COMMENT_PRESETS: Record<string, string> = {
 const COMMENT_KEYS = new Set(["comment", "c", "section", "soc", "eoc", "sov", "eov"])
 
 /**
- * Parses raw ChordPro text into structured data and applies live transposition.
+ * Parses raw ChordPro text into structured data and applies live transposition or Nashville conversion.
  * Supports standard `{key: value}`, unbraced metadata headers `Key: Value`, and section headers like `Verse 1:` / `[Verse 1]`.
  */
-export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
+export function parseChordPro(text: string, semitones: number | "NNS" = 0): ParsedChordPro {
     const lines = text.split(/\r?\n/)
     const metadata: ParsedChordPro["metadata"] = {}
     const parsedLines: ParsedLine[] = []
+
+    const baseKey = semitones === "NNS" ? extractBaseKey(text) || "C" : ""
 
     for (const line of lines) {
         const trimmed = line.trim()
@@ -180,7 +182,7 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
         }
 
         // 4. Tokenize lyrics and bracketed chords into atomic word units
-        const { tokens, words } = parseLyricLineToWords(line, semitones)
+        const { tokens, words } = parseLyricLineToWords(line, semitones, baseKey)
         parsedLines.push({ type: "lyrics", tokens, words })
     }
 
@@ -191,7 +193,7 @@ export function parseChordPro(text: string, semitones = 0): ParsedChordPro {
     }
 }
 
-export function parseLyricLineToWords(line: string, semitones = 0): { tokens: ChordProToken[]; words: ChordWord[] } {
+export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 0, baseKey = "C"): { tokens: ChordProToken[]; words: ChordWord[] } {
     const trimmedLine = line.trimStart()
     const parts = trimmedLine.split(/\[([^\]]+)\]/)
     const rawTokens: ChordProToken[] = []
@@ -202,11 +204,12 @@ export function parseLyricLineToWords(line: string, semitones = 0): { tokens: Ch
 
     for (let i = 1; i < parts.length; i += 2) {
         let lyricPart = parts[i + 1] || ""
-        if (rawTokens.length === 0 && !parts[0]) {
+        if (/^\s+\S/.test(lyricPart)) {
             lyricPart = lyricPart.trimStart()
         }
+        const chordText = semitones === "NNS" ? chordToNashville(parts[i], baseKey) : transposeChord(parts[i], semitones)
         rawTokens.push({
-            chord: transposeChord(parts[i], semitones),
+            chord: chordText,
             lyric: lyricPart
         })
     }

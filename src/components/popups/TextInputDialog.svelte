@@ -4,7 +4,7 @@
     import { Lists } from "$lib/models/List"
     import { Songs } from "$lib/models/Song"
     import { t } from "$lib/state/i18n.svelte"
-    import { menuState, popupState, setActivePage, setActivePopup, updatePageTitle } from "$lib/state/menu.svelte"
+    import { goBack, listEditingState, menuState, popupState, setActivePage, setActivePopup, updatePageTitle } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
     type DialogConfig = {
@@ -66,6 +66,28 @@
                         }
                     }
                 }
+            case "create_section":
+                return {
+                    icon: "bookmark",
+                    title: t("new", "section"),
+                    label: t("new", "section_name_label"),
+                    placeholder: t("new", "section_name_placeholder"),
+                    actionLabel: t("common", "create"),
+                    initialValue: "",
+                    submit: (name) => {
+                        const targetListId = menuState.contentId
+                        if (!targetListId) return
+                        const list = storage.getListById(targetListId)
+                        if (!list) return
+
+                        setActivePopup(null)
+                        goBack()
+
+                        setTimeout(() => {
+                            list.addSection(name)
+                        }, 80)
+                    }
+                }
             case "rename_list":
                 return {
                     icon: "edit",
@@ -96,6 +118,24 @@
                         updatePageTitle(name)
                     }
                 }
+            case "rename_section": {
+                const list = currentList
+                const idx = listEditingState.selectedIndex ?? 0
+                const sectionItem = list?.songs[idx]
+                return {
+                    icon: "edit",
+                    title: t("rename", "section"),
+                    label: t("new", "section_name_label"),
+                    placeholder: t("new", "section_name_placeholder"),
+                    actionLabel: t("common", "save"),
+                    initialValue: sectionItem?.name ?? "",
+                    submit: (name) => {
+                        if (!list) return
+                        list.renameSection(idx, name)
+                        listEditingState.isEditing = false
+                    }
+                }
+            }
             default:
                 return null
         }

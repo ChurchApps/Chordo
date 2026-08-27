@@ -64,6 +64,13 @@
         }
     })
 
+    let metaArtist = $derived(parsed?.metadata.artist || (typeof song?.getMetadata === "function" ? song.getMetadata("artist") : song?.metadata?.artist))
+    let metaKey = $derived(parsed?.metadata.key || (typeof song?.getMetadata === "function" ? song.getMetadata("key") : song?.metadata?.key))
+    let metaTempo = $derived(parsed?.metadata.tempo || (typeof song?.getMetadata === "function" ? song.getMetadata("tempo") : song?.metadata?.tempo))
+    let metaTimeSig = $derived(parsed?.metadata.timeSignature || (typeof song?.getMetadata === "function" ? song.getMetadata("timeSignature") : song?.metadata?.timeSignature))
+    let metaCapo = $derived(parsed?.metadata.capo || (typeof song?.getMetadata === "function" ? song.getMetadata("capo") : song?.metadata?.capo))
+    let metaTempoFormatted = $derived(metaTempo ? (metaTimeSig ? `${metaTempo} BPM ${metaTimeSig}` : `${metaTempo} BPM`) : metaTimeSig)
+
     function isMetadataDirective(key: string | undefined) {
         if (!key) return false
         return ALL_METADATA_ALIASES.has(key.toLowerCase())
@@ -84,14 +91,27 @@
             {#if song?.name}
                 <div class="song-title">{song.name}</div>
             {/if}
-            {#if showMeta}
-                <div class="song-meta">
-                    {#each METADATA_CONFIGS as cfg}
-                        {@const val = parsed.metadata[cfg.key] || (typeof song?.getMetadata === "function" ? song.getMetadata(cfg.key) : song?.metadata?.[cfg.key])}
-                        {#if val}
-                            <span class="meta-item">{cfg.label}: {val}</span>
+            {#if metaArtist || metaKey || metaTempoFormatted || metaCapo}
+                <div class="song-meta" class:hide-on-screen={!showMeta}>
+                    {#if metaArtist}
+                        <div class="row">
+                            <span class="meta-item">{metaArtist}</span>
+                        </div>
+                    {/if}
+
+                    <div class="row">
+                        {#if metaKey}
+                            <span class="meta-item">Key: {metaKey}</span>
                         {/if}
-                    {/each}
+                        {#if metaTempoFormatted}
+                            {#if metaKey}<span class="meta-item"> • </span>{/if}
+                            <span class="meta-item">{metaTempoFormatted}</span>
+                        {/if}
+                        {#if metaCapo}
+                            {#if metaKey || metaTempoFormatted}<span class="meta-item"> • </span>{/if}
+                            <span class="meta-item">Capo: {metaCapo}</span>
+                        {/if}
+                    </div>
                 </div>
             {/if}
         </div>
@@ -130,7 +150,7 @@
                                                     {/if}
                                                 {/if}
 
-                                                <span class="lyric-cell">{token.lyric}</span>
+                                                <span class="lyric-cell">{token.lyric || "\u200B"}</span>
                                             </span>
                                         {/each}
                                     </span>
@@ -152,7 +172,7 @@
         box-sizing: border-box;
         column-count: var(--num-columns, 1);
         -webkit-column-count: var(--num-columns, 1);
-        column-gap: 1.5rem;
+        column-gap: 0.8rem;
         column-fill: auto; /* Fill column 1 to bottom before wrapping to column 2 */
 
         pointer-events: none;
@@ -189,14 +209,14 @@
 
     .lyrics-line {
         white-space: pre-wrap;
-        font-size: 1rem;
-        line-height: 1.2;
+        font-size: calc(1rem * var(--font-scale, 1));
+        line-height: 1.4;
         word-break: normal;
         overflow-wrap: break-word;
         text-wrap: balance;
     }
     .hide-chords .lyrics-line {
-        line-height: 1.4;
+        line-height: 1.2;
         margin-bottom: 3px;
     }
     .word {
@@ -215,57 +235,85 @@
     }
 
     .chord-cell {
-        line-height: 1.2;
+        line-height: 0.9;
         font-family: monospace;
         font-weight: 700;
-        font-size: 1.1rem;
+        font-size: calc(1rem * var(--font-scale, 1));
         margin-bottom: 1px;
-        color: #5498be;
+        color: var(--chord-color, #5498be);
         text-align: left;
         white-space: pre-wrap;
         word-break: normal;
         overflow-wrap: break-word;
         max-width: 100%;
+        padding-right: 0.3em;
     }
     .lyric-cell {
         display: inline-block;
         white-space: pre-wrap;
         text-align: left;
+        min-height: 1.1em;
+        line-height: 1.1;
     }
 
     .chord-cell.placeholder {
         color: transparent;
         user-select: none;
+        padding-right: 0;
     }
-
 
     .directive {
         font-weight: 500;
-        color: #5498be;
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        color: var(--chord-color, #5498be);
         margin: 4px 0;
 
         text-transform: capitalize;
     }
     .comment {
         font-weight: 600;
-        /* color: #2e7d32; */
-        color: #306685;
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        color: var(--comment-color, #306685);
         margin: 4px 0;
+
+        /* text-transform: uppercase; */
     }
     .line.empty {
         height: 8px;
     }
     .song-title {
-        font-size: 1.6rem;
+        font-size: calc(1.6rem * var(--font-scale, 1));
         font-weight: 800;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
     .song-meta {
-        font-size: 0.95rem;
-        color: #444;
+        display: flex;
+        flex-direction: column;
+
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        opacity: 0.75;
     }
-    .song-meta .meta-item {
-        margin-right: 12px;
+    .song-meta.hide-on-screen {
+        display: none;
+    }
+    .song-meta .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media print {
+        .chordpro-container {
+            column-count: 2 !important;
+            -webkit-column-count: 2 !important;
+            column-gap: 24px !important;
+        }
+
+        .song-meta.hide-on-screen {
+            display: flex !important;
+        }
     }
 
     /* image */
