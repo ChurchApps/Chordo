@@ -12,7 +12,7 @@
 <md-dialog open onclosed={closeDialog}>
     <div slot="headline" class="about-headline">
         <span class="material-symbols-outlined about-icon">library_music</span>
-        {t("about", "title")}
+        Chordo: {t("about", "tagline")}
     </div>
 
     <div slot="content" class="about-content">

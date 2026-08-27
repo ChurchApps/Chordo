@@ -255,7 +255,15 @@
                                     <span class="material-symbols-outlined" slot="start">settings</span>
                                     <div slot="headline">{t("menu", "settings")}</div>
                                 </md-menu-item>
-                                c
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        setActivePopup("about")
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">info</span>
+                                    <div slot="headline">{t("menu", "about")}</div>
+                                </md-menu-item>
                             {:else if menuState.activePage === "song"}
                                 <md-menu-item
                                     onclick={() => {
