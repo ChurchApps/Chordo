@@ -22,9 +22,30 @@
         return new Song(payload.song)
     })
 
-    let previewListSongs = $derived.by(() => {
+    type PreviewListItem =
+        | { type: "section"; name: string }
+        | { type: "song"; song: Song; transposed?: string; songIndex: number }
+
+    let previewListItems = $derived.by<PreviewListItem[]>(() => {
         if (!payload || payload.type !== "list") return []
-        return payload.list.songs.map((s) => new Song(s))
+        const { list } = payload
+        const songMap = new Map(list.songs.map((s, idx) => [s.id || `song-${idx}`, s]))
+        let songIndex = 0
+
+        const items = list.listItems?.length ? list.listItems : list.songs.map((s) => ({ id: s.id, transposed: s.lastTransposed }))
+
+        return items.map((item: any, idx: number) => {
+            if (item.type === "section" || item.isSection) {
+                return { type: "section" as const, name: item.name || "Section" }
+            }
+            const songData = (item.id && songMap.get(item.id)) || list.songs[idx] || {}
+            return {
+                type: "song" as const,
+                song: new Song(songData),
+                transposed: item.transposed || songData.lastTransposed,
+                songIndex: ++songIndex
+            }
+        })
     })
 
     // Check if single song already exists by ID
@@ -61,18 +82,28 @@
 
     // --- Helpers for import operations ---
 
-    function applySongData(target: Song, source: any): Song {
+    async function saveSourceImages(song: Song, images?: string[]) {
+        if (!images?.length) return
+        song.images = []
+        for (const img of images) {
+            if (typeof img === "string" && img.startsWith("data:")) await song.addImage(img)
+            else if (typeof img === "string" && img.trim()) song.images.push(img)
+        }
+    }
+
+    async function applySongData(target: Song, source: any): Promise<Song> {
         target.name = source.name
         target.content = source.content
         if (source.metadata) target.metadata = { ...target.metadata, ...source.metadata }
         if (source.playbackUrl) target.playbackUrl = source.playbackUrl
         if (source.url) target.url = source.url
         if (source.lastTransposed) target.lastTransposed = source.lastTransposed
+        await saveSourceImages(target, source.images)
         storage.updateSong(target)
         return target
     }
 
-    function createNewSong(source: any, forceNewId = false): Song {
+    async function createNewSong(source: any, forceNewId = false): Promise<Song> {
         const id = !forceNewId && source.id && !storage.songs.some((s) => s.id === source.id) ? source.id : undefined
         const newSong = new Song({
             id,
@@ -84,6 +115,7 @@
             lastTransposed: source.lastTransposed,
             createdAt: source.createdAt || Date.now()
         })
+        await saveSourceImages(newSong, source.images)
         storage.addSong(newSong)
         return newSong
     }
@@ -104,19 +136,19 @@
         let songToOpen: Song
 
         if (existingSongById) {
-            songToOpen = applySongData(existingSongById, shared)
+            songToOpen = await applySongData(existingSongById, shared)
             showToast(`Updated "${shared.name}" in your library`, "success")
         } else if (existingSongByName) {
             const overwrite = await askNameConflict(shared.name)
             if (overwrite) {
-                songToOpen = applySongData(existingSongByName, shared)
+                songToOpen = await applySongData(existingSongByName, shared)
                 showToast(`Updated "${shared.name}" in your library`, "success")
             } else {
-                songToOpen = createNewSong(shared, true)
+                songToOpen = await createNewSong(shared, true)
                 showToast(`Imported "${shared.name}" to your library`, "success")
             }
         } else {
-            songToOpen = createNewSong(shared)
+            songToOpen = await createNewSong(shared)
             showToast(`Imported "${shared.name}" to your library`, "success")
         }
 
@@ -156,42 +188,46 @@
         }
 
         // 3. Resolve all songs and sections for list
-        const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0
-            ? sharedList.listItems
-            : sharedList.songs.map((s) => ({ songId: s.id || "", transposed: s.lastTransposed }))
+        const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0 ? sharedList.listItems : sharedList.songs.map((s) => ({ id: s.id || "", transposed: s.lastTransposed }))
 
-        const resolvedSongs = itemsToResolve
-            .map((item: any, i: number) => {
-                if (item.isSection) {
-                    return { id: getId("section"), name: item.name || "Section", isSection: true }
-                }
-                const sharedSong = sharedList.songs.find((s) => s.id === item.songId) || sharedList.songs[i]
-                if (!sharedSong) return null
-                const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
-                const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
-
-                let songId = ""
-                let songName = sharedSong.name
-
-                if (matchById) {
-                    if (overwriteIdMatches) applySongData(matchById, sharedSong)
-                    songId = matchById.id
-                    songName = matchById.name
-                } else if (matchByName) {
-                    if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
-                        applySongData(matchByName, sharedSong)
-                        songId = matchByName.id
-                        songName = matchByName.name
-                    } else {
-                        songId = createNewSong(sharedSong, true).id
+        const resolvedSongs = (
+            await Promise.all(
+                itemsToResolve.map(async (item: any, i: number) => {
+                    const isSection = item.type === "section"
+                    if (isSection) {
+                        return { id: getId("section"), name: item.name || "Section", type: "section" }
                     }
-                } else {
-                    songId = createNewSong(sharedSong).id
-                }
+                    const targetSongId = item.id
+                    const sharedSong = sharedList.songs.find((s) => s.id === targetSongId) || sharedList.songs[i]
+                    if (!sharedSong) return null
+                    const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
+                    const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
 
-                return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
-            })
-            .filter(Boolean) as any[]
+                    let songId = ""
+                    let songName = sharedSong.name
+
+                    if (matchById) {
+                        if (overwriteIdMatches) await applySongData(matchById, sharedSong)
+                        songId = matchById.id
+                        songName = matchById.name
+                    } else if (matchByName) {
+                        if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
+                            await applySongData(matchByName, sharedSong)
+                            songId = matchByName.id
+                            songName = matchByName.name
+                        } else {
+                            const created = await createNewSong(sharedSong, true)
+                            songId = created.id
+                        }
+                    } else {
+                        const created = await createNewSong(sharedSong)
+                        songId = created.id
+                    }
+
+                    return { id: songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
+                })
+            )
+        ).filter(Boolean) as any[]
 
         // 4. Create or replace list
         const existingListMatch = sharedList.id ? storage.lists.find((l) => l.id === sharedList.id) : null
@@ -210,7 +246,7 @@
                 songs: resolvedSongs,
                 createdAt: sharedList.createdAt || Date.now()
             })
-            const lastPage = menuState.previousPages.at(-1)
+            const lastPage = menuState.previousPages[menuState.previousPages.length - 1]
             const targetFolderId = lastPage?.activePage === "folder" && lastPage.contentId ? lastPage.contentId : null
             let targetFolder = targetFolderId ? storage.getFolderById(targetFolderId) : null
 
@@ -330,60 +366,62 @@
                 </div> -->
 
                 <div class="song-table">
-                    {#each previewListSongs as song, idx}
-                        {@const pbUrl = song.playbackUrl || song.spotify || song.getMetadata("playback") || song.getMetadata("spotify")}
-                        {@const pbInfo = parsePlaybackUrl(pbUrl)}
-                        {@const isPlaying = playbackState.isOpen && (playbackState.songId === song.id || (pbUrl && playbackState.customPlaybackUrl === pbUrl))}
-                        <!-- {@const isExisting = storage.songs.some((s) => (song.id && s.id === song.id) || s.name.trim().toLowerCase() === song.name.trim().toLowerCase())} -->
-
-                        <div class="song-row">
-                            <span class="track-num">{idx + 1}</span>
-
-                            <div class="song-main">
-                                <span class="song-title-text">{song.name}</span>
-                                {#if song.getMetadata("artist")}
-                                    <span class="song-artist-text">{song.getMetadata("artist")}</span>
-                                {/if}
+                    {#each previewListItems as item}
+                        {#if item.type === "section"}
+                            <div class="section-row">
+                                <span class="material-symbols-outlined section-icon">bookmark</span>
+                                <span class="section-title-text">{item.name}</span>
                             </div>
+                        {:else if item.type === "song"}
+                            {@const song = item.song}
+                            {@const pbUrl = song.playbackUrl || song.spotify || song.getMetadata("playback") || song.getMetadata("spotify")}
+                            {@const pbInfo = parsePlaybackUrl(pbUrl)}
+                            {@const isPlaying = playbackState.isOpen && (playbackState.songId === song.id || (pbUrl && playbackState.customPlaybackUrl === pbUrl))}
+                            {@const key = item.transposed || song.lastTransposed || song.getMetadata("key")}
 
-                            <div class="song-meta-side">
-                                {#if song.getMetadata("key") || song.lastTransposed}
-                                    <span class="key-badge">{song.lastTransposed || song.getMetadata("key")}</span>
-                                {/if}
+                            <div class="song-row">
+                                <span class="track-num">{item.songIndex}</span>
 
-                                {#if pbInfo}
-                                    <button
-                                        class="play-btn"
-                                        class:active={isPlaying}
-                                        onclick={() => handleSongPlayback(song)}
-                                        title={`Play with ${pbInfo.provider === "spotify" ? "Spotify" : pbInfo.provider === "youtube" ? "YouTube" : pbInfo.provider}`}
-                                        aria-label={`Play ${song.name}`}
-                                    >
-                                        {#if pbInfo.provider === "spotify"}
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill={isPlaying ? "#1DB954" : "currentColor"}>
-                                                <path
-                                                    d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"
-                                                />
-                                            </svg>
-                                        {:else if pbInfo.provider === "youtube"}
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill={isPlaying ? "#FF0000" : "currentColor"}>
-                                                <path
-                                                    d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
-                                                />
-                                            </svg>
-                                        {:else}
-                                            <span class="material-symbols-outlined" style="font-size: 20px;">{isPlaying ? "pause_circle" : "play_circle"}</span>
-                                        {/if}
-                                    </button>
-                                {/if}
+                                <div class="song-main">
+                                    <span class="song-title-text">{song.name}</span>
+                                    {#if song.getMetadata("artist")}
+                                        <span class="song-artist-text">{song.getMetadata("artist")}</span>
+                                    {/if}
+                                </div>
 
-                                <!-- {#if isExisting}
-                                    <span class="status-pill existing">Library</span>
-                                {:else}
-                                    <span class="status-pill new">New</span>
-                                {/if} -->
+                                <div class="song-meta-side">
+                                    {#if key}
+                                        <span class="key-badge">{key}</span>
+                                    {/if}
+
+                                    {#if pbInfo}
+                                        <button
+                                            class="play-btn"
+                                            class:active={isPlaying}
+                                            onclick={() => handleSongPlayback(song)}
+                                            title={`Play with ${pbInfo.provider === "spotify" ? "Spotify" : pbInfo.provider === "youtube" ? "YouTube" : pbInfo.provider}`}
+                                            aria-label={`Play ${song.name}`}
+                                        >
+                                            {#if pbInfo.provider === "spotify"}
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill={isPlaying ? "#1DB954" : "currentColor"}>
+                                                    <path
+                                                        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"
+                                                    />
+                                                </svg>
+                                            {:else if pbInfo.provider === "youtube"}
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill={isPlaying ? "#FF0000" : "currentColor"}>
+                                                    <path
+                                                        d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                                                    />
+                                                </svg>
+                                            {:else}
+                                                <span class="material-symbols-outlined" style="font-size: 20px;">{isPlaying ? "pause_circle" : "play_circle"}</span>
+                                            {/if}
+                                        </button>
+                                    {/if}
+                                </div>
                             </div>
-                        </div>
+                        {/if}
                     {/each}
                 </div>
             </div>
@@ -566,6 +604,34 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
+    }
+
+    .section-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-top: 8px;
+        margin-bottom: 2px;
+        border-radius: 6px;
+        background: var(--md-sys-color-surface-container-low, rgba(0, 0, 0, 0.04));
+        border-left: 3px solid var(--md-sys-color-primary, #006666);
+    }
+
+    .section-row:first-child {
+        margin-top: 0;
+    }
+
+    .section-icon {
+        font-size: 18px;
+        color: var(--md-sys-color-primary, #006666);
+    }
+
+    .section-title-text {
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        color: var(--md-sys-color-primary, #006666);
     }
 
     .song-row {

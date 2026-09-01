@@ -63,6 +63,7 @@
         "list_name_placeholder": "f.eks. Søndagssett",
         "song_title_label": "Sangtittel",
         "song_title_placeholder": "f.eks. Navnet Jesus",
+        "song_exists": "En sang med navnet \"{name}\" finnes allerede.",
         "section": "Opprett seksjon",
         "section_name_label": "Seksjonsnavn",
         "section_name_placeholder": "f.eks. Pause, Nattverd"
@@ -205,8 +206,10 @@
         "paste_reading_error": "Kunne ikke lese utklippstavlen. Vennligst gi tillatelse.",
         "link_copied": "Delingslenke kopiert til utklippstavlen!",
         "link_copied_no_media": "Delingslenke kopiert! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
+        "link_copied_media_warning": "Delingslenke kopiert! Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "shared_success": "Delt!",
         "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
+        "shared_media_warning": "Delt! Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "copy_failed": "Kunne ikke kopiere lenke",
         "generate_failed": "Kunne ikke opprette delingslenke"
     },
@@ -219,6 +222,10 @@
         "show_chords": "Vis akkorder",
         "settings_title": "Ark-innstillinger",
         "page_background": "Sidebakgrunn",
-        "text_size": "Tekststørrelse"
+        "text_size": "Tekststørrelse",
+        "page_animation": "Sidebytteanimasjon",
+        "animation_none": "Ingen",
+        "animation_fast": "Rask",
+        "animation_slow": "Sakte"
     }
 }

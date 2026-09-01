@@ -1,12 +1,14 @@
 <script lang="ts">
     import { importSetlistFile } from "$lib/export/exportHelper"
-    import { Settings } from "$lib/models/Settings"
+    import { Settings, type PageSwitchAnimation } from "$lib/models/Settings"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
     import { menuState, popupState, setActivePopup } from "$lib/state/menu.svelte"
     import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import "@material/web/iconbutton/filled-tonal-icon-button.js"
+    import "@material/web/select/outlined-select.js"
+    import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
@@ -29,6 +31,7 @@
 
     let currentBg = $state(storage.settings.paperOptions?.background || "#ffffff")
     let currentFontSize = $state(storage.settings.paperOptions?.fontSize ?? 100)
+    let currentPageAnimation = $state<PageSwitchAnimation>(storage.settings.paperOptions?.pageAnimation || "fast")
 
     function selectBackground(color: string) {
         currentBg = color
@@ -66,9 +69,22 @@
         storage.persist()
     }
 
+    function selectPageAnimation(animation: PageSwitchAnimation) {
+        currentPageAnimation = animation
+        storage.settings = new Settings({
+            ...storage.settings,
+            paperOptions: {
+                ...storage.settings.paperOptions,
+                pageAnimation: animation
+            }
+        })
+        storage.persist()
+    }
+
     function resetPaperDefaults() {
         selectBackground("#ffffff")
         setFontSize(100)
+        selectPageAnimation("fast")
     }
 
     function closeDialog() {
@@ -230,6 +246,37 @@
                     </md-filled-tonal-icon-button>
                 </div>
             </div>
+
+            <hr class="section-divider" />
+
+            <!-- Page Switch Animation Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">animation</span>
+                    {t("song_fullscreen", "page_animation")}
+                </div>
+
+                <md-outlined-select
+                    value={currentPageAnimation}
+                    onchange={(e: Event) => {
+                        const target = e.target as HTMLSelectElement
+                        if (target?.value) {
+                            selectPageAnimation(target.value as PageSwitchAnimation)
+                        }
+                    }}
+                    class="animation-select"
+                >
+                    <md-select-option value="none" selected={currentPageAnimation === "none"}>
+                        <div slot="headline">{t("song_fullscreen", "animation_none")}</div>
+                    </md-select-option>
+                    <md-select-option value="fast" selected={currentPageAnimation === "fast"}>
+                        <div slot="headline">{t("song_fullscreen", "animation_fast")}</div>
+                    </md-select-option>
+                    <md-select-option value="slow" selected={currentPageAnimation === "slow"}>
+                        <div slot="headline">{t("song_fullscreen", "animation_slow")}</div>
+                    </md-select-option>
+                </md-outlined-select>
+            </div>
         {:else}
             <!-- Theme Color Section -->
             <div class="settings-section">
@@ -264,13 +311,22 @@
                     <span class="material-symbols-outlined section-icon">language</span>
                     {t("settings", "language")}
                 </div>
-                <div class="language-options">
+                <md-outlined-select
+                    value={currentLanguage}
+                    onchange={(e: Event) => {
+                        const target = e.target as HTMLSelectElement
+                        if (target?.value) {
+                            selectLanguage(target.value as SupportedLocale)
+                        }
+                    }}
+                    class="language-select"
+                >
                     {#each SUPPORTED_LANGUAGES as lang}
-                        <button type="button" class="lang-chip" class:active={currentLanguage === lang.code} onclick={() => selectLanguage(lang.code)}>
-                            {lang.label}
-                        </button>
+                        <md-select-option value={lang.code} selected={currentLanguage === lang.code}>
+                            <div slot="headline">{lang.label}</div>
+                        </md-select-option>
                     {/each}
-                </div>
+                </md-outlined-select>
             </div>
 
             <hr class="section-divider" />
@@ -411,32 +467,9 @@
         font-weight: bold;
     }
 
-    .language-options {
-        display: flex;
-        gap: 8px;
-    }
-
-    .lang-chip {
-        flex: 1;
-        padding: 8px 16px;
-        border-radius: 8px;
-        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
-        background: var(--md-sys-color-surface-container-low, transparent);
-        color: var(--md-sys-color-on-surface, inherit);
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .lang-chip:hover {
-        background: var(--md-sys-color-surface-container-high, rgba(0, 0, 0, 0.04));
-    }
-
-    .lang-chip.active {
-        background: var(--md-sys-color-primary);
-        color: var(--md-sys-color-on-primary);
-        border-color: var(--md-sys-color-primary);
+    .language-select,
+    .animation-select {
+        width: 100%;
     }
 
     .settings-actions {

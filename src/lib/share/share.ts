@@ -100,7 +100,7 @@ export async function copyUrlToClipboard(url: string, title?: string, hasMedia =
     if (navigator?.share) {
         try {
             await navigator.share({ title: title || "Chord Sheet", url })
-            const msg = hasMedia ? t("share", "shared_no_media") : t("share", "shared_success")
+            const msg = hasMedia ? t("share", "shared_media_warning") : t("share", "shared_success")
             showToast(msg, "success", duration)
             return true
         } catch (err) {
@@ -108,7 +108,7 @@ export async function copyUrlToClipboard(url: string, title?: string, hasMedia =
         }
     }
 
-    const copyMsg = hasMedia ? t("share", "link_copied_no_media") : t("share", "link_copied")
+    const copyMsg = hasMedia ? t("share", "link_copied_media_warning") : t("share", "link_copied")
 
     if (navigator?.clipboard) {
         try {
@@ -195,8 +195,8 @@ export async function pasteSharedFromClipboard(): Promise<boolean> {
 
 export async function shareSong(song: Song): Promise<boolean> {
     try {
-        const hasMedia = Boolean(song.images?.length)
-        const payload = buildSongSharePayload(song)
+        const payload = await buildSongSharePayload(song)
+        const hasMedia = Boolean(payload.song.images?.length)
         const url = await createShare(payload)
         return await copyUrlToClipboard(url, song.name, hasMedia)
     } catch (e) {
@@ -208,9 +208,8 @@ export async function shareSong(song: Song): Promise<boolean> {
 
 export async function shareList(list: List, allSongs: Song[]): Promise<boolean> {
     try {
-        const listSongs = list.getSongs(allSongs)
-        const hasMedia = listSongs.some((s) => s.images?.length)
-        const payload = buildListSharePayload(list, allSongs)
+        const payload = await buildListSharePayload(list, allSongs)
+        const hasMedia = payload.list.songs.some((s) => Boolean(s.images?.length))
         const url = await createShare(payload)
         return await copyUrlToClipboard(url, list.name, hasMedia)
     } catch (e) {

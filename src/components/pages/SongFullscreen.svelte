@@ -2,8 +2,10 @@
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
     import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePage, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { exitFullscreen, isFullscreenActive, toggleFullscreen } from "$lib/utils/fullscreen"
+    import { parsePlaybackUrl } from "$lib/utils/playback"
     import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
     import { onMount } from "svelte"
     import { slide } from "svelte/transition"
@@ -20,7 +22,7 @@
 
     const slides = $derived.by<FullscreenSlide[]>(() => {
         if (!list) {
-            return menuState.contentId ? [{ type: "song", songItem: { songId: menuState.contentId }, originalIndex: 0 }] : []
+            return menuState.contentId ? [{ type: "song", songItem: { id: menuState.contentId }, originalIndex: 0 }] : []
         }
 
         const result: FullscreenSlide[] = []
@@ -29,12 +31,12 @@
 
         for (let i = 0; i < list.songs.length; i++) {
             const item = list.songs[i]
-            if (item.isSection) {
+            if (item.type === "section") {
                 if (currentSections.length === 0) {
                     firstSectionIdx = i
                 }
                 currentSections.push({ name: item.name || "Section", originalIndex: i })
-            } else if (item.songId) {
+            } else if (item.id) {
                 if (currentSections.length > 0) {
                     result.push({
                         type: "section",
@@ -127,7 +129,9 @@
             target?.closest("md-menu-item") ||
             target?.closest("md-dialog") ||
             target?.closest(".md-dialog") ||
-            target?.closest("[role='dialog']")
+            target?.closest("[role='dialog']") ||
+            target?.closest(".playback-bar") ||
+            target?.closest(".playback-bar-container")
         )
             return
 
@@ -171,7 +175,7 @@
                 const index = slideEl ? slideEls.indexOf(slideEl) : -1
                 const slideItem = slides[index]
                 if (!slideItem) return null
-                return slideItem.type === "song" ? (slideItem.songItem.songId ?? null) : null
+                return slideItem.type === "song" ? (slideItem.songItem.id ?? null) : null
             })
 
             pageIndexMap = pages.map((page) => {
@@ -186,7 +190,7 @@
                 return slideItem?.originalIndex ?? index
             })
         } else {
-            pageSongMap = slides.map((s) => (s.type === "song" ? (s.songItem.songId ?? null) : null))
+            pageSongMap = slides.map((s) => (s.type === "song" ? (s.songItem.id ?? null) : null))
             pageIndexMap = slides.map(() => 0)
             pageSongIndexMap = slides.map((s, i) => s.originalIndex ?? i)
         }
@@ -266,19 +270,30 @@
         setTimeout(() => (didDrag = false), 100)
     }
 
+    function getTransitionDuration(): number {
+        const speed = storage.settings.paperOptions?.pageAnimation ?? "fast"
+        if (speed === "none") return 0
+        if (speed === "slow") return 400
+        return 120
+    }
+
     function setPositionByIndex(animate = true) {
         if (!sliderEl) return
         const viewportWidth = sliderEl.parentElement?.clientWidth || window.innerWidth
         currentTranslate = -currentPageIndex * viewportWidth
         prevTranslate = currentTranslate
 
-        sliderEl.style.transition = animate ? "transform 300ms ease" : "none"
+        const duration = animate ? getTransitionDuration() : 0
+
+        sliderEl.style.transition = duration > 0 ? `transform ${duration}ms ease` : "none"
         sliderEl.style.transform = `translateX(${currentTranslate}px)`
 
-        if (animate) {
+        if (duration > 0) {
             setTimeout(() => {
                 if (sliderEl) sliderEl.style.transition = ""
-            }, 300)
+            }, duration)
+        } else {
+            sliderEl.style.transition = ""
         }
 
         detectSongAndPage()
@@ -289,7 +304,7 @@
     function detectSongAndPage(index = currentPageIndex) {
         const pageCount = pageSongMap.length
         const globalIndex = pageCount > 0 ? Math.max(0, Math.min(index, pageCount - 1)) : index
-        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.songId : null) ?? null
+        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
         const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
@@ -307,21 +322,29 @@
         }
     }
 
-    let isNativeFullscreen = $state(false)
+    let visibleSong = $derived(visibleSongId ? storage.getSongById(visibleSongId, storage.songs) : null)
+    let visiblePlaybackUrl = $derived(visibleSong?.playbackUrl || visibleSong?.spotify || visibleSong?.getMetadata("playback") || visibleSong?.getMetadata("spotify") || "")
+    let visiblePlaybackInfo = $derived(parsePlaybackUrl(visiblePlaybackUrl))
+    let isPlayingVisibleSong = $derived(playbackState.isOpen && !!visibleSong && (playbackState.songId === visibleSong.id || (!!visiblePlaybackUrl && playbackState.customPlaybackUrl === visiblePlaybackUrl)))
 
-    async function handleToggleFullscreen() {
-        await toggleFullscreen()
-        isNativeFullscreen = isFullscreenActive()
+    let updateRafId: number | null = null
+    function scheduleUpdatePageCount(immediatePosition = false) {
+        if (updateRafId !== null) cancelAnimationFrame(updateRafId)
+        updateRafId = requestAnimationFrame(() => {
+            updateRafId = null
+            updatePageCount()
+            if (immediatePosition) {
+                setPositionByIndex(false)
+            }
+        })
     }
 
     // --- Lifecycle & DOM Observation ---
     onMount(() => {
-        isNativeFullscreen = isFullscreenActive()
         requestWakeLock()
 
         const resizeObserver = new ResizeObserver(() => {
-            updatePageCount()
-            setPositionByIndex(false)
+            scheduleUpdatePageCount(true)
         })
 
         if (sliderEl) {
@@ -329,7 +352,7 @@
         }
 
         const mutationObserver = new MutationObserver(() => {
-            updatePageCount()
+            scheduleUpdatePageCount(false)
         })
 
         if (sliderEl) {
@@ -344,6 +367,7 @@
         setPositionByIndex(false)
 
         return () => {
+            if (updateRafId !== null) cancelAnimationFrame(updateRafId)
             resizeObserver.disconnect()
             mutationObserver.disconnect()
             releaseWakeLock()
@@ -409,6 +433,38 @@
                 </md-icon-button>
 
                 <md-menu id="fullscreen-more-menu" anchor="fullscreen-more-btn" open={moreMenuOpen} onclosed={() => (moreMenuOpen = false)} quick>
+                    {#if visiblePlaybackInfo && visibleSong}
+                        <md-menu-item
+                            onclick={() => {
+                                moreMenuOpen = false
+                                if (visibleSong) togglePlayback(visibleSong.id, visiblePlaybackUrl, visibleSong.name, true)
+                            }}
+                        >
+                            {#if visiblePlaybackInfo.provider === "spotify"}
+                                <span slot="start" style="display: inline-flex; align-items: center;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill={isPlayingVisibleSong ? "#1DB954" : "currentColor"}>
+                                        <path
+                                            d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.494 17.307c-.216.353-.674.466-1.027.25-2.822-1.724-6.374-2.115-10.559-1.159-.404.093-.807-.16-.9-.564-.092-.404.161-.807.564-.9 4.582-1.047 8.514-.606 11.672 1.346.353.216.466.674.25 1.027zm1.465-3.262c-.272.441-.849.582-1.29.31-3.23-1.986-8.155-2.56-11.977-1.4-4.99.151-.989-.138-1.14-.637-.152-.499.138-.989.637-1.14 4.381-1.33 9.807-.687 13.46 1.577.441.272.582.849.31 1.29zm.126-3.41c-3.874-2.3-10.264-2.512-13.97-1.386-.595.181-1.226-.157-1.407-.752-.181-.595.157-1.226.752-1.407 4.257-1.293 11.31-1.045 15.772 1.603.535.318.708 1.01.39 1.545-.318.535-1.01.708-1.545.39z"
+                                        />
+                                    </svg>
+                                </span>
+                            {:else if visiblePlaybackInfo.provider === "youtube"}
+                                <span slot="start" style="display: inline-flex; align-items: center;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill={isPlayingVisibleSong ? "#FF0000" : "currentColor"}>
+                                        <path
+                                            d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"
+                                        />
+                                    </svg>
+                                </span>
+                            {:else}
+                                <span class="material-symbols-outlined" slot="start" style={isPlayingVisibleSong ? "color: var(--md-sys-color-primary, #6750a4);" : ""}>play_circle</span>
+                            {/if}
+                            <div slot="headline">
+                                {isPlayingVisibleSong ? t("common", "close") + " " + t("song_edit", "play").toLowerCase() : t("song_edit", "play")}
+                            </div>
+                        </md-menu-item>
+                    {/if}
+
                     <md-menu-item
                         onclick={() => {
                             moreMenuOpen = false
@@ -448,7 +504,7 @@
         >
             {#each slides as slideItem, i}
                 {#if slideItem.type === "song"}
-                    {@const songId = slideItem.songItem?.songId ?? null}
+                    {@const songId = slideItem.songItem?.id ?? null}
                     {@const song = storage.getSongById(songId, storage.songs)}
                     {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
                     {@const hasMedia = !!song?.images.length}

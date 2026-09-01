@@ -89,7 +89,7 @@
                     <div class="search-category-title">{t("search", "category_lists")} ({matchedLists.length})</div>
                     <md-list class="folders-list">
                         {#each matchedLists as list}
-                            {@const count = list.songs?.filter((s) => !s.isSection).length ?? 0}
+                            {@const count = list.songs?.filter((s) => s.type !== "section").length ?? 0}
                             <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                                 <div slot="headline">{list.name}</div>
                                 <md-icon slot="start">list</md-icon>
@@ -157,7 +157,7 @@
             <div class="section-title">{t("home", "recently_used")}</div>
             <md-list class="folders-list scroll-list" style="overflow: initial;">
                 {#each recentLists as list}
-                    {@const count = list.songs?.filter((s) => !s.isSection).length ?? 0}
+                    {@const count = list.songs?.filter((s) => s.type !== "section" && !s.isSection).length ?? 0}
                     <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                         <div slot="headline">{list.name}</div>
                         <md-icon slot="start">list</md-icon>

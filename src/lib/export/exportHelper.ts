@@ -11,9 +11,9 @@ import { sanitizeFilename } from "$lib/utils/common"
 /**
  * Exports a single song as an uncompressed, full JSON file.
  */
-export function exportSongAsJson(song: Song) {
+export async function exportSongAsJson(song: Song) {
     try {
-        const payload = buildSongSharePayload(song)
+        const payload = await buildSongSharePayload(song)
         const jsonStr = JSON.stringify(payload, null, 2)
         const blob = new Blob([jsonStr], { type: "application/json" })
         const url = URL.createObjectURL(blob)
@@ -35,9 +35,9 @@ export function exportSongAsJson(song: Song) {
 /**
  * Exports a setlist as an uncompressed, full JSON file containing the setlist and all song data.
  */
-export function exportSetlistAsJson(list: List, allSongs: Song[]) {
+export async function exportSetlistAsJson(list: List, allSongs: Song[]) {
     try {
-        const payload = buildListSharePayload(list, allSongs)
+        const payload = await buildListSharePayload(list, allSongs)
         const jsonStr = JSON.stringify(payload, null, 2)
         const blob = new Blob([jsonStr], { type: "application/json" })
         const url = URL.createObjectURL(blob)

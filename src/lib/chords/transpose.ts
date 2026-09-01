@@ -290,3 +290,44 @@ export function calculateTransposeSemitones(params: {
     }
     return 0
 }
+
+export interface SongKeyInfo {
+    originalKey: string
+    currentKey: string
+    isTransposed: boolean
+    isNashville: boolean
+    effectiveSemitones: number | "NNS"
+}
+
+/**
+ * Detects the song's original key, effective transposition, and formatted active key.
+ */
+export function getSongKeyInfo(params: {
+    content?: string
+    songKey?: string
+    semitones?: number
+    targetKey?: string
+    lastTransposed?: string
+}): SongKeyInfo {
+    const originalKey = extractBaseKey(params.content, params.songKey) || ""
+    const effectiveSemitones = calculateTransposeSemitones(params)
+    const isNashville = effectiveSemitones === "NNS"
+    const preferFlats = getScaleForOriginalKey(originalKey).includes("Eb")
+
+    let currentKey = originalKey
+    if (isNashville) {
+        currentKey = "1 2 3"
+    } else if (originalKey && typeof effectiveSemitones === "number" && effectiveSemitones !== 0) {
+        currentKey = transposeNote(originalKey, effectiveSemitones, preferFlats)
+    }
+
+    const isTransposed = Boolean(originalKey && (isNashville || (typeof effectiveSemitones === "number" && effectiveSemitones !== 0)))
+
+    return {
+        originalKey,
+        currentKey,
+        isTransposed,
+        isNashville,
+        effectiveSemitones
+    }
+}

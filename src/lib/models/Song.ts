@@ -19,10 +19,11 @@ export class Songs {
     static create(data: Partial<SongKeys> = {}, listId: string | null): Song {
         const song = new Song(data)
 
-        const list = storage.getListById(listId)
-        if (list) list.addSong(song.id, song.name)
-
         storage.addSong(song)
+
+        const list = storage.getListById(listId)
+        if (list) list.addSong(song)
+
         return song
     }
 }

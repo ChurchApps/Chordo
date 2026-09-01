@@ -24,7 +24,7 @@
     {#if filteredLists.length}
         <md-list class="list scroll-list">
             {#each filteredLists as list}
-                {@const count = list.songs?.filter((s) => !s.isSection).length ?? 0}
+                {@const count = list.songs?.filter((s) => s.type !== "section").length ?? 0}
                 <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                     <div slot="headline">{list.name}</div>
                     <md-icon slot="start">list</md-icon>

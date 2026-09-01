@@ -34,14 +34,15 @@
         const songItem = listItems[idx]
         if (!songItem || songItem.isDeleted) return
 
-        if (songItem.isSection) {
+        if (songItem.type === "section") {
             listEditingState.selectedIndex = idx
             setActivePopup("rename_section")
             return
         }
 
+        savedFullscreenPosition.pageIndex = null
         savedFullscreenPosition.index = idx
-        setActivePage("song_edit", songItem.songId, songItem.name)
+        setActivePage("song_edit", songItem.id, songItem.name)
     }
 
     $effect(() => {
@@ -161,17 +162,18 @@
             }
             return
         }
-        if (item.isDeleted || item.isSection) return
+        if (item.isDeleted || item.type === "section") return
 
+        savedFullscreenPosition.pageIndex = null
         savedFullscreenPosition.index = originalIdx
-        setActivePage("song", item.songId, item.name)
+        setActivePage("song", item.id, item.name)
     }
 </script>
 
 <main>
     {#if listItems.length}
         <md-list class="song-list scroll-list" ondragover={(e: DragEvent) => handleContainerDragOver(e, listItems.length, reorderState)} ondrop={(e: DragEvent) => handleContainerDrop(e, listItems.length, reorderState, onBatchMove)}>
-            {#each displaySongs as { item: songItem, originalIdx }, idx ((songItem.songId ?? songItem.id ?? "item") + "-" + originalIdx)}
+            {#each displaySongs as { item: songItem, originalIdx }, idx ((songItem.id ?? "item") + "-" + originalIdx)}
                 {@const isGhost = reorderState.draggedIdx !== null && (reorderState.draggedIndices.length > 0 ? reorderState.draggedIndices.includes(originalIdx) : originalIdx === reorderState.draggedIdx)}
                 {@const isSelected = isEditing && selectedIndices.includes(originalIdx)}
                 {@const artist = songItem.song?.metadata?.artist || (songItem.song?.getMetadata ? songItem.song.getMetadata("artist") : "")}
@@ -192,7 +194,7 @@
                         type="button"
                         class:selected={isSelected}
                         class:deleted-item={songItem.isDeleted}
-                        class:section-item={songItem.isSection}
+                        class:section-item={songItem.type === "section"}
                         disabled={songItem.isDeleted && !isEditing}
                         onpointerdown={(e: PointerEvent) => startPress(e, originalIdx)}
                         onpointerup={endPress}
@@ -205,7 +207,7 @@
                             <div slot="start" class="drag-handle-container" title="Drag to reorder" onpointerdown={(e) => handleImmediatePointerDragStart(e, originalIdx)}>
                                 <span class="material-symbols-outlined drag-handle">drag_handle</span>
                             </div>
-                        {:else if songItem.isSection}
+                        {:else if songItem.type === "section"}
                             <md-icon slot="start" class="section-icon">bookmark</md-icon>
                         {:else if songItem.isDeleted}
                             <md-icon slot="start" style="opacity: 0.4;">music_off</md-icon>
@@ -213,14 +215,14 @@
                             <md-icon slot="start">music_note</md-icon>
                         {/if}
 
-                        <div slot="headline" class="song-headline" class:deleted={songItem.isDeleted} class:section-headline={songItem.isSection}>
+                        <div slot="headline" class="song-headline" class:deleted={songItem.isDeleted} class:section-headline={songItem.type === "section"}>
                             {songItem.name}
                             {#if songItem.isDeleted}
                                 <span class="deleted-tag">{t("list", "deleted")}</span>
                             {/if}
                         </div>
 
-                        {#if !songItem.isDeleted && !songItem.isSection && (artist || key)}
+                        {#if !songItem.isDeleted && songItem.type !== "section" && (artist || key)}
                             <div slot="supporting-text">
                                 {artist || ""}
                                 {#if artist && key}
@@ -232,7 +234,7 @@
 
                         {#if isEditing}
                             <div slot="end" class="song-controls"></div>
-                        {:else if !songItem.isDeleted && !songItem.isSection}
+                        {:else if !songItem.isDeleted && songItem.type !== "section"}
                             <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                         {/if}
                     </md-list-item>

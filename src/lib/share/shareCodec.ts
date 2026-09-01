@@ -1,3 +1,4 @@
+import { FileSystem } from "../storage/FileSystem"
 import type { SongMetadata } from "../chords/metadata"
 import type { List } from "../models/List"
 import type { Song } from "../models/Song"
@@ -8,6 +9,7 @@ export type SharedSongData = {
     id?: string
     name: string
     content: string
+    images?: string[]
     metadata?: SongMetadata
     playbackUrl?: string
     url?: string
@@ -17,7 +19,11 @@ export type SharedSongData = {
 }
 
 export type SharedListSongItem = {
-    songId: string
+    id?: string
+    songId?: string // for backward compatibility
+    type?: "song" | "section"
+    isSection?: boolean // for backward compatibility
+    name?: string
     transposed?: string
     lastKnownName?: string
     [key: string]: unknown
@@ -32,7 +38,9 @@ export type SharedListData = {
     [key: string]: unknown
 }
 
-export type SharePayload = { type: "song"; song: SharedSongData } | { type: "list"; list: SharedListData }
+export type SongSharePayload = { type: "song"; song: SharedSongData }
+export type ListSharePayload = { type: "list"; list: SharedListData }
+export type SharePayload = SongSharePayload | ListSharePayload
 
 // --- URL Normalization ---
 
@@ -73,17 +81,25 @@ export function trimChordContent(content = ""): string {
         .trim()
 }
 
-export function cleanSongForShare(song: Song | SharedSongData): SharedSongData {
+export async function cleanSongForShare(song: Song | SharedSongData): Promise<SharedSongData> {
     const rawMeta = typeof (song as Record<string, unknown>).getMetadata === "function" ? (song as Song).getMetadata() : (song as SharedSongData).metadata
-
     const metadata = rawMeta ? Object.fromEntries(Object.entries(rawMeta).filter(([_, v]) => typeof v === "string" && v.trim())) : undefined
 
     const { getMetadata, images, content, name, playbackUrl, url, ...rest } = song as Record<string, unknown>
+    const trimmedContent = trimChordContent((content as string) || "")
+
+    let base64Images: string[] | undefined
+    if (!trimmedContent && Array.isArray(images) && images.length > 0) {
+        const resolved = await Promise.all(images.map((img) => (typeof img === "string" && img.trim() ? FileSystem.resolveImageUrl(img) : "")))
+        const valid = resolved.filter(Boolean)
+        if (valid.length > 0) base64Images = valid
+    }
 
     return {
         ...rest,
         name: (name as string) || "Untitled",
-        content: trimChordContent(content as string),
+        content: trimmedContent,
+        ...(base64Images ? { images: base64Images } : {}),
         ...(metadata && Object.keys(metadata).length ? { metadata } : {}),
         ...(playbackUrl ? { playbackUrl: compressUrl(playbackUrl as string) } : {}),
         ...(url ? { url: compressUrl(url as string) } : {})
@@ -99,6 +115,7 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
             ...data.song,
             name: data.song?.name || "Untitled",
             content: data.song?.content || "",
+            images: Array.isArray(data.song?.images) ? data.song.images : [],
             metadata: data.song?.metadata || {},
             playbackUrl: expandUrl(data.song?.playbackUrl),
             url: expandUrl(data.song?.url)
@@ -109,22 +126,26 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
             ...s,
             name: s?.name || "Untitled",
             content: s?.content || "",
+            images: Array.isArray(s?.images) ? s.images : [],
             metadata: s?.metadata || {},
             playbackUrl: expandUrl(s?.playbackUrl),
             url: expandUrl(s?.url)
         }))
 
         const listItems = (data.list?.listItems || []).map((item: any, idx: number) => {
-            if (item?.isSection) {
+            const isSection = item?.type === "section" || item?.isSection
+            if (isSection) {
                 return {
                     ...item,
-                    isSection: true,
+                    type: "section",
                     name: item?.name || "Section"
                 }
             }
+            const songId = item?.id || item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
             return {
                 ...item,
-                songId: item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
+                id: songId,
+                songId
             }
         })
 
@@ -146,39 +167,43 @@ export function parseSharePayload(data: any): SharePayload | null {
     return parser ? parser(data) : null
 }
 
-export function buildSongSharePayload(song: Song | SharedSongData): SharePayload {
+export async function buildSongSharePayload(song: Song | SharedSongData): Promise<SongSharePayload> {
     return {
         type: "song",
-        song: cleanSongForShare(song)
+        song: await cleanSongForShare(song)
     }
 }
 
-export function buildListSharePayload(list: List, allSongs: Song[]): SharePayload {
+export async function buildListSharePayload(list: List, allSongs: Song[]): Promise<ListSharePayload> {
     const songMap = new Map(allSongs.map((s) => [s.id, s]))
     const uniqueMap = new Map<string, number>()
     const catalogSongs: SharedSongData[] = []
 
     const listItems = list.songs
         .map((item) => {
-            if (item.isSection) {
+            const isSection = item.type === "section" || item.isSection
+            if (isSection) {
                 return {
-                    songId: "",
-                    isSection: true,
+                    type: "section" as const,
                     name: item.name
                 }
             }
-            if (!item.songId) return null
-            if (!uniqueMap.has(item.songId)) {
-                const target = songMap.get(item.songId)
+            const songId = item.id ?? item.songId
+            if (!songId) return null
+            if (!uniqueMap.has(songId)) {
+                const target = songMap.get(songId)
                 if (target) {
-                    uniqueMap.set(item.songId, catalogSongs.length)
-                    catalogSongs.push(cleanSongForShare(target))
+                    uniqueMap.set(songId, catalogSongs.length)
+                    catalogSongs.push(target as any)
                 }
             }
-            const index = uniqueMap.get(item.songId)
-            return index !== undefined ? { songId: catalogSongs[index].id || `song-${index}`, transposed: item.transposed } : null
+            const index = uniqueMap.get(songId)
+            const targetId = index !== undefined ? catalogSongs[index].id || `song-${index}` : songId
+            return index !== undefined ? { id: targetId, songId: targetId, transposed: item.transposed } : null
         })
         .filter(Boolean) as SharedListSongItem[]
+
+    const cleanedSongs = await Promise.all(catalogSongs.map((s) => cleanSongForShare(s)))
 
     return {
         type: "list",
@@ -186,7 +211,7 @@ export function buildListSharePayload(list: List, allSongs: Song[]): SharePayloa
             id: list.id,
             name: list.name || "Untitled List",
             createdAt: list.createdAt,
-            songs: catalogSongs,
+            songs: cleanedSongs,
             listItems
         }
     }
