@@ -63,6 +63,7 @@
         "list_name_placeholder": "e.g. Sunday Set",
         "song_title_label": "Song title",
         "song_title_placeholder": "e.g. Amazing Grace",
+        "song_exists": "A song named \"{name}\" already exists.",
         "section": "Create section",
         "section_name_label": "Section name",
         "section_name_placeholder": "e.g. Break, Offering"

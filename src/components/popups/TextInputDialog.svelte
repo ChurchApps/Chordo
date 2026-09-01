@@ -5,6 +5,7 @@
     import { Songs } from "$lib/models/Song"
     import { t } from "$lib/state/i18n.svelte"
     import { goBack, listEditingState, menuState, popupState, setActivePage, setActivePopup, updatePageTitle } from "$lib/state/menu.svelte"
+    import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
     type DialogConfig = {
@@ -58,7 +59,13 @@
                     actionLabel: t("common", "create"),
                     initialValue: "",
                     submit: (name) => {
-                        const song = Songs.create({ name }, menuState.contentId)
+                        const trimmedName = name.trim()
+                        const existingSong = storage.songs.find((s) => s.name.trim().toLowerCase() === trimmedName.toLowerCase())
+                        if (existingSong) {
+                            showToast(t("new", "song_exists").replace("{name}", existingSong.name), "warning")
+                        }
+
+                        const song = Songs.create({ name: trimmedName }, menuState.contentId)
                         if (menuState.contentId) {
                             setActivePage("song_edit", song.id, song.name, "replace")
                         } else {

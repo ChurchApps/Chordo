@@ -63,6 +63,7 @@
         "list_name_placeholder": "f.eks. Søndagssett",
         "song_title_label": "Sangtittel",
         "song_title_placeholder": "f.eks. Navnet Jesus",
+        "song_exists": "En sang med navnet \"{name}\" finnes allerede.",
         "section": "Opprett seksjon",
         "section_name_label": "Seksjonsnavn",
         "section_name_placeholder": "f.eks. Pause, Nattverd"
