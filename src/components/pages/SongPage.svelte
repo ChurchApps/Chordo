@@ -13,33 +13,38 @@
     let list = $derived(listId ? storage.getListById(listId, allLists) : null)
     let songs = $derived(list ? list.songs : menuState.contentId ? [{ songId: menuState.contentId }] : [])
 
-    onMount(async () => {
+    let isNavigating = false
+
+    onMount(() => {
         const targetIndex = savedFullscreenPosition.index
         if (targetIndex != null && targetIndex >= 0) {
-            await tick()
-            if (mainElement) {
-                const songItems = Array.from(mainElement.querySelectorAll(".paper-wrapper")) as HTMLElement[]
-                if (songItems[targetIndex]) {
-                    songItems[targetIndex].scrollIntoView({ behavior: "instant", block: "start" })
+            tick().then(() => {
+                if (mainElement) {
+                    const songItems = Array.from(mainElement.querySelectorAll(".song-item-element")) as HTMLElement[]
+                    if (songItems[targetIndex]) {
+                        songItems[targetIndex].scrollIntoView({ behavior: "instant", block: "start" })
+                    }
                 }
-            }
+            })
+        }
+
+        return () => {
+            isNavigating = true
         }
     })
 
     function getVisibleSongIndex(): number {
         if (!mainElement) return savedFullscreenPosition.index ?? 0
-        const songItems = Array.from(mainElement.querySelectorAll(".paper-wrapper")) as HTMLElement[]
+        const songItems = Array.from(mainElement.querySelectorAll(".song-item-element")) as HTMLElement[]
+        if (!songItems.length) return 0
         const offsetTop = mainElement.offsetTop
         const scrollTop = mainElement.scrollTop
 
-        let currentIndex = songItems.length
-        for (const songItem of songItems.reverse()) {
-            currentIndex--
-
-            const itemTop = songItem.offsetTop - offsetTop
-            if (scrollTop >= itemTop - 20) {
-                savedFullscreenPosition.index = currentIndex
-                return currentIndex
+        for (let i = songItems.length - 1; i >= 0; i--) {
+            const itemTop = songItems[i].offsetTop - offsetTop
+            if (scrollTop >= itemTop - 20 || i === 0) {
+                savedFullscreenPosition.index = i
+                return i
             }
         }
         savedFullscreenPosition.index = 0
@@ -47,6 +52,8 @@
     }
 
     function openFullscreen(index: number) {
+        isNavigating = true
+        savedFullscreenPosition.pageIndex = null
         savedFullscreenPosition.index = index
         enterFullscreen()
         setActivePage("song_live", menuState.contentId)
@@ -60,27 +67,29 @@
     // detect when scrolling to each song-item
     let previousIndex: number | null = null
     function scrolling(e: Event) {
+        if (isNavigating) return
         const container = e.currentTarget as HTMLElement
-        const songItems = Array.from(container.querySelectorAll(".paper-wrapper")) as HTMLElement[]
+        const songItems = Array.from(container.querySelectorAll(".song-item-element")) as HTMLElement[]
+        if (!songItems.length) return
 
         const offsetTop = container.offsetTop
         const scrollTop = container.scrollTop
 
-        let currentIndex = songItems.length
-        for (const songItem of songItems.reverse()) {
-            currentIndex--
+        for (let i = songItems.length - 1; i >= 0; i--) {
+            const itemTop = songItems[i].offsetTop - offsetTop
+            if (scrollTop >= itemTop - 20 || i === 0) {
+                if (i === previousIndex) return
+                previousIndex = i
 
-            const itemTop = songItem.offsetTop - offsetTop
-            if (scrollTop >= itemTop) {
-                if (currentIndex === previousIndex) return
-                previousIndex = currentIndex
+                const currentItem = songs[i]
+                if (currentItem?.isSection) {
+                    if (currentItem.name) updatePageTitle(currentItem.name)
+                } else if (currentItem?.songId) {
+                    const song = storage.getSongById(currentItem.songId, storage.songs)
+                    if (song?.name) updatePageTitle(song.name)
+                }
 
-                const songId = songItem.id
-                const song = storage.getSongById(songId, storage.songs)
-                const name = song?.name
-                if (name) updatePageTitle(name)
-
-                savedFullscreenPosition.index = currentIndex
+                savedFullscreenPosition.index = i
                 break
             }
         }
@@ -96,13 +105,13 @@
 
             {#if songItem?.isSection}
                 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-                <div class="section-divider" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
+                <div class="song-item-element section-divider" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
                     <div class="section-divider-line"></div>
                     <div class="section-divider-title">{songItem.name}</div>
                     <div class="section-divider-line"></div>
                 </div>
             {:else}
-                <div class="song-wrapper" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
+                <div class="song-item-element song-wrapper" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
                     <Song {songId} {targetKey} />
                 </div>
             {/if}

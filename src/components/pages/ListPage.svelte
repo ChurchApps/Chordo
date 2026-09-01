@@ -40,6 +40,7 @@
             return
         }
 
+        savedFullscreenPosition.pageIndex = null
         savedFullscreenPosition.index = idx
         setActivePage("song_edit", songItem.songId, songItem.name)
     }
@@ -163,6 +164,7 @@
         }
         if (item.isDeleted || item.isSection) return
 
+        savedFullscreenPosition.pageIndex = null
         savedFullscreenPosition.index = originalIdx
         setActivePage("song", item.songId, item.name)
     }
