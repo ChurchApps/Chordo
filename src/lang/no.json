@@ -219,6 +219,10 @@
         "show_chords": "Vis akkorder",
         "settings_title": "Ark-innstillinger",
         "page_background": "Sidebakgrunn",
-        "text_size": "Tekststørrelse"
+        "text_size": "Tekststørrelse",
+        "page_animation": "Sidebytteanimasjon",
+        "animation_none": "Ingen",
+        "animation_fast": "Rask",
+        "animation_slow": "Sakte"
     }
 }

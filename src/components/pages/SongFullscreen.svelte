@@ -266,19 +266,30 @@
         setTimeout(() => (didDrag = false), 100)
     }
 
+    function getTransitionDuration(): number {
+        const speed = storage.settings.paperOptions?.pageAnimation ?? "fast"
+        if (speed === "none") return 0
+        if (speed === "slow") return 400
+        return 120
+    }
+
     function setPositionByIndex(animate = true) {
         if (!sliderEl) return
         const viewportWidth = sliderEl.parentElement?.clientWidth || window.innerWidth
         currentTranslate = -currentPageIndex * viewportWidth
         prevTranslate = currentTranslate
 
-        sliderEl.style.transition = animate ? "transform 300ms ease" : "none"
+        const duration = animate ? getTransitionDuration() : 0
+
+        sliderEl.style.transition = duration > 0 ? `transform ${duration}ms ease` : "none"
         sliderEl.style.transform = `translateX(${currentTranslate}px)`
 
-        if (animate) {
+        if (duration > 0) {
             setTimeout(() => {
                 if (sliderEl) sliderEl.style.transition = ""
-            }, 300)
+            }, duration)
+        } else {
+            sliderEl.style.transition = ""
         }
 
         detectSongAndPage()

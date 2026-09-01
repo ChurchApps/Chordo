@@ -4,9 +4,12 @@ import type { NonFunctionProperties } from "../utils/common"
 
 export type SettingsKeys = NonFunctionProperties<Settings>
 
+export type PageSwitchAnimation = "none" | "fast" | "slow"
+
 export interface SongPaperOptions {
     background?: string
     fontSize?: number
+    pageAnimation?: PageSwitchAnimation
 }
 
 export interface DrawSettings {

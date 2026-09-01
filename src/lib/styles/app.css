@@ -23,6 +23,17 @@
     --md-filled-tonal-icon-button-container-color: var(--md-sys-color-primary);
     --md-filled-tonal-icon-button-label-text-color: var(--md-sys-color-on-primary);
     --md-sys-color-surface-container-high: var(--md-sys-color-primary-container);
+
+    /* menu & select options */
+    --md-menu-item-selected-container-color: var(--md-sys-color-secondary-container);
+    --md-menu-item-selected-label-text-color: var(--md-sys-color-on-secondary-container);
+    --md-menu-item-hover-state-layer-color: var(--md-sys-color-primary);
+    --md-menu-item-pressed-state-layer-color: var(--md-sys-color-primary);
+
+    --md-outlined-select-text-field-focus-outline-color: var(--md-sys-color-primary);
+    --md-outlined-select-text-field-focus-label-text-color: var(--md-sys-color-primary);
+    --md-outlined-select-text-field-focus-trailing-icon-color: var(--md-sys-color-primary);
+    --md-outlined-select-text-field-hover-outline-color: var(--md-sys-color-primary);
 }
 
 html,

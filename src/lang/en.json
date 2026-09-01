@@ -219,6 +219,10 @@
         "show_chords": "Show chords",
         "settings_title": "Sheet Settings",
         "page_background": "Page background",
-        "text_size": "Text size"
+        "text_size": "Text size",
+        "page_animation": "Page switch animation",
+        "animation_none": "None",
+        "animation_fast": "Fast",
+        "animation_slow": "Slow"
     }
 }

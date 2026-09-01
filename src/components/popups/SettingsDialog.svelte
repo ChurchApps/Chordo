@@ -1,12 +1,14 @@
 <script lang="ts">
     import { importSetlistFile } from "$lib/export/exportHelper"
-    import { Settings } from "$lib/models/Settings"
+    import { Settings, type PageSwitchAnimation } from "$lib/models/Settings"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
     import { menuState, popupState, setActivePopup } from "$lib/state/menu.svelte"
     import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import "@material/web/iconbutton/filled-tonal-icon-button.js"
+    import "@material/web/select/outlined-select.js"
+    import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
@@ -29,6 +31,7 @@
 
     let currentBg = $state(storage.settings.paperOptions?.background || "#ffffff")
     let currentFontSize = $state(storage.settings.paperOptions?.fontSize ?? 100)
+    let currentPageAnimation = $state<PageSwitchAnimation>(storage.settings.paperOptions?.pageAnimation || "fast")
 
     function selectBackground(color: string) {
         currentBg = color
@@ -66,9 +69,22 @@
         storage.persist()
     }
 
+    function selectPageAnimation(animation: PageSwitchAnimation) {
+        currentPageAnimation = animation
+        storage.settings = new Settings({
+            ...storage.settings,
+            paperOptions: {
+                ...storage.settings.paperOptions,
+                pageAnimation: animation
+            }
+        })
+        storage.persist()
+    }
+
     function resetPaperDefaults() {
         selectBackground("#ffffff")
         setFontSize(100)
+        selectPageAnimation("fast")
     }
 
     function closeDialog() {
@@ -229,6 +245,37 @@
                         <span class="material-symbols-outlined">add</span>
                     </md-filled-tonal-icon-button>
                 </div>
+            </div>
+
+            <hr class="section-divider" />
+
+            <!-- Page Switch Animation Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">animation</span>
+                    {t("song_fullscreen", "page_animation")}
+                </div>
+
+                <md-outlined-select
+                    value={currentPageAnimation}
+                    onchange={(e: Event) => {
+                        const target = e.target as HTMLSelectElement
+                        if (target?.value) {
+                            selectPageAnimation(target.value as PageSwitchAnimation)
+                        }
+                    }}
+                    class="animation-select"
+                >
+                    <md-select-option value="none" selected={currentPageAnimation === "none"}>
+                        <div slot="headline">{t("song_fullscreen", "animation_none")}</div>
+                    </md-select-option>
+                    <md-select-option value="fast" selected={currentPageAnimation === "fast"}>
+                        <div slot="headline">{t("song_fullscreen", "animation_fast")}</div>
+                    </md-select-option>
+                    <md-select-option value="slow" selected={currentPageAnimation === "slow"}>
+                        <div slot="headline">{t("song_fullscreen", "animation_slow")}</div>
+                    </md-select-option>
+                </md-outlined-select>
             </div>
         {:else}
             <!-- Theme Color Section -->
@@ -505,5 +552,14 @@
         font-size: 0.85rem;
         font-weight: 600;
         color: var(--md-sys-color-primary);
+    }
+
+    .animation-select {
+        width: 100%;
+        --md-menu-item-selected-container-color: var(--md-sys-color-secondary-container);
+        --md-menu-item-selected-label-text-color: var(--md-sys-color-on-secondary-container);
+        --md-outlined-select-text-field-focus-outline-color: var(--md-sys-color-primary);
+        --md-outlined-select-text-field-focus-label-text-color: var(--md-sys-color-primary);
+        --md-outlined-select-text-field-focus-trailing-icon-color: var(--md-sys-color-primary);
     }
 </style>
