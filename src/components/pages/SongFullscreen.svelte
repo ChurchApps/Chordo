@@ -327,13 +327,24 @@
     let visiblePlaybackInfo = $derived(parsePlaybackUrl(visiblePlaybackUrl))
     let isPlayingVisibleSong = $derived(playbackState.isOpen && !!visibleSong && (playbackState.songId === visibleSong.id || (!!visiblePlaybackUrl && playbackState.customPlaybackUrl === visiblePlaybackUrl)))
 
+    let updateRafId: number | null = null
+    function scheduleUpdatePageCount(immediatePosition = false) {
+        if (updateRafId !== null) cancelAnimationFrame(updateRafId)
+        updateRafId = requestAnimationFrame(() => {
+            updateRafId = null
+            updatePageCount()
+            if (immediatePosition) {
+                setPositionByIndex(false)
+            }
+        })
+    }
+
     // --- Lifecycle & DOM Observation ---
     onMount(() => {
         requestWakeLock()
 
         const resizeObserver = new ResizeObserver(() => {
-            updatePageCount()
-            setPositionByIndex(false)
+            scheduleUpdatePageCount(true)
         })
 
         if (sliderEl) {
@@ -341,7 +352,7 @@
         }
 
         const mutationObserver = new MutationObserver(() => {
-            updatePageCount()
+            scheduleUpdatePageCount(false)
         })
 
         if (sliderEl) {
@@ -356,6 +367,7 @@
         setPositionByIndex(false)
 
         return () => {
+            if (updateRafId !== null) cancelAnimationFrame(updateRafId)
             resizeObserver.disconnect()
             mutationObserver.disconnect()
             releaseWakeLock()

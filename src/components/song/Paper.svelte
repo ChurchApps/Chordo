@@ -202,20 +202,28 @@
         }
     }
 
+    let paginateTimeout: ReturnType<typeof setTimeout> | undefined
+    function schedulePaginate() {
+        if (paginateTimeout) clearTimeout(paginateTimeout)
+        paginateTimeout = setTimeout(() => {
+            paginate()
+        }, 16)
+    }
+
     $effect(() => {
         padding
         headerText
         pageIndex
-        paginate()
+        schedulePaginate()
     })
 
     onMount(() => {
         // Re-paginate when container size changes
-        const resizeObserver = new ResizeObserver(() => paginate())
+        const resizeObserver = new ResizeObserver(() => schedulePaginate())
         if (containerEl) resizeObserver.observe(containerEl)
 
         // Re-paginate when inner DOM or slotted content mutates
-        const mutationObserver = new MutationObserver(() => paginate())
+        const mutationObserver = new MutationObserver(() => schedulePaginate())
         if (sourceEl) {
             mutationObserver.observe(sourceEl, {
                 childList: true,
@@ -225,12 +233,13 @@
         }
 
         // Trigger pagination when embedded images complete loading
-        const handleImageLoad = () => paginate()
+        const handleImageLoad = () => schedulePaginate()
         sourceEl?.addEventListener("load", handleImageLoad, true)
 
         paginate()
 
         return () => {
+            if (paginateTimeout) clearTimeout(paginateTimeout)
             resizeObserver.disconnect()
             mutationObserver.disconnect()
             sourceEl?.removeEventListener("load", handleImageLoad, true)
