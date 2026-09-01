@@ -168,6 +168,22 @@
             appendNodeWithSplitting(node, currentContent)
         }
 
+        // If a page only has content in the first column, switch it to single-column layout so lines don't break
+        const chordProContainers = pagesContainerEl.querySelectorAll<HTMLElement>(".chordpro-container")
+        chordProContainers.forEach((chordProEl) => {
+            const containerWidth = chordProEl.clientWidth
+            if (containerWidth <= 0) return
+
+            const lines = chordProEl.querySelectorAll<HTMLElement>(".line, .chordpro-section")
+            const hasSecondColumn = Array.from(lines).some((el) => el.offsetLeft > containerWidth * 0.4)
+
+            if (!hasSecondColumn) {
+                chordProEl.style.setProperty("--num-columns", "1")
+                chordProEl.style.columnCount = "1"
+                chordProEl.classList.add("single-column")
+            }
+        })
+
         // Update "Page X / Y" footers
         const pageNumbers = pagesContainerEl.querySelectorAll(".page-number")
         pageNumbers.forEach((el) => {
