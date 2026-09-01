@@ -1,8 +1,8 @@
 <script lang="ts">
     import { convertToChordPro } from "$lib/chords/chordproConverter"
     import { parseChordPro } from "$lib/chords/chordproParser"
-    import { ALL_METADATA_ALIASES, METADATA_CONFIGS } from "$lib/chords/metadata"
-    import { calculateTransposeSemitones } from "$lib/chords/transpose"
+    import { ALL_METADATA_ALIASES } from "$lib/chords/metadata"
+    import { getSongKeyInfo } from "$lib/chords/transpose"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
 
@@ -40,18 +40,17 @@
         return convertToChordPro(raw)
     })
 
-    // Calculate effective semitones to transpose
-    let effectiveSemitones = $derived(
-        calculateTransposeSemitones({
+    let keyInfo = $derived(
+        getSongKeyInfo({
+            content: chordProContent,
+            songKey: typeof song?.getMetadata === "function" ? song.getMetadata("key") : (song?.metadata?.key ?? ""),
             semitones,
             targetKey,
-            lastTransposed: song?.lastTransposed,
-            songKey: typeof song?.getMetadata === "function" ? song.getMetadata("key") : (song?.metadata?.key ?? ""),
-            content: chordProContent
+            lastTransposed: song?.lastTransposed
         })
     )
 
-    let parsed = $derived(parseChordPro(chordProContent, effectiveSemitones))
+    let parsed = $derived(parseChordPro(chordProContent, keyInfo.effectiveSemitones))
     let imageWebUrls = $state<string[]>([])
 
     $effect(() => {
@@ -91,7 +90,7 @@
             {#if song?.name}
                 <div class="song-title">{song.name}</div>
             {/if}
-            {#if metaArtist || metaKey || metaTempoFormatted || metaCapo}
+            {#if metaArtist || keyInfo.currentKey || metaKey || metaTempoFormatted || metaCapo}
                 <div class="song-meta" class:hide-on-screen={!showMeta}>
                     {#if metaArtist}
                         <div class="row">
@@ -100,15 +99,19 @@
                     {/if}
 
                     <div class="row">
-                        {#if metaKey}
-                            <span class="meta-item">Key: {metaKey}</span>
+                        {#if keyInfo.currentKey || metaKey}
+                            <span class="meta-item">Key: {keyInfo.currentKey || metaKey}</span>
+                        {/if}
+                        {#if keyInfo.isTransposed && keyInfo.originalKey}
+                            <span class="meta-item"> • </span>
+                            <span class="meta-item">Original key: {keyInfo.originalKey}</span>
                         {/if}
                         {#if metaTempoFormatted}
-                            {#if metaKey}<span class="meta-item"> • </span>{/if}
+                            {#if keyInfo.currentKey || metaKey}<span class="meta-item"> • </span>{/if}
                             <span class="meta-item">{metaTempoFormatted}</span>
                         {/if}
                         {#if metaCapo}
-                            {#if metaKey || metaTempoFormatted}<span class="meta-item"> • </span>{/if}
+                            {#if keyInfo.currentKey || metaKey || metaTempoFormatted}<span class="meta-item"> • </span>{/if}
                             <span class="meta-item">Capo: {metaCapo}</span>
                         {/if}
                     </div>
