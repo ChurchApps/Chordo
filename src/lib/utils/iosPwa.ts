@@ -11,10 +11,14 @@ export function isIos(): boolean {
 
 export function isIosStandalone(): boolean {
     if (!isIos()) return false
-    return (
-        ("standalone" in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone)) ||
-        window.matchMedia("(display-mode: standalone)").matches
-    )
+    try {
+        return (
+            ("standalone" in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone)) ||
+            (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches)
+        )
+    } catch {
+        return false
+    }
 }
 
 /**

@@ -210,7 +210,7 @@
                 songs: resolvedSongs,
                 createdAt: sharedList.createdAt || Date.now()
             })
-            const lastPage = menuState.previousPages.at(-1)
+            const lastPage = menuState.previousPages[menuState.previousPages.length - 1]
             const targetFolderId = lastPage?.activePage === "folder" && lastPage.contentId ? lastPage.contentId : null
             let targetFolder = targetFolderId ? storage.getFolderById(targetFolderId) : null
 

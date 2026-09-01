@@ -2,21 +2,35 @@ import { createStore, get, set, del } from "idb-keyval"
 
 type ConfigNames = "data"
 
+function initStore(dbName: string, storeName: string) {
+    try {
+        if (typeof window !== "undefined" && typeof indexedDB !== "undefined") {
+            return createStore(dbName, storeName)
+        }
+    } catch (e) {
+        console.warn(`Failed to initialize IndexedDB store ${dbName}:`, e)
+    }
+    return null
+}
+
 // Dedicated IndexedDB custom stores for sheet-manager
-// idb-keyval createStore creates one store per database, so distinct DB names are required
-const configStore = typeof window !== "undefined" ? createStore("sheet-manager-db", "config-store") : null
-const mediaStore = typeof window !== "undefined" ? createStore("sheet-manager-media-db", "media-store") : null
+const configStore = initStore("sheet-manager-db", "config-store")
+const mediaStore = initStore("sheet-manager-media-db", "media-store")
 
 // Request persistent storage so the browser does not evict data when low on disk
-if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {
-    navigator.storage
-        .persist()
-        .then((persistent) => {
-            if (persistent) {
-                console.log("IndexedDB persistent storage granted")
-            }
-        })
-        .catch(() => {})
+try {
+    if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {
+        navigator.storage
+            .persist()
+            .then((persistent) => {
+                if (persistent) {
+                    console.log("IndexedDB persistent storage granted")
+                }
+            })
+            .catch(() => {})
+    }
+} catch {
+    // Ignore storage permission check error
 }
 
 export class FileSystem {

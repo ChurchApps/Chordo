@@ -52,7 +52,8 @@ export function isFullscreenPage(page: Pages): boolean {
 export function setActivePage(menu: Pages, contentId?: string | null, customTitle?: string | null, action: "add" | "replace" | "append" = "add", appendData: any = null): void {
     const currentState = getCurrentState()
 
-    const addToHistory = menu !== "home" && menuState.previousPages.at(-1)?.activePage !== menu
+    const lastPage = menuState.previousPages[menuState.previousPages.length - 1]
+    const addToHistory = menu !== "home" && lastPage?.activePage !== menu
 
     function doSet() {
         listEditingState.isEditing = false
@@ -68,22 +69,22 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
                 menuState.previousPages = [{ activePage: "home", contentId: null, customPageTitle: null }]
             }
             if (typeof window !== "undefined") {
-                history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "")
+                history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "", window.location.href)
                 if (menu !== "home") {
-                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
                 }
             }
         } else if (action !== "replace" && addToHistory) {
             menuState.previousPages.push(currentState)
             if (typeof window !== "undefined") {
                 if (action === "append" && appendData) {
-                    history.pushState({ type: "page", activePage: appendData.activePage, contentId: appendData.contentId ?? null, customPageTitle: appendData.customPageTitle ?? null }, "")
+                    history.pushState({ type: "page", activePage: appendData.activePage, contentId: appendData.contentId ?? null, customPageTitle: appendData.customPageTitle ?? null }, "", window.location.href)
                 }
-                history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+                history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
             }
         } else if (action === "replace") {
             if (typeof window !== "undefined") {
-                history.replaceState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+                history.replaceState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
             }
         }
         if (action === "append" && appendData) menuState.previousPages.push(clone(appendData))
@@ -157,13 +158,24 @@ export function setActivePopup(popup: Popups | null): void {
 // restore page position when returning from draw
 export const savedFullscreenPosition = $state<{ index: number | null; pageIndex: number | null }>({ index: null, pageIndex: null })
 
-const initialLyricsOnly = typeof sessionStorage !== "undefined" && sessionStorage.getItem("chordo_lyrics_only") === "true"
-export const fullscreenState = $state<{ lyricsOnly: boolean }>({ lyricsOnly: initialLyricsOnly })
+function getStoredLyricsOnly(): boolean {
+    try {
+        return typeof sessionStorage !== "undefined" && sessionStorage.getItem("chordo_lyrics_only") === "true"
+    } catch {
+        return false
+    }
+}
+
+export const fullscreenState = $state<{ lyricsOnly: boolean }>({ lyricsOnly: getStoredLyricsOnly() })
 
 export function setFullscreenLyricsOnly(lyricsOnly: boolean): void {
     fullscreenState.lyricsOnly = lyricsOnly
-    if (typeof sessionStorage !== "undefined") {
-        sessionStorage.setItem("chordo_lyrics_only", String(lyricsOnly))
+    try {
+        if (typeof sessionStorage !== "undefined") {
+            sessionStorage.setItem("chordo_lyrics_only", String(lyricsOnly))
+        }
+    } catch {
+        // Ignore storage write error in private mode
     }
 }
 
@@ -182,7 +194,7 @@ export function getCurrentSong() {
     let listItem = undefined
     if (list && list.songs.length > 0) {
         listItem = list.songs[currentSongIndex] ?? list.songs[0]
-        songId = listItem?.songId
+        songId = listItem?.songId || null
     }
     const song = storage.getSongById(songId, storage.songs)
     return { song, listItem, list, currentSongIndex }
@@ -192,7 +204,11 @@ export function getCurrentSong() {
 
 if (typeof window !== "undefined") {
     // Initialize current history state
-    history.replaceState({ type: "page", activePage: menuState.activePage, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "")
+    try {
+        history.replaceState({ type: "page", activePage: menuState.activePage, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
+    } catch {
+        // Ignore history initialization errors
+    }
 
     window.addEventListener("popstate", () => {
         if (isInternalHistoryNavigating) {
