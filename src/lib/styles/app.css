@@ -255,11 +255,12 @@ md-menu {
 }
 
 md-menu-item,
-md-menu-item [slot="headline"],
-md-menu-item [slot="start"],
-md-menu-item [slot="end"] {
+md-menu-item *,
+md-select-option,
+md-select-option * {
     white-space: nowrap !important;
     word-break: keep-all !important;
+    background-color: transparent !important;
 }
 
 md-list-item [slot="headline"] {

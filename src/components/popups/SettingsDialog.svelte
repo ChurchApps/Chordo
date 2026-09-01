@@ -311,13 +311,22 @@
                     <span class="material-symbols-outlined section-icon">language</span>
                     {t("settings", "language")}
                 </div>
-                <div class="language-options">
+                <md-outlined-select
+                    value={currentLanguage}
+                    onchange={(e: Event) => {
+                        const target = e.target as HTMLSelectElement
+                        if (target?.value) {
+                            selectLanguage(target.value as SupportedLocale)
+                        }
+                    }}
+                    class="language-select"
+                >
                     {#each SUPPORTED_LANGUAGES as lang}
-                        <button type="button" class="lang-chip" class:active={currentLanguage === lang.code} onclick={() => selectLanguage(lang.code)}>
-                            {lang.label}
-                        </button>
+                        <md-select-option value={lang.code} selected={currentLanguage === lang.code}>
+                            <div slot="headline">{lang.label}</div>
+                        </md-select-option>
                     {/each}
-                </div>
+                </md-outlined-select>
             </div>
 
             <hr class="section-divider" />
@@ -458,32 +467,9 @@
         font-weight: bold;
     }
 
-    .language-options {
-        display: flex;
-        gap: 8px;
-    }
-
-    .lang-chip {
-        flex: 1;
-        padding: 8px 16px;
-        border-radius: 8px;
-        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
-        background: var(--md-sys-color-surface-container-low, transparent);
-        color: var(--md-sys-color-on-surface, inherit);
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .lang-chip:hover {
-        background: var(--md-sys-color-surface-container-high, rgba(0, 0, 0, 0.04));
-    }
-
-    .lang-chip.active {
-        background: var(--md-sys-color-primary);
-        color: var(--md-sys-color-on-primary);
-        border-color: var(--md-sys-color-primary);
+    .language-select,
+    .animation-select {
+        width: 100%;
     }
 
     .settings-actions {
@@ -552,14 +538,5 @@
         font-size: 0.85rem;
         font-weight: 600;
         color: var(--md-sys-color-primary);
-    }
-
-    .animation-select {
-        width: 100%;
-        --md-menu-item-selected-container-color: var(--md-sys-color-secondary-container);
-        --md-menu-item-selected-label-text-color: var(--md-sys-color-on-secondary-container);
-        --md-outlined-select-text-field-focus-outline-color: var(--md-sys-color-primary);
-        --md-outlined-select-text-field-focus-label-text-color: var(--md-sys-color-primary);
-        --md-outlined-select-text-field-focus-trailing-icon-color: var(--md-sys-color-primary);
     }
 </style>
