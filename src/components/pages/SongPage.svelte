@@ -11,7 +11,7 @@
     let allLists = $derived(storage.lists)
     let allSongs = $derived(storage.songs)
     let list = $derived(listId ? storage.getListById(listId, allLists) : null)
-    let songs = $derived(list ? list.songs : menuState.contentId ? [{ songId: menuState.contentId }] : [])
+    let songs = $derived(list ? list.songs : menuState.contentId ? [{ id: menuState.contentId }] : [])
 
     let isNavigating = false
 
@@ -82,10 +82,12 @@
                 previousIndex = i
 
                 const currentItem = songs[i]
-                if (currentItem?.isSection) {
+                const itemId = currentItem?.id
+
+                if (currentItem?.type === "section") {
                     if (currentItem.name) updatePageTitle(currentItem.name)
-                } else if (currentItem?.songId) {
-                    const song = storage.getSongById(currentItem.songId, storage.songs)
+                } else if (itemId) {
+                    const song = storage.getSongById(itemId, storage.songs)
                     if (song?.name) updatePageTitle(song.name)
                 }
 
@@ -98,12 +100,13 @@
 
 <main bind:this={mainElement} onscroll={scrolling}>
     <div class="songs">
-        {#each songs as songItem, idx ((songItem?.songId ?? songItem?.id ?? "song") + "-" + idx)}
-            {@const songId = songItem?.songId ?? null}
+        {#each songs as songItem, idx ((songItem?.id ?? "song") + "-" + idx)}
+            {@const isSection = songItem?.type === "section"}
+            {@const songId = isSection ? null : (songItem?.id ?? null)}
             {@const currentSong = songId ? storage.getSongById(songId, allSongs) : null}
             {@const targetKey = songItem?.transposed || currentSong?.lastTransposed}
 
-            {#if songItem?.isSection}
+            {#if isSection}
                 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
                 <div class="song-item-element section-divider" role="button" tabindex="0" onclick={() => openFullscreen(idx)} onkeydown={(e) => e.key === "Enter" && openFullscreen(idx)}>
                     <div class="section-divider-line"></div>

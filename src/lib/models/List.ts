@@ -51,20 +51,22 @@ export class Lists {
     }
 }
 
+export type ListSongItemType = "song" | "section"
+
 export type ListSongItem = {
     id?: string
-    songId?: string
+    songId?: string // for backward compatibility
+    type?: ListSongItemType
+    isSection?: boolean // for backward compatibility
     name?: string
-    isSection?: boolean
     lastKnownName?: string
     transposed?: string
 }
 
 export type ListSongDisplayItem = {
     id: string
-    songId?: string
+    type: ListSongItemType
     name: string
-    isSection?: boolean
     isDeleted: boolean
     song?: Song
     transposed?: string
@@ -81,9 +83,29 @@ export class List {
     constructor(data: Partial<ListKeys> = {}) {
         this.id = data.id ?? getId("list")
         this.name = data.name ?? "Untitled"
-        this.songs = data.songs ? [...data.songs] : []
+        this.songs = this.initSongs(data.songs ?? [])
         this.createdAt = data.createdAt ?? Date.now()
         this.lastUsedAt = data.lastUsedAt ?? this.createdAt
+    }
+
+    // migrate old data
+    private initSongs(songs: ListSongItem[]): ListSongItem[] {
+        return songs.map((item) => {
+            const isSection = item.type === "section" || item.isSection
+            if (isSection) {
+                return {
+                    id: item.id ?? getId("section"),
+                    name: item.name ?? item.lastKnownName ?? "Section",
+                    type: "section"
+                }
+            }
+
+            return {
+                id: item.id ?? item.songId,
+                lastKnownName: item.lastKnownName ?? item.name,
+                ...(item.transposed ? { transposed: item.transposed } : {})
+            }
+        })
     }
 
     touch() {
@@ -93,31 +115,31 @@ export class List {
 
     getSongs(allSongs: Song[]) {
         const songs = this.songs.map((item) => {
-            if (item.isSection || !item.songId) return null
-            return allSongs.find((s) => s.id === item.songId)
+            if (item.type === "section" || !item.id) return null
+            return allSongs.find((s) => s.id === item.id)
         })
         return songs.filter((s): s is Song => s !== undefined && s !== null)
     }
 
     getListItems(allSongs: Song[]): ListSongDisplayItem[] {
         return this.songs.map((item, index) => {
-            if (item.isSection) {
+            if (item.type === "section") {
                 return {
                     id: item.id ?? `section-${index}-${item.name ?? ""}`,
+                    type: "section",
                     name: item.name ?? item.lastKnownName ?? "Section",
-                    isSection: true,
                     isDeleted: false
                 }
             }
-            const song = allSongs.find((s) => s.id === item.songId)
+            const song = item.id ? allSongs.find((s) => s.id === item.id) : undefined
             if (song && song.name && item.lastKnownName !== song.name) {
                 item.lastKnownName = song.name
             }
             return {
-                id: item.id ?? item.songId ?? `song-${index}`,
-                songId: item.songId,
+                id: item.id ?? `song-${index}`,
+                songId: item.id,
+                type: "song",
                 name: song?.name ?? item.lastKnownName ?? "Deleted Song",
-                isSection: false,
                 isDeleted: !song,
                 song,
                 transposed: item.transposed
@@ -142,14 +164,14 @@ export class List {
         storage.updateList(this)
     }
 
-    addSong(songId: string, songName?: string) {
-        const name = songName ?? storage.getSongById(songId)?.name
-        this.songs = [...this.songs, { songId, lastKnownName: name }]
+    addSong(song: Song) {
+        const transposed = song.lastTransposed
+        this.songs = [...this.songs, { id: song.id, lastKnownName: song.name, ...(transposed ? { transposed } : {}) }]
         storage.updateList(this)
     }
 
     addSection(name: string) {
-        this.songs = [...this.songs, { id: getId("section"), name, isSection: true }]
+        this.songs = [...this.songs, { id: getId("section"), name, type: "section" }]
         storage.updateList(this)
     }
 
@@ -162,10 +184,15 @@ export class List {
     }
 
     addSongs(songIds: string[]) {
-        const newItems = songIds.map((songId) => ({
-            songId,
-            lastKnownName: storage.getSongById(songId)?.name
-        }))
+        const newItems = songIds.map((songId) => {
+            const song = storage.getSongById(songId)
+            const transposed = song?.lastTransposed
+            return {
+                id: songId,
+                lastKnownName: song?.name,
+                ...(transposed ? { transposed } : {})
+            }
+        })
         this.songs = [...this.songs, ...newItems]
         storage.updateList(this)
     }
@@ -190,7 +217,7 @@ export class List {
     }
 
     setSongs(songs: ListSongItem[]) {
-        this.songs = [...songs]
+        this.songs = this.initSongs(songs)
         storage.updateList(this)
     }
 }

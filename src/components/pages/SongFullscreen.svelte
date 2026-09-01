@@ -20,7 +20,7 @@
 
     const slides = $derived.by<FullscreenSlide[]>(() => {
         if (!list) {
-            return menuState.contentId ? [{ type: "song", songItem: { songId: menuState.contentId }, originalIndex: 0 }] : []
+            return menuState.contentId ? [{ type: "song", songItem: { id: menuState.contentId }, originalIndex: 0 }] : []
         }
 
         const result: FullscreenSlide[] = []
@@ -29,12 +29,12 @@
 
         for (let i = 0; i < list.songs.length; i++) {
             const item = list.songs[i]
-            if (item.isSection) {
+            if (item.type === "section") {
                 if (currentSections.length === 0) {
                     firstSectionIdx = i
                 }
                 currentSections.push({ name: item.name || "Section", originalIndex: i })
-            } else if (item.songId) {
+            } else if (item.id) {
                 if (currentSections.length > 0) {
                     result.push({
                         type: "section",
@@ -171,7 +171,7 @@
                 const index = slideEl ? slideEls.indexOf(slideEl) : -1
                 const slideItem = slides[index]
                 if (!slideItem) return null
-                return slideItem.type === "song" ? (slideItem.songItem.songId ?? null) : null
+                return slideItem.type === "song" ? (slideItem.songItem.id ?? null) : null
             })
 
             pageIndexMap = pages.map((page) => {
@@ -186,7 +186,7 @@
                 return slideItem?.originalIndex ?? index
             })
         } else {
-            pageSongMap = slides.map((s) => (s.type === "song" ? (s.songItem.songId ?? null) : null))
+            pageSongMap = slides.map((s) => (s.type === "song" ? (s.songItem.id ?? null) : null))
             pageIndexMap = slides.map(() => 0)
             pageSongIndexMap = slides.map((s, i) => s.originalIndex ?? i)
         }
@@ -300,7 +300,7 @@
     function detectSongAndPage(index = currentPageIndex) {
         const pageCount = pageSongMap.length
         const globalIndex = pageCount > 0 ? Math.max(0, Math.min(index, pageCount - 1)) : index
-        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.songId : null) ?? null
+        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
         const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
@@ -459,7 +459,7 @@
         >
             {#each slides as slideItem, i}
                 {#if slideItem.type === "song"}
-                    {@const songId = slideItem.songItem?.songId ?? null}
+                    {@const songId = slideItem.songItem?.id ?? null}
                     {@const song = storage.getSongById(songId, storage.songs)}
                     {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
                     {@const hasMedia = !!song?.images.length}

@@ -194,7 +194,7 @@ export function getCurrentSong() {
     let listItem = undefined
     if (list && list.songs.length > 0) {
         listItem = list.songs[currentSongIndex] ?? list.songs[0]
-        songId = listItem?.songId || null
+        songId = listItem?.id ?? null
     }
     const song = storage.getSongById(songId, storage.songs)
     return { song, listItem, list, currentSongIndex }

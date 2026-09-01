@@ -156,16 +156,16 @@
         }
 
         // 3. Resolve all songs and sections for list
-        const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0
-            ? sharedList.listItems
-            : sharedList.songs.map((s) => ({ songId: s.id || "", transposed: s.lastTransposed }))
+        const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0 ? sharedList.listItems : sharedList.songs.map((s) => ({ id: s.id || "", transposed: s.lastTransposed }))
 
         const resolvedSongs = itemsToResolve
             .map((item: any, i: number) => {
-                if (item.isSection) {
-                    return { id: getId("section"), name: item.name || "Section", isSection: true }
+                const isSection = item.type === "section"
+                if (isSection) {
+                    return { id: getId("section"), name: item.name || "Section", type: "section" }
                 }
-                const sharedSong = sharedList.songs.find((s) => s.id === item.songId) || sharedList.songs[i]
+                const targetSongId = item.id
+                const sharedSong = sharedList.songs.find((s) => s.id === targetSongId) || sharedList.songs[i]
                 if (!sharedSong) return null
                 const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
                 const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
@@ -189,7 +189,7 @@
                     songId = createNewSong(sharedSong).id
                 }
 
-                return { songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
+                return { id: songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
             })
             .filter(Boolean) as any[]
 

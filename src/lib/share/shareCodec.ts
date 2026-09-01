@@ -17,7 +17,11 @@ export type SharedSongData = {
 }
 
 export type SharedListSongItem = {
-    songId: string
+    id?: string
+    songId?: string // for backward compatibility
+    type?: "song" | "section"
+    isSection?: boolean // for backward compatibility
+    name?: string
     transposed?: string
     lastKnownName?: string
     [key: string]: unknown
@@ -115,16 +119,19 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
         }))
 
         const listItems = (data.list?.listItems || []).map((item: any, idx: number) => {
-            if (item?.isSection) {
+            const isSection = item?.type === "section" || item?.isSection
+            if (isSection) {
                 return {
                     ...item,
-                    isSection: true,
+                    type: "section",
                     name: item?.name || "Section"
                 }
             }
+            const songId = item?.id || item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
             return {
                 ...item,
-                songId: item?.songId || (item?.songIndex !== undefined && songs[item.songIndex]?.id) || `song-${idx}`
+                id: songId,
+                songId
             }
         })
 
@@ -160,23 +167,25 @@ export function buildListSharePayload(list: List, allSongs: Song[]): SharePayloa
 
     const listItems = list.songs
         .map((item) => {
-            if (item.isSection) {
+            const isSection = item.type === "section" || item.isSection
+            if (isSection) {
                 return {
-                    songId: "",
-                    isSection: true,
+                    type: "section" as const,
                     name: item.name
                 }
             }
-            if (!item.songId) return null
-            if (!uniqueMap.has(item.songId)) {
-                const target = songMap.get(item.songId)
+            const songId = item.id ?? item.songId
+            if (!songId) return null
+            if (!uniqueMap.has(songId)) {
+                const target = songMap.get(songId)
                 if (target) {
-                    uniqueMap.set(item.songId, catalogSongs.length)
+                    uniqueMap.set(songId, catalogSongs.length)
                     catalogSongs.push(cleanSongForShare(target))
                 }
             }
-            const index = uniqueMap.get(item.songId)
-            return index !== undefined ? { songId: catalogSongs[index].id || `song-${index}`, transposed: item.transposed } : null
+            const index = uniqueMap.get(songId)
+            const targetId = index !== undefined ? catalogSongs[index].id || `song-${index}` : songId
+            return index !== undefined ? { id: targetId, songId: targetId, transposed: item.transposed } : null
         })
         .filter(Boolean) as SharedListSongItem[]
 
