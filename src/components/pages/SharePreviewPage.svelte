@@ -61,18 +61,28 @@
 
     // --- Helpers for import operations ---
 
-    function applySongData(target: Song, source: any): Song {
+    async function applySongData(target: Song, source: any): Promise<Song> {
         target.name = source.name
         target.content = source.content
         if (source.metadata) target.metadata = { ...target.metadata, ...source.metadata }
         if (source.playbackUrl) target.playbackUrl = source.playbackUrl
         if (source.url) target.url = source.url
         if (source.lastTransposed) target.lastTransposed = source.lastTransposed
+        if (source.images && Array.isArray(source.images) && source.images.length > 0) {
+            target.images = []
+            for (const img of source.images) {
+                if (typeof img === "string" && img.startsWith("data:")) {
+                    await target.addImage(img)
+                } else if (typeof img === "string" && img.trim()) {
+                    target.images.push(img)
+                }
+            }
+        }
         storage.updateSong(target)
         return target
     }
 
-    function createNewSong(source: any, forceNewId = false): Song {
+    async function createNewSong(source: any, forceNewId = false): Promise<Song> {
         const id = !forceNewId && source.id && !storage.songs.some((s) => s.id === source.id) ? source.id : undefined
         const newSong = new Song({
             id,
@@ -84,6 +94,15 @@
             lastTransposed: source.lastTransposed,
             createdAt: source.createdAt || Date.now()
         })
+        if (source.images && Array.isArray(source.images) && source.images.length > 0) {
+            for (const img of source.images) {
+                if (typeof img === "string" && img.startsWith("data:")) {
+                    await newSong.addImage(img)
+                } else if (typeof img === "string" && img.trim()) {
+                    newSong.images.push(img)
+                }
+            }
+        }
         storage.addSong(newSong)
         return newSong
     }
@@ -104,19 +123,19 @@
         let songToOpen: Song
 
         if (existingSongById) {
-            songToOpen = applySongData(existingSongById, shared)
+            songToOpen = await applySongData(existingSongById, shared)
             showToast(`Updated "${shared.name}" in your library`, "success")
         } else if (existingSongByName) {
             const overwrite = await askNameConflict(shared.name)
             if (overwrite) {
-                songToOpen = applySongData(existingSongByName, shared)
+                songToOpen = await applySongData(existingSongByName, shared)
                 showToast(`Updated "${shared.name}" in your library`, "success")
             } else {
-                songToOpen = createNewSong(shared, true)
+                songToOpen = await createNewSong(shared, true)
                 showToast(`Imported "${shared.name}" to your library`, "success")
             }
         } else {
-            songToOpen = createNewSong(shared)
+            songToOpen = await createNewSong(shared)
             showToast(`Imported "${shared.name}" to your library`, "success")
         }
 
@@ -158,40 +177,44 @@
         // 3. Resolve all songs and sections for list
         const itemsToResolve = sharedList.listItems && sharedList.listItems.length > 0 ? sharedList.listItems : sharedList.songs.map((s) => ({ id: s.id || "", transposed: s.lastTransposed }))
 
-        const resolvedSongs = itemsToResolve
-            .map((item: any, i: number) => {
-                const isSection = item.type === "section"
-                if (isSection) {
-                    return { id: getId("section"), name: item.name || "Section", type: "section" }
-                }
-                const targetSongId = item.id
-                const sharedSong = sharedList.songs.find((s) => s.id === targetSongId) || sharedList.songs[i]
-                if (!sharedSong) return null
-                const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
-                const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
-
-                let songId = ""
-                let songName = sharedSong.name
-
-                if (matchById) {
-                    if (overwriteIdMatches) applySongData(matchById, sharedSong)
-                    songId = matchById.id
-                    songName = matchById.name
-                } else if (matchByName) {
-                    if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
-                        applySongData(matchByName, sharedSong)
-                        songId = matchByName.id
-                        songName = matchByName.name
-                    } else {
-                        songId = createNewSong(sharedSong, true).id
+        const resolvedSongs = (
+            await Promise.all(
+                itemsToResolve.map(async (item: any, i: number) => {
+                    const isSection = item.type === "section"
+                    if (isSection) {
+                        return { id: getId("section"), name: item.name || "Section", type: "section" }
                     }
-                } else {
-                    songId = createNewSong(sharedSong).id
-                }
+                    const targetSongId = item.id
+                    const sharedSong = sharedList.songs.find((s) => s.id === targetSongId) || sharedList.songs[i]
+                    if (!sharedSong) return null
+                    const matchById = sharedSong.id ? storage.songs.find((s) => s.id === sharedSong.id) : null
+                    const matchByName = !matchById ? storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) : null
 
-                return { id: songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
-            })
-            .filter(Boolean) as any[]
+                    let songId = ""
+                    let songName = sharedSong.name
+
+                    if (matchById) {
+                        if (overwriteIdMatches) await applySongData(matchById, sharedSong)
+                        songId = matchById.id
+                        songName = matchById.name
+                    } else if (matchByName) {
+                        if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
+                            await applySongData(matchByName, sharedSong)
+                            songId = matchByName.id
+                            songName = matchByName.name
+                        } else {
+                            const created = await createNewSong(sharedSong, true)
+                            songId = created.id
+                        }
+                    } else {
+                        const created = await createNewSong(sharedSong)
+                        songId = created.id
+                    }
+
+                    return { id: songId, lastKnownName: songName, transposed: item.transposed || sharedSong.lastTransposed }
+                })
+            )
+        ).filter(Boolean) as any[]
 
         // 4. Create or replace list
         const existingListMatch = sharedList.id ? storage.lists.find((l) => l.id === sharedList.id) : null

@@ -1,6 +1,6 @@
 import { AwsClient } from "aws4fetch"
 
-const MAX_BYTES = 1 * 1024 * 1024
+const MAX_BYTES = 5 * 1024 * 1024
 const ID_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const ID_LENGTH = 11
 export type ShareEnv = {

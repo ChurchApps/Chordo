@@ -206,8 +206,10 @@
         "paste_reading_error": "Kunne ikke lese utklippstavlen. Vennligst gi tillatelse.",
         "link_copied": "Delingslenke kopiert til utklippstavlen!",
         "link_copied_no_media": "Delingslenke kopiert! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
+        "link_copied_media_warning": "Delingslenke kopiert! Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "shared_success": "Delt!",
         "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
+        "shared_media_warning": "Delt! Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "copy_failed": "Kunne ikke kopiere lenke",
         "generate_failed": "Kunne ikke opprette delingslenke"
     },
