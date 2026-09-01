@@ -83,27 +83,16 @@ export function trimChordContent(content = ""): string {
 
 export async function cleanSongForShare(song: Song | SharedSongData): Promise<SharedSongData> {
     const rawMeta = typeof (song as Record<string, unknown>).getMetadata === "function" ? (song as Song).getMetadata() : (song as SharedSongData).metadata
-
     const metadata = rawMeta ? Object.fromEntries(Object.entries(rawMeta).filter(([_, v]) => typeof v === "string" && v.trim())) : undefined
 
     const { getMetadata, images, content, name, playbackUrl, url, ...rest } = song as Record<string, unknown>
     const trimmedContent = trimChordContent((content as string) || "")
 
-    let base64Images: string[] | undefined = undefined
-    // Include media base64 files unless there is "content" value in the song
+    let base64Images: string[] | undefined
     if (!trimmedContent && Array.isArray(images) && images.length > 0) {
-        const resolved = await Promise.all(
-            images.map(async (img) => {
-                if (typeof img === "string" && img.trim()) {
-                    return await FileSystem.resolveImageUrl(img)
-                }
-                return ""
-            })
-        )
-        const validImages = resolved.filter((img): img is string => Boolean(img && img.trim()))
-        if (validImages.length > 0) {
-            base64Images = validImages
-        }
+        const resolved = await Promise.all(images.map((img) => (typeof img === "string" && img.trim() ? FileSystem.resolveImageUrl(img) : "")))
+        const valid = resolved.filter(Boolean)
+        if (valid.length > 0) base64Images = valid
     }
 
     return {
