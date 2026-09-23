@@ -280,6 +280,10 @@
     }
     .chord-cell.standalone {
         width: auto;
+        white-space: pre-wrap;
+        word-break: normal;
+        overflow-wrap: break-word;
+        line-height: 1.2;
     }
     .lyric-cell {
         display: inline-block;
