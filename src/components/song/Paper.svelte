@@ -187,8 +187,10 @@
         // Update "Page X / Y" footers
         const pageNumbers = pagesContainerEl.querySelectorAll(".page-number")
         pageNumbers.forEach((el) => {
-            const num = el.getAttribute("data-page")
+            const num = parseInt(el.getAttribute("data-page") || "1", 10)
             el.textContent = `${num} / ${currentPageNum}`
+            if (currentPageNum > 1 && num < currentPageNum) el.classList.add("has-next-page")
+            else el.classList.remove("has-next-page")
         })
 
         // If a specific page index was requested (0-based), display only that page
@@ -357,9 +359,20 @@
         position: absolute;
         bottom: 8mm;
         right: 12mm;
-        font-size: 0.75rem;
-        color: #888888;
+        font-size: 0.8rem;
+        color: var(--paper-text-color, #888888);
+        opacity: 0.35;
         font-family: system-ui, sans-serif;
+        font-weight: 500;
+        transition:
+            opacity 0.2s,
+            font-size 0.2s;
+    }
+
+    :global(.page-number.has-next-page) {
+        opacity: 0.95;
+        font-weight: 700;
+        color: var(--paper-text-color, #111111);
     }
 
     @media print {
