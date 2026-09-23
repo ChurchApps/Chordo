@@ -106,7 +106,7 @@ export default defineConfig({
             manifest: {
                 name: "Chordo: Chord Sheet Manager",
                 short_name: "Chordo",
-                description: "Everything you need to manage, transpose, and annotate your chord sheets in one place. Import from ChordPro, PDF, or URLs, build setlists in seconds, and run your show completely offline.",
+                description: "Manage, transpose, and annotate chord sheets in one place. Build setlists in seconds and run your show offline.",
                 theme_color: "#f5aa67",
                 background_color: "#feddc2",
                 display: "standalone",
