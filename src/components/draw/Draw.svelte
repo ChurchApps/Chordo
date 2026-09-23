@@ -9,8 +9,7 @@
 
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
-    import storage from "$lib/storage/StorageManager.svelte"
-    import { createHistory } from "$lib/utils/history.svelte"
+    import { DrawingEngine } from "./DrawingEngine.svelte"
 
     interface Props {
         /** Enable or disable drawing capabilities (defaults to false) */
@@ -41,77 +40,44 @@
         onFinish
     }: Props = $props()
 
-    // Component State (Runes)
-    let canvasRef = $state<HTMLCanvasElement | null>(null)
-    let ctx = $state<CanvasRenderingContext2D | null>(null)
-    let isDrawing = $state(false)
-    let currentColor = $state(storage.settings.draw?.color || "#1d1b20")
-    let brushSize = $state(storage.settings.draw?.brushSize ?? 4)
-    let lastPoint = $state<{ x: number; y: number } | null>(null)
+    let canvasElement = $state<HTMLCanvasElement | null>(null)
 
-    // History Manager for Drawing
-    const drawHistory = createHistory<string>(initialData, {
-        debounceMs: 0,
-        onApply: (dataUrl) => {
-            loadInitialData(dataUrl)
-            notifyChange()
-        }
+    const engine = new DrawingEngine({
+        getEditable: () => editable,
+        getInitialData: () => initialData,
+        getColors: () => colors,
+        onChange: (data) => onChange?.(data),
+        onFinish: (data) => onFinish?.(data)
     })
 
-    let initialSyncDone = false
+    // Sync settings & reactive storage updates
     $effect(() => {
-        if (!initialSyncDone && storage.settings.draw) {
-            if (storage.settings.draw.color) currentColor = storage.settings.draw.color
-            if (storage.settings.draw.brushSize !== undefined) brushSize = storage.settings.draw.brushSize
-            initialSyncDone = true
-        }
+        engine.syncSettings()
     })
 
     $effect(() => {
         if (editable) {
-            const hasChanged = storage.settings.draw?.color !== currentColor || storage.settings.draw?.brushSize !== brushSize
-            if (hasChanged) {
-                storage.settings.draw = {
-                    ...storage.settings.draw,
-                    color: currentColor,
-                    brushSize: brushSize
-                }
-                storage.persist()
-            }
+            engine.persistSettings()
         }
     })
 
-    // Function to check if canvas actually contains any drawn pixels
-    function isCanvasBlank(): boolean {
-        if (!canvasRef || !ctx) return true
-        const w = canvasRef.width
-        const h = canvasRef.height
-        if (w === 0 || h === 0) return true
+    // Canvas lifecycle & resize observation
+    $effect(() => {
+        return engine.setupCanvas(canvasElement)
+    })
 
-        // Read pixel buffer
-        const imgData = ctx.getImageData(0, 0, w, h)
-        const data = new Uint32Array(imgData.data.buffer)
-        for (let i = 0; i < data.length; i++) {
-            if (data[i] !== 0) return false
-        }
-        return true
-    }
+    // Sync external initialData updates
+    $effect(() => {
+        engine.syncInitialData(initialData)
+    })
 
-    // Export helper: get current drawing as Base64 Data URL
+    // Export helpers
     export function getDrawingData(): string {
-        if (!canvasRef || isCanvasBlank()) return ""
-        return canvasRef.toDataURL("image/png")
+        return engine.getData()
     }
 
-    // Export helper: clear canvas
     export function clearCanvas() {
-        if (!ctx || !canvasRef) return
-        ctx.save()
-        ctx.setTransform(1, 0, 0, 1, 0, 0)
-        ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
-        ctx.restore()
-        drawHistory.push("")
-        notifyChange()
+        engine.clear()
     }
 
     function handleClearRequest() {
@@ -121,181 +87,36 @@
             confirmLabel: t("draw", "clear"),
             isDestructive: true,
             onConfirm: () => {
-                clearCanvas()
+                engine.clear()
             }
         })
-    }
-
-    function notifyChange() {
-        if (onChange && canvasRef) {
-            onChange(getDrawingData())
-        }
-    }
-
-    function handleFinish() {
-        const data = getDrawingData()
-        if (onFinish) {
-            onFinish(data)
-        }
-    }
-
-    // Load image data onto canvas
-    function loadInitialData(dataUrl: string) {
-        if (!ctx || !canvasRef) return
-        if (!dataUrl) {
-            ctx.save()
-            ctx.setTransform(1, 0, 0, 1, 0, 0)
-            ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
-            ctx.restore()
-            return
-        }
-        const img = new Image()
-        img.crossOrigin = "anonymous"
-        img.onload = () => {
-            if (!ctx || !canvasRef) return
-            ctx.save()
-            ctx.setTransform(1, 0, 0, 1, 0, 0)
-            ctx.clearRect(0, 0, canvasRef.width, canvasRef.height)
-            ctx.drawImage(img, 0, 0, canvasRef.width, canvasRef.height)
-            ctx.restore()
-        }
-        img.src = dataUrl
-    }
-
-    let loadedDataProp: string | undefined = undefined
-
-    // Canvas Lifecycle & High-DPI Scaling Effect
-    $effect(() => {
-        if (!canvasRef) return
-
-        const canvas = canvasRef
-        const context = canvas.getContext("2d", { willReadFrequently: true })
-        if (!context) return
-        ctx = context
-
-        const resizeAndScale = () => {
-            const parent = canvas.parentElement
-            if (!parent) return
-
-            const rect = parent.getBoundingClientRect()
-            const dpr = window.devicePixelRatio || 1
-            const newWidth = rect.width * dpr
-            const newHeight = rect.height * dpr
-
-            if (canvas.width === newWidth && canvas.height === newHeight) return
-
-            const hasContent = !isCanvasBlank() && canvas.width > 0 && canvas.height > 0
-            const tempCanvas = document.createElement("canvas")
-            tempCanvas.width = canvas.width
-            tempCanvas.height = canvas.height
-            const tempCtx = tempCanvas.getContext("2d")
-            if (tempCtx && hasContent) {
-                tempCtx.drawImage(canvas, 0, 0)
-            }
-
-            // Adjust physical pixel dimensions
-            canvas.width = newWidth
-            canvas.height = newHeight
-
-            // Set styling / transformation on context
-            context.lineCap = "round"
-            context.lineJoin = "round"
-            context.setTransform(dpr, 0, 0, dpr, 0, 0)
-
-            if (hasContent) {
-                context.save()
-                context.setTransform(1, 0, 0, 1, 0, 0)
-                context.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height)
-                context.restore()
-            } else if (loadedDataProp === undefined && initialData) {
-                loadedDataProp = initialData
-                drawHistory.reset(initialData)
-                loadInitialData(initialData)
-            }
-        }
-
-        resizeAndScale()
-
-        const resizeObserver = new ResizeObserver(() => resizeAndScale())
-        if (canvas.parentElement) {
-            resizeObserver.observe(canvas.parentElement)
-        }
-
-        return () => {
-            resizeObserver.disconnect()
-        }
-    })
-
-    // Load updated initialData if prop changes from outside
-    $effect(() => {
-        const data = initialData
-        if (ctx && data !== loadedDataProp) {
-            loadedDataProp = data
-            drawHistory.reset(data)
-            loadInitialData(data)
-        }
-    })
-
-    function getPointerCoordinates(e: PointerEvent) {
-        if (!canvasRef) return { x: 0, y: 0 }
-        const rect = canvasRef.getBoundingClientRect()
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        }
-    }
-
-    function startDrawing(e: PointerEvent) {
-        if (!editable || !ctx) return
-        canvasRef?.setPointerCapture(e.pointerId)
-        isDrawing = true
-        const point = getPointerCoordinates(e)
-        lastPoint = point
-
-        ctx.beginPath()
-        ctx.fillStyle = currentColor
-        ctx.arc(point.x, point.y, brushSize / 2, 0, Math.PI * 2)
-        ctx.fill()
-    }
-
-    function draw(e: PointerEvent) {
-        if (!isDrawing || !editable || !ctx || !lastPoint) return
-
-        const currentPoint = getPointerCoordinates(e)
-
-        ctx.beginPath()
-        ctx.moveTo(lastPoint.x, lastPoint.y)
-        ctx.lineTo(currentPoint.x, currentPoint.y)
-        ctx.strokeStyle = currentColor
-        ctx.lineWidth = brushSize
-        ctx.stroke()
-
-        lastPoint = currentPoint
-    }
-
-    function stopDrawing(e: PointerEvent) {
-        if (!isDrawing) return
-        if (canvasRef?.hasPointerCapture(e.pointerId)) {
-            canvasRef.releasePointerCapture(e.pointerId)
-        }
-        isDrawing = false
-        lastPoint = null
-        drawHistory.push(getDrawingData())
-        notifyChange()
     }
 
     function handleSliderInput(e: Event) {
         const target = e.target as HTMLInputElement
         if (target && target.value !== undefined) {
-            brushSize = Number(target.value)
+            engine.setBrushSize(Number(target.value))
         }
     }
 </script>
 
-<svelte:window onkeydown={(e) => { if (editable) drawHistory.handleKeyDown(e) }} />
+<svelte:window
+    onkeydown={(e) => {
+        if (editable) engine.history.handleKeyDown(e)
+    }}
+/>
 
 <div class="m3-drawing-container">
-    <canvas bind:this={canvasRef} class="drawing-canvas" class:interactive={editable} onpointerdown={startDrawing} onpointermove={draw} onpointerup={stopDrawing} onpointercancel={stopDrawing}></canvas>
+    <canvas
+        bind:this={canvasElement}
+        class="drawing-canvas"
+        class:interactive={editable}
+        class:eraser-mode={editable && engine.toolMode === "eraser"}
+        onpointerdown={(e) => engine.startDrawing(e)}
+        onpointermove={(e) => engine.draw(e)}
+        onpointerup={(e) => engine.stopDrawing(e)}
+        onpointercancel={(e) => engine.stopDrawing(e)}
+    ></canvas>
 
     {#if editable}
         <!-- Top Left Toolbar (Clear, Undo, Redo Actions) -->
@@ -305,12 +126,12 @@
                 {t("draw", "clear")}
             </md-filled-tonal-button>
 
-            <md-filled-tonal-button type="button" disabled={!drawHistory.canUndo} onclick={() => drawHistory.undo()} title={`${t("common", "undo")} (Ctrl+Z)`}>
+            <md-filled-tonal-button type="button" disabled={!engine.history.canUndo} onclick={() => engine.history.undo()} title={`${t("common", "undo")} (Ctrl+Z)`}>
                 <md-icon slot="icon">undo</md-icon>
                 {t("common", "undo")}
             </md-filled-tonal-button>
 
-            <md-filled-tonal-button type="button" disabled={!drawHistory.canRedo} onclick={() => drawHistory.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
+            <md-filled-tonal-button type="button" disabled={!engine.history.canRedo} onclick={() => engine.history.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
                 <md-icon slot="icon">redo</md-icon>
                 {t("common", "redo")}
             </md-filled-tonal-button>
@@ -321,18 +142,33 @@
             <!-- Scrollable Color Swatches -->
             <div class="color-picker-group">
                 {#each colors as color}
-                    <button type="button" class="m3-color-chip" class:selected={currentColor === color} style="--chip-color: {color};" aria-label="Select color {color}" onclick={() => (currentColor = color)}>
-                        {#if currentColor === color}
+                    <button
+                        type="button"
+                        class="m3-color-chip"
+                        class:selected={engine.currentColor === color && engine.toolMode === "pen"}
+                        style="--chip-color: {color};"
+                        aria-label="Select color {color}"
+                        onclick={() => engine.selectPresetColor(color)}
+                    >
+                        {#if engine.currentColor === color && engine.toolMode === "pen"}
                             <md-icon class="check-icon" style="color: {color === '#ffffff' ? '#000000' : '#ffffff'}"> check </md-icon>
                         {/if}
                     </button>
                 {/each}
 
                 <!-- Custom Color Button Wrapper -->
-                <label class="custom-color-wrapper" title="Choose custom color">
+                <button
+                    type="button"
+                    class="m3-color-chip custom-color-chip"
+                    class:selected={!colors.includes(engine.currentColor) && engine.toolMode === "pen"}
+                    style="--chip-color: {engine.customColor};"
+                    onclick={() => engine.handleCustomColorClick()}
+                    title={!colors.includes(engine.currentColor) && engine.toolMode === "pen" ? "Choose custom color" : "Select custom color"}
+                    aria-label="Custom color"
+                >
                     <md-icon class="palette-icon">palette</md-icon>
-                    <input type="color" bind:value={currentColor} class="custom-color-input" />
-                </label>
+                    <input bind:this={engine.colorInputRef} type="color" value={engine.customColor} class="custom-color-input-hidden" oninput={(e) => engine.handleCustomColorInput(e)} tabindex="-1" aria-hidden="true" />
+                </button>
             </div>
 
             <div class="m3-divider"></div>
@@ -340,17 +176,24 @@
             <!-- Brush Size Selector -->
             <div class="brush-size-group">
                 <div class="brush-preview-container">
-                    <span class="brush-preview" style="width: {brushSize}px; height: {brushSize}px; background: {currentColor};"></span>
+                    <span class="brush-preview" style="width: {engine.brushSize}px; height: {engine.brushSize}px; background: {engine.currentColor};"></span>
                 </div>
 
-                <md-slider min="1" max="40" value={brushSize} step="1" labeled oninput={handleSliderInput} class="m3-slider"></md-slider>
+                <md-slider min="1" max="40" value={engine.brushSize} step="1" labeled oninput={handleSliderInput} class="m3-slider"></md-slider>
             </div>
+
+            <div class="m3-divider"></div>
+
+            <!-- Eraser Tool Toggle -->
+            <button type="button" class="eraser-btn" class:selected={engine.toolMode === "eraser"} onclick={() => engine.toggleEraser()} title="Eraser — tap a stroke to remove it">
+                <md-icon>ink_eraser</md-icon>
+            </button>
 
             <div class="m3-divider"></div>
 
             <!-- Finish Action -->
             <div class="actions-group">
-                <md-filled-button type="button" onclick={handleFinish}>
+                <md-filled-button type="button" onclick={() => engine.finish()}>
                     <md-icon slot="icon">check</md-icon>
                     {t("draw", "done")}
                 </md-filled-button>
@@ -361,12 +204,6 @@
 
 <style>
     .m3-drawing-container {
-        /* --md-sys-color-surface-container-high: #ece6f0;
-        --md-sys-color-on-surface: #1d1b20;
-        --md-sys-color-on-surface-variant: #49454f;
-        --md-sys-color-outline-variant: #cac4d0; */
-        /* --md-sys-color-primary: #6750a4; */
-
         position: absolute;
         top: 0;
         left: 0;
@@ -393,23 +230,35 @@
     }
 
     .drawing-canvas.interactive {
-        cursor: crosshair;
         pointer-events: auto;
+        cursor: crosshair;
     }
 
-    /* Top Left Toolbar */
+    .drawing-canvas.eraser-mode {
+        cursor:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21'/%3E%3Cpath d='M22 21H7'/%3E%3Cpath d='m5 11 9 9'/%3E%3C/svg%3E")
+                4 20,
+            crosshair;
+    }
+
+    /* Top Left Floating Bar */
     .m3-top-left-bar {
         position: absolute;
         top: 1rem;
         left: 1rem;
         display: flex;
-        align-items: center;
         gap: 0.5rem;
+        z-index: 20;
         pointer-events: auto;
-        z-index: 12;
+        background-color: var(--md-sys-color-surface-container-high, #ece6f0);
+        padding: 0.5rem;
+        border-radius: 9999px;
+        box-shadow:
+            0 1px 3px 1px rgba(0, 0, 0, 0.15),
+            0 1px 2px 0 rgba(0, 0, 0, 0.3);
     }
 
-    /* Bottom App Bar Container */
+    /* Bottom Floating Bar */
     .m3-bottom-app-bar {
         position: absolute;
         bottom: 1.5rem;
@@ -420,27 +269,25 @@
         gap: 0.75rem;
         padding: 0.5rem 0.875rem;
         background-color: var(--md-sys-color-surface-container-high, #ece6f0);
-        border-radius: 28px;
+        border-radius: 9999px;
         box-shadow:
-            0px 3px 6px -2px rgba(0, 0, 0, 0.12),
-            0px 2px 4px 0px rgba(0, 0, 0, 0.08);
-        user-select: none;
-        max-width: calc(100vw - 2rem);
-        box-sizing: border-box;
+            0 3px 6px -2px rgba(0, 0, 0, 0.2),
+            0 2px 14px 0 rgba(0, 0, 0, 0.12),
+            0 0 0 1px rgba(0, 0, 0, 0.05);
+        z-index: 20;
         pointer-events: auto;
+        max-width: 95vw;
+        overflow-x: auto;
     }
 
-    /* Scrollable Color Picker Container */
     .color-picker-group {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.375rem;
+        flex-shrink: 0;
         overflow-x: auto;
-        max-width: 100%;
+        padding: 2px;
         scrollbar-width: none;
-        /* Vertical padding prevents ring shadow clipping */
-        padding: 0.5rem 0.375rem;
-        box-sizing: border-box;
     }
 
     .color-picker-group::-webkit-scrollbar {
@@ -487,27 +334,9 @@
         pointer-events: none;
     }
 
-    .custom-color-wrapper {
-        position: relative;
-        width: 2rem;
-        height: 2rem;
-        box-sizing: border-box;
-        padding: 0;
-        margin: 0;
-        flex-shrink: 0;
-        border-radius: 50%;
-        border: 1px dashed var(--md-sys-color-on-surface-variant, #49454f);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: var(--md-sys-color-on-surface-variant, #49454f);
-        transition: background-color 0.2s ease;
-        overflow: hidden;
-    }
-
-    .custom-color-wrapper:hover {
-        background-color: rgba(0, 0, 0, 0.05);
+    .custom-color-chip {
+        border-style: dashed;
+        border-color: var(--md-sys-color-outline, #79747e);
     }
 
     .palette-icon {
@@ -519,16 +348,16 @@
         align-items: center;
         justify-content: center;
         pointer-events: none;
+        color: #ffffff;
+        filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.7));
     }
 
-    .custom-color-input {
+    .custom-color-input-hidden {
         position: absolute;
         opacity: 0;
-        width: 100%;
-        height: 100%;
-        cursor: pointer;
-        top: 0;
-        left: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
         margin: 0;
         padding: 0;
         border: none;
@@ -575,6 +404,34 @@
         min-width: 3.5rem;
         --md-slider-active-track-color: var(--md-sys-color-primary, #6750a4);
         --md-slider-handle-color: var(--md-sys-color-primary, #6750a4);
+    }
+
+    /* Eraser toggle button */
+    .eraser-btn {
+        width: 2.25rem;
+        height: 2.25rem;
+        flex-shrink: 0;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--md-sys-color-on-surface, #1d1b20);
+        transition: background-color 0.2s ease;
+        --md-icon-size: 1.25rem;
+        font-size: 1.25rem;
+        padding: 0;
+    }
+
+    .eraser-btn:hover {
+        background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .eraser-btn.selected {
+        background-color: var(--md-sys-color-secondary-container, #e8def8);
+        color: var(--md-sys-color-on-secondary-container, #1d192b);
     }
 
     .actions-group {
