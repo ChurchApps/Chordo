@@ -125,6 +125,7 @@
             syncMetadataFromText(value)
         }
 
+        storage.updateSong(song)
         storage.persist()
 
         if (key === "name") {
@@ -159,6 +160,7 @@
             song.playbackUrl = cleaned
             song.spotify = cleaned
         }
+        storage.updateSong(song)
         storage.persist()
     }
 
@@ -173,6 +175,7 @@
         song.playbackUrl = cleaned
         song.spotify = cleaned
         song.setMetadata("playback", cleaned)
+        storage.updateSong(song)
         storage.persist()
     }
 
