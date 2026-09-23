@@ -88,6 +88,10 @@
     let songPageId = $state("")
     let previousPage = -1
 
+    let lastActiveOriginalIndex: number | null = null
+    let lastActivePageInSong = 0
+    let lastActiveSongId: string | null = null
+
     function toggleActions() {
         actionsVisible = !actionsVisible
         clearTimeout(hideTimeout)
@@ -204,9 +208,41 @@
 
         if (!initialPositionConsumed) {
             restoreInitialPosition(isRealLayout)
-        } else if (currentPageIndex >= totalPages) {
-            currentPageIndex = Math.max(0, totalPages - 1)
-            setPositionByIndex()
+        } else {
+            let targetPage = -1
+
+            if (lastActiveOriginalIndex !== null) {
+                const matchingPages: number[] = []
+                for (let i = 0; i < pageSongIndexMap.length; i++) {
+                    if (pageSongIndexMap[i] === lastActiveOriginalIndex) {
+                        matchingPages.push(i)
+                    }
+                }
+                if (matchingPages.length > 0) {
+                    const offset = Math.min(lastActivePageInSong, matchingPages.length - 1)
+                    targetPage = matchingPages[Math.max(0, offset)]
+                }
+            }
+
+            if (targetPage === -1 && lastActiveSongId !== null) {
+                const matchingPages: number[] = []
+                for (let i = 0; i < pageSongMap.length; i++) {
+                    if (pageSongMap[i] === lastActiveSongId) {
+                        matchingPages.push(i)
+                    }
+                }
+                if (matchingPages.length > 0) {
+                    const offset = Math.min(lastActivePageInSong, matchingPages.length - 1)
+                    targetPage = matchingPages[Math.max(0, offset)]
+                }
+            }
+
+            if (targetPage === -1) {
+                targetPage = Math.max(0, Math.min(currentPageIndex, totalPages - 1))
+            }
+
+            currentPageIndex = targetPage
+            setPositionByIndex(false)
         }
     }
 
@@ -315,6 +351,10 @@
         const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
         const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
+
+        lastActiveOriginalIndex = songIndexInList
+        lastActivePageInSong = pageInSong
+        lastActiveSongId = songId
 
         if (initialPositionConsumed && songIndexInList >= 0 && (list ? songIndexInList < list.songs.length : songIndexInList < slides.length)) {
             savedFullscreenPosition.index = songIndexInList

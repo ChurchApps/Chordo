@@ -142,21 +142,24 @@
                         {#if !hideChords || line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
                             <div class="line lyrics-line">
                                 {#each line.words ?? [{ tokens: line.tokens ?? [] }] as word}
-                                    <span class="word">
-                                        {#each word.tokens as token}
-                                            <span class="token" style={token.minWidth ? `min-width: ${token.minWidth};` : undefined}>
-                                                {#if hasChords}
-                                                    {#if token.chord}
-                                                        <span class="chord-cell">{token.chord}</span>
-                                                    {:else}
-                                                        <span class="chord-cell placeholder">&nbsp;</span>
+                                    {@const tokens = hideChords ? word.tokens.filter((t) => t.lyric && t.lyric.trim() !== "") : word.tokens}
+                                    {#if tokens.length > 0}
+                                        <span class="word">
+                                            {#each tokens as token}
+                                                <span class="token" style={hasChords && token.minWidth ? `min-width: ${token.minWidth};` : undefined}>
+                                                    {#if hasChords}
+                                                        {#if token.chord}
+                                                            <span class="chord-cell">{token.chord}</span>
+                                                        {:else}
+                                                            <span class="chord-cell placeholder">&nbsp;</span>
+                                                        {/if}
                                                     {/if}
-                                                {/if}
 
-                                                <span class="lyric-cell">{token.lyric || "\u200B"}</span>
-                                            </span>
-                                        {/each}
-                                    </span>
+                                                    <span class="lyric-cell">{token.lyric || "\u200B"}</span>
+                                                </span>
+                                            {/each}
+                                        </span>
+                                    {/if}
                                 {/each}
                             </div>
                         {/if}
