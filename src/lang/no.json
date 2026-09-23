@@ -126,6 +126,8 @@
         "page": "Side",
         "converting_pdf_title": "Konverterer PDF",
         "preparing_pdf": "Forbereder PDF...",
+        "pdf_not_supported": "Nettleseren din støtter ikke import av PDF. Vennligst bruk bildefiler eller bytt nettleser.",
+        "pdf_import_error": "Kunne ikke importere PDF-fil.",
         "pulling_content_title": "Henter sanginnhold",
         "fetching_webpage": "Henter nettside og konverterer akkorder...",
         "pull_error_default": "Kunne ikke hente akkorder fra URL-en.",

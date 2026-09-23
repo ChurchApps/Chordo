@@ -5,6 +5,7 @@
     import type { SongKeys } from "$lib/models/Song"
     import { t } from "$lib/state/i18n.svelte"
     import { goBack, menuState, updatePageTitle } from "$lib/state/menu.svelte"
+    import { showToast } from "$lib/state/toast.svelte"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
     import { createHistory } from "$lib/utils/history.svelte"
@@ -257,8 +258,13 @@
                     isIndeterminate = true
                 }
             })
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to import media files:", err)
+            if (err?.name === "PdfUnsupportedBrowserError" || err?.message?.includes("not support")) {
+                showToast(t("song_edit", "pdf_not_supported"), "error", 6000)
+            } else {
+                showToast(err?.message || t("song_edit", "pdf_import_error"), "error", 5000)
+            }
         } finally {
             isConvertingPdf = false
             input.value = ""

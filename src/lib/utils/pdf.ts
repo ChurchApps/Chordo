@@ -1,15 +1,16 @@
-import * as pdfjsLib from "pdfjs-dist"
-import pdfWorker from "pdfjs-dist/build/pdf.worker.mjs?url"
-
-// Set worker source to bundled Vite URL
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
-
 export interface ProcessedPdfResult {
     imageUrls: string[]
     extractedText: string
 }
 
 export type PdfProgressCallback = (current: number, total: number) => void
+
+export class PdfUnsupportedBrowserError extends Error {
+    constructor(message = "PDF import is not supported by your browser.") {
+        super(message)
+        this.name = "PdfUnsupportedBrowserError"
+    }
+}
 
 /**
  * Reads a PDF file, renders each page into a PNG Data URL at 2x scale,
@@ -19,9 +20,24 @@ export async function processPdfFile(
     file: File,
     onProgress?: PdfProgressCallback
 ): Promise<ProcessedPdfResult> {
-    const arrayBuffer = await file.arrayBuffer()
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) })
-    const pdf = await loadingTask.promise
+    let pdfjsLib: any
+    let pdfWorker: any
+
+    try {
+        pdfjsLib = await import("pdfjs-dist")
+        pdfWorker = (await import("pdfjs-dist/build/pdf.worker.mjs?url")).default
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
+    } catch (err) {
+        console.error("Failed to load PDF.js library in this browser:", err)
+        throw new PdfUnsupportedBrowserError(
+            "Your browser does not support PDF import. Please convert the file to images or update your browser."
+        )
+    }
+
+    try {
+        const arrayBuffer = await file.arrayBuffer()
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) })
+        const pdf = await loadingTask.promise
 
     const imageUrls: string[] = []
     const textPages: string[] = []
@@ -78,8 +94,13 @@ export async function processPdfFile(
         }
     }
 
-    return {
-        imageUrls,
-        extractedText: textPages.join("\n\n")
+        return {
+            imageUrls,
+            extractedText: textPages.join("\n\n")
+        }
+    } catch (err: any) {
+        if (err instanceof PdfUnsupportedBrowserError) throw err
+        console.error("Error processing PDF file:", err)
+        throw new Error(err?.message || "Failed to process PDF file.")
     }
 }

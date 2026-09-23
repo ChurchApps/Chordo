@@ -126,6 +126,8 @@
         "page": "Page",
         "converting_pdf_title": "Converting PDF",
         "preparing_pdf": "Preparing PDF...",
+        "pdf_not_supported": "Your browser does not support PDF import. Please use image files or switch browser.",
+        "pdf_import_error": "Could not import PDF file.",
         "pulling_content_title": "Pulling song content",
         "fetching_webpage": "Fetching webpage and converting chords...",
         "pull_error_default": "Could not pull chords from URL.",
