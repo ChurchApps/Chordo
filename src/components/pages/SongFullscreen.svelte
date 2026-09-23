@@ -4,7 +4,7 @@
     import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { exitFullscreen, isFullscreenActive, toggleFullscreen } from "$lib/utils/fullscreen"
+    import { exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
     import { onMount } from "svelte"
@@ -347,8 +347,25 @@
     }
 
     // --- Lifecycle & DOM Observation ---
+    let hasBeenFullscreen = false
+
     onMount(() => {
         requestWakeLock()
+
+        if (isFullscreenActive()) {
+            hasBeenFullscreen = true
+        }
+
+        const removeFullscreenListener = onFullscreenChange((isActive) => {
+            if (isActive) {
+                hasBeenFullscreen = true
+            } else if (hasBeenFullscreen) {
+                savedFullscreenPosition.pageIndex = currentPageIndex
+                savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
+                if (popupState.popupId !== null) setActivePopup(null)
+                goBack()
+            }
+        })
 
         const resizeObserver = new ResizeObserver(() => {
             scheduleUpdatePageCount(true)
@@ -375,6 +392,7 @@
 
         return () => {
             if (updateRafId !== null) cancelAnimationFrame(updateRafId)
+            removeFullscreenListener()
             resizeObserver.disconnect()
             mutationObserver.disconnect()
             releaseWakeLock()
