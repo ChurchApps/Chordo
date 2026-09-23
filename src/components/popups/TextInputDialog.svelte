@@ -7,6 +7,7 @@
     import { goBack, listEditingState, menuState, popupState, setActivePage, setActivePopup, updatePageTitle } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
 
     type DialogConfig = {
         icon: string
@@ -15,7 +16,7 @@
         placeholder: string
         actionLabel: string
         initialValue: string
-        submit: (value: string) => void
+        submit: (value: string) => void | Promise<void>
     }
 
     const currentFolder = $derived(menuState.contentId ? storage.getFolderById(menuState.contentId) : null)
@@ -143,6 +144,31 @@
                     }
                 }
             }
+            case "paste_link":
+                return {
+                    icon: "content_paste",
+                    title: t("home", "paste_shared"),
+                    label: t("share", "paste_link_label"),
+                    placeholder: "https://chordo.org/?share=...",
+                    actionLabel: t("common", "open"),
+                    initialValue: "",
+                    submit: async (url) => {
+                        const rawPayload = extractSharePayloadFromUrl(url.trim())
+                        if (!rawPayload) {
+                            showToast(t("share", "paste_no_link"), "warning")
+                            return
+                        }
+                        const decoded = await resolveSharePayload(rawPayload)
+                        if (decoded) {
+                            const { setSharePayload } = await import("$lib/share/share.svelte")
+                            const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
+                            setSharePayload(decoded, rawPayload)
+                            setActivePage("share_preview", null, title)
+                        } else {
+                            showToast(t("share", "generate_failed"), "error")
+                        }
+                    }
+                }
             default:
                 return null
         }
@@ -161,10 +187,10 @@
         setActivePopup(null)
     }
 
-    function handleSubmit() {
+    async function handleSubmit() {
         const val = inputValue.trim()
         if (!val || !config) return
-        config.submit(val)
+        await config.submit(val)
         closeDialog()
     }
 

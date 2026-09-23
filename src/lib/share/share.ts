@@ -173,6 +173,15 @@ export async function copyCurrentShareLink(): Promise<boolean> {
 }
 
 export async function pasteSharedFromClipboard(): Promise<boolean> {
+    const { isIosStandalone } = await import("$lib/utils/iosPwa")
+
+    // iOS PWA never grants clipboard-read — open the manual input dialog directly
+    if (isIosStandalone()) {
+        const { setActivePopup } = await import("$lib/state/menu.svelte")
+        setActivePopup("paste_link")
+        return true
+    }
+
     if (typeof navigator === "undefined" || !navigator.clipboard) {
         showToast(t("share", "paste_reading_error"), "error")
         return false
@@ -205,8 +214,10 @@ export async function pasteSharedFromClipboard(): Promise<boolean> {
         }
     } catch (err) {
         console.error("Failed to read clipboard:", err)
-        showToast(t("share", "paste_reading_error"), "error")
-        return false
+        // Fall back to manual dialog instead of just showing an error
+        const { setActivePopup } = await import("$lib/state/menu.svelte")
+        setActivePopup("paste_link")
+        return true
     }
 }
 

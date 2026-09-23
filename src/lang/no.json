@@ -17,7 +17,8 @@
         "original": "Original",
         "copy": "Kopi",
         "undo": "Angre",
-        "redo": "Gjør om"
+        "redo": "Gjør om",
+        "open": "Åpne"
     },
     "pages": {
         "folder": "Mappe",
@@ -213,7 +214,8 @@
         "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
         "shared_media_warning": "Delt! Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "copy_failed": "Kunne ikke kopiere lenke",
-        "generate_failed": "Kunne ikke opprette delingslenke"
+        "generate_failed": "Kunne ikke opprette delingslenke",
+        "paste_link_label": "Lim inn delingslenke"
     },
     "export": {
         "success": "Eksportert!",
