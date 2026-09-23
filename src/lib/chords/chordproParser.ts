@@ -1,11 +1,13 @@
-import { transposeChord, chordToNashville, isChordToken, extractBaseKey } from "./transpose"
+import { transposeChord, chordToNashville, isChordToken, isRepeatToken, extractBaseKey } from "./transpose"
 import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
 
-export { isChordToken } from "./transpose"
+export { isChordToken, isRepeatToken } from "./transpose"
 
 export interface ChordProToken {
     chord: string // Transposed chord text or empty string
     lyric: string // Lyric segment associated with this chord or preceding it
+    minWidth?: string // Minimum width when chord collision spacing is needed
+    isRepeat?: boolean // True if this token represents a repeat multiplier (e.g. x2, x4, (x2))
 }
 
 export interface ChordWord {
@@ -36,6 +38,22 @@ export interface ParsedChordPro {
     sections: ParsedSection[]
 }
 
+/**
+ * Splits a section/comment header into base name and repeat value if present.
+ * E.g. "Chorus (x2)" -> { text: "Chorus", repeat: "(x2)" }
+ */
+export function splitCommentRepeat(comment?: string): { text: string; repeat: string } | null {
+    if (!comment) return null
+    const match = comment.match(/^(.*?)(\s*[\(\[]\s*(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*[\)\]]|\s+(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*))\s*$/i)
+    if (match && match[2]) {
+        return {
+            text: match[1].trim(),
+            repeat: match[2].trim()
+        }
+    }
+    return null
+}
+
 function normalizeSection(name: string, mult = ""): string {
     const clean = name
         .trim()
@@ -56,7 +74,7 @@ const SECTION_KEYWORDS =
 export function matchSectionHeader(line: string): string | null {
     const raw = line.trim()
     if (!raw || raw.includes("|")) return null
-    if (/^[\(\[]\s*(?:x\s*\d+|\d+\s*x|\d+\s*times|\d+\s*ganger)\s*[\)\]]$/i.test(raw)) return null
+    if (/^[\(\[]\s*(?:x\s*\d+|\d+\s*x)\s*[\)\]]$/i.test(raw)) return null
 
     // 1. Braced directive: {c: ...}, {comment: ...}, {section: ...}
     const bracedMatch = raw.match(/^\{(?:c|comment|section):\s*(.+?)\}$/i)
@@ -70,7 +88,7 @@ export function matchSectionHeader(line: string): string | null {
 
     // Extract repeat multiplier (e.g. (x2), x4, (2x))
     let mult = ""
-    const multMatch = str.match(/(?:\s*[\(\[]\s*(?:x\s*|\*\s*)?(\d+)\s*(?:x|\)|\b|\]|\s*ganger|\s*times)+|\s+(?:x|\*)\s*(\d+))\s*$/i)
+    const multMatch = str.match(/(?:\s*[\(\[]\s*(?:x\s*|\*\s*)?(\d+)\s*(?:x|\)|\b|\])+|\s+(?:x|\*)\s*(\d+))\s*$/i)
     if (multMatch) {
         mult = `x${multMatch[1] || multMatch[2]}`
         str = str.slice(0, multMatch.index).trim()
@@ -193,32 +211,89 @@ export function parseChordPro(text: string, semitones: number | "NNS" = 0): Pars
     }
 }
 
+const SEGMENT_REGEX =
+    /\((?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\)\s*|\[(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\]\s*|\b(?:x\s+\d+|\d+\s+x)\b\s*|\S+\s*|\s+/gi
+
 export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 0, baseKey = "C"): { tokens: ChordProToken[]; words: ChordWord[] } {
     const trimmedLine = line.trimStart()
     const parts = trimmedLine.split(/\[([^\]]+)\]/)
     const rawTokens: ChordProToken[] = []
 
     if (parts[0]) {
-        rawTokens.push({ chord: "", lyric: parts[0].trimStart() })
+        rawTokens.push({ chord: "", lyric: parts[0] })
     }
 
     for (let i = 1; i < parts.length; i += 2) {
+        const bracketContent = parts[i].trim()
         let lyricPart = parts[i + 1] || ""
+
         if (/^\s+\S/.test(lyricPart)) {
+            const leadingSpaces = lyricPart.match(/^\s+/)![0]
+            if (rawTokens.length > 0 && !/\s$/.test(rawTokens[rawTokens.length - 1].lyric)) {
+                rawTokens[rawTokens.length - 1].lyric += leadingSpaces
+            }
             lyricPart = lyricPart.trimStart()
         }
-        const chordText = semitones === "NNS" ? chordToNashville(parts[i], baseKey) : transposeChord(parts[i], semitones)
-        rawTokens.push({
-            chord: chordText,
-            lyric: lyricPart
-        })
+
+        const trailingRepeatMatch = bracketContent.match(
+            /^(.*?)(\s*[\(\[]\s*(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*[\)\]]|\s+(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*))\s*$/i
+        )
+
+        if (isRepeatToken(bracketContent)) {
+            // [x2] or [(x2)] is a repeat value, not a chord!
+            let repeatLyric = bracketContent
+            if (rawTokens.length > 0 && !/\s$/.test(rawTokens[rawTokens.length - 1].lyric)) {
+                repeatLyric = " " + repeatLyric
+            }
+            if (lyricPart && !/^\s/.test(lyricPart)) {
+                repeatLyric = repeatLyric + " "
+            }
+            rawTokens.push({
+                chord: "",
+                lyric: repeatLyric,
+                isRepeat: true
+            })
+            if (lyricPart) {
+                rawTokens.push({
+                    chord: "",
+                    lyric: lyricPart
+                })
+            }
+        } else if (trailingRepeatMatch && trailingRepeatMatch[1].trim()) {
+            // Bracketed chords/bar with repeat at the end: e.g. [| F#m7 . . . | E . . . | x2] or [G C D x2]
+            const chordPortion = trailingRepeatMatch[1].trim()
+            const repeatPortion = trailingRepeatMatch[2].trim()
+
+            const chordText = semitones === "NNS" ? chordToNashville(chordPortion, baseKey) : transposeChord(chordPortion, semitones)
+            rawTokens.push({
+                chord: chordText,
+                lyric: " "
+            })
+            rawTokens.push({
+                chord: "",
+                lyric: " " + repeatPortion,
+                isRepeat: true
+            })
+            if (lyricPart) {
+                rawTokens.push({
+                    chord: "",
+                    lyric: lyricPart
+                })
+            }
+        } else {
+            const chordText = semitones === "NNS" ? chordToNashville(parts[i], baseKey) : transposeChord(parts[i], semitones)
+            rawTokens.push({
+                chord: chordText,
+                lyric: lyricPart
+            })
+        }
     }
 
     const words: ChordWord[] = []
     let currentWordTokens: ChordProToken[] = []
 
     for (const raw of rawTokens) {
-        const { chord, lyric } = raw
+        const { chord, lyric, isRepeat } = raw
 
         if (!lyric) {
             if (chord) {
@@ -227,8 +302,8 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
             continue
         }
 
-        // Split lyric into word segments while keeping trailing whitespace
-        const segments = lyric.match(/\S+\s*|\s+/g) || [lyric]
+        // Split lyric into word segments while detecting repeat markers
+        const segments = lyric.match(SEGMENT_REGEX) || [lyric]
 
         for (let s = 0; s < segments.length; s++) {
             const seg = segments[s]
@@ -236,10 +311,19 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
 
             // The chord belongs to the exact syllable segment where it was placed
             const segChord = isFirst ? chord : ""
+            const segIsRepeat = isRepeat || isRepeatToken(seg.trim())
+            let segLyric = seg
+            if (segIsRepeat && currentWordTokens.length > 0 && !/\s$/.test(currentWordTokens[currentWordTokens.length - 1].lyric) && !/^\s/.test(segLyric)) {
+                segLyric = " " + segLyric
+            }
 
-            currentWordTokens.push({ chord: segChord, lyric: seg })
+            currentWordTokens.push({
+                chord: segChord,
+                lyric: segLyric,
+                ...(segIsRepeat ? { isRepeat: true } : {})
+            })
 
-            if (/\s$/.test(seg)) {
+            if (/\s$/.test(segLyric)) {
                 words.push({ tokens: currentWordTokens })
                 currentWordTokens = []
             }
@@ -250,7 +334,87 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
         words.push({ tokens: currentWordTokens })
     }
 
+    // Optimize words: If a word starts with an un-chorded token (e.g. "l" in "l[A]eter"),
+    // snap the chord to the start of the word if it won't clip the previous chord.
+    let currentPos = 0
+    let lastChordEndPos = -1
+
+    for (const word of words) {
+        const wordStartPos = currentPos
+
+        // Check if first token in word has no chord, but second token does (and first is not a repeat token)
+        if (word.tokens.length > 1 && !word.tokens[0].chord && !word.tokens[0].isRepeat && word.tokens[1].chord) {
+            const minAllowedPos = lastChordEndPos >= 0 ? lastChordEndPos + 1 : 0
+            if (wordStartPos >= minAllowedPos) {
+                word.tokens[0].chord = word.tokens[1].chord
+                word.tokens[0].lyric = word.tokens[0].lyric + word.tokens[1].lyric
+                word.tokens.splice(1, 1)
+            }
+        }
+
+        // Update chord positions and current lyric position
+        for (const token of word.tokens) {
+            if (token.chord) {
+                lastChordEndPos = currentPos + token.chord.length
+            }
+            currentPos += token.lyric.length
+        }
+    }
+
     const allTokens = words.flatMap((w) => w.tokens)
+
+    // Calculate chord collision spacing:
+    // Expand tokens if a chord would collide with the next chord or needs standalone width
+    for (let i = 0; i < allTokens.length; i++) {
+        const token = allTokens[i]
+        if (!token.chord) continue
+
+        // Find the next token that has a chord
+        let nextChordIndex = -1
+        for (let j = i + 1; j < allTokens.length; j++) {
+            if (allTokens[j].chord) {
+                nextChordIndex = j
+                break
+            }
+        }
+
+        const GAP = 1.5
+        if (nextChordIndex !== -1) {
+            const hasLyricText = Boolean(token.lyric && token.lyric.trim() !== "")
+            if (hasLyricText) {
+                // Chord has lyric words: measure visual span up to next chord
+                // In proportional fonts, narrow letters & spaces average ~0.4ch, standard letters ~0.75ch of monospace width
+                let lyricSpanLen = 0
+                for (let k = i; k < nextChordIndex; k++) {
+                    const nextTok = allTokens[k]
+                    if (k > i && !nextTok.lyric?.trim() && nextTok.chord) {
+                        lyricSpanLen += nextTok.chord.length + nextTok.lyric.length
+                    } else {
+                        const lyricStr = nextTok.lyric || ""
+                        for (const char of lyricStr) {
+                            if (/\s/.test(char) || /[iljf\.,'’!]/.test(char)) {
+                                lyricSpanLen += 0.4
+                            } else {
+                                lyricSpanLen += 0.75
+                            }
+                        }
+                    }
+                }
+
+                // A chord needs its length + GAP so it doesn't touch the next chord
+                const neededLen = token.chord.length + GAP
+                if (neededLen > lyricSpanLen) {
+                    token.minWidth = `${neededLen}ch`
+                }
+            } else {
+                // Standalone chord without lyric words:
+                // Needs chord length + whatever trailing spaces were typed (or 1 space gap if 0 spaces between adjacent chords)
+                const minLen = token.lyric.length > 0 ? token.chord.length + token.lyric.length : token.chord.length + 1
+                token.minWidth = `${minLen}ch`
+            }
+        }
+    }
+
     return { tokens: allTokens, words }
 }
 

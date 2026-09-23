@@ -89,7 +89,7 @@
 
     $effect(() => {
         if (!listOpened && isEditing) {
-            listEditingState.onDeleteSelected = removeSelectedSongs
+            listEditingState.onDeleteSelected = selectedSongIds.length > 0 ? removeSelectedSongs : undefined
             if (selectedSongIds.length === 1) {
                 listEditingState.onEditSelected = editSelectedSong
             } else {

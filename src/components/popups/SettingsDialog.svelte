@@ -18,7 +18,7 @@
 
     // Paper options state
     const isSongSettings = $derived(
-        popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song_draw" || menuState.activePage === "song")
+        popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song")
     )
 
     const BACKGROUND_PRESETS = [

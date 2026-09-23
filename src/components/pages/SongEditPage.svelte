@@ -5,12 +5,14 @@
     import type { SongKeys } from "$lib/models/Song"
     import { t } from "$lib/state/i18n.svelte"
     import { goBack, menuState, updatePageTitle } from "$lib/state/menu.svelte"
+    import { showToast } from "$lib/state/toast.svelte"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
     import { createHistory } from "$lib/utils/history.svelte"
     import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "$lib/utils/mediaManager"
     import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
+    import HighlightedTextarea from "../common/HighlightedTextarea.svelte"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
     import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
 
@@ -25,7 +27,6 @@
     let reorderInitialText = $state("")
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
-    let contentInputEl = $state<any>(null)
     let imageWebUrls = $state<string[]>([])
 
     // Universal History for Song Content
@@ -35,9 +36,6 @@
         onApply: (newVal) => {
             if (!song) return
             song.content = newVal
-            if (contentInputEl) {
-                contentInputEl.value = newVal
-            }
             if (newVal.trim()) {
                 syncMetadataFromText(newVal)
             }
@@ -72,12 +70,6 @@
         if (!isInitialized && song) {
             contentHistory.reset(song.content || "")
             isInitialized = true
-        }
-    })
-
-    $effect(() => {
-        if (contentInputEl && song?.content !== undefined && contentInputEl.value !== song.content) {
-            contentInputEl.value = song.content
         }
     })
 
@@ -133,6 +125,7 @@
             syncMetadataFromText(value)
         }
 
+        storage.updateSong(song)
         storage.persist()
 
         if (key === "name") {
@@ -142,7 +135,7 @@
     }
 
     function openReorderDialog() {
-        reorderInitialText = (contentInputEl ? contentInputEl.value : song?.content) || ""
+        reorderInitialText = song?.content || ""
         showReorderDialog = true
     }
 
@@ -151,9 +144,6 @@
         contentHistory.push(newContent)
         song.content = newContent
         reorderInitialText = newContent
-        if (contentInputEl) {
-            contentInputEl.value = newContent
-        }
         if (newContent.trim()) {
             syncMetadataFromText(newContent)
         }
@@ -170,6 +160,7 @@
             song.playbackUrl = cleaned
             song.spotify = cleaned
         }
+        storage.updateSong(song)
         storage.persist()
     }
 
@@ -184,6 +175,7 @@
         song.playbackUrl = cleaned
         song.spotify = cleaned
         song.setMetadata("playback", cleaned)
+        storage.updateSong(song)
         storage.persist()
     }
 
@@ -257,8 +249,13 @@
                     isIndeterminate = true
                 }
             })
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to import media files:", err)
+            if (err?.name === "PdfUnsupportedBrowserError" || err?.message?.includes("not support")) {
+                showToast(t("song_edit", "pdf_not_supported"), "error", 6000)
+            } else {
+                showToast(err?.message || t("song_edit", "pdf_import_error"), "error", 5000)
+            }
         } finally {
             isConvertingPdf = false
             input.value = ""
@@ -297,14 +294,7 @@
                 <!-- Dynamic Metadata Inputs Grid (includes Artist, Key, Tempo, Time, Album, Year, Composer, Copyright, Capo) -->
                 <div class="metadata-grid">
                     {#each METADATA_CONFIGS as cfg}
-                        <md-outlined-text-field
-                            id={"song-meta-" + cfg.key}
-                            label={cfg.label}
-                            placeholder={cfg.placeholder}
-                            value={song.getMetadata(cfg.key)}
-                            oninput={(e: Event) => updateMetadataValue(e, cfg.key)}
-                            style="flex: 1; min-width: 140px;"
-                        >
+                        <md-outlined-text-field id={"song-meta-" + cfg.key} label={cfg.label} placeholder={cfg.placeholder} value={song.getMetadata(cfg.key)} oninput={(e: Event) => updateMetadataValue(e, cfg.key)} style="flex: 1; min-width: 140px;">
                         </md-outlined-text-field>
                     {/each}
                 </div>
@@ -380,56 +370,36 @@
                 {/if}
             {/if}
 
-            <div class="textarea-wrapper" style="{hasContent && !hasMedia ? 'flex: 1; display: flex; flex-direction: column;' : ''}">
+            <div class="textarea-wrapper" style={hasContent && !hasMedia ? "flex: 1; display: flex; flex-direction: column;" : ""}>
                 <div class="content-actions-container">
-                    <button
-                        type="button"
-                        class="content-action-btn"
-                        disabled={!contentHistory.canUndo}
-                        onclick={() => contentHistory.undo()}
-                        title={`${t("common", "undo")} (Ctrl+Z)`}
-                    >
+                    <button type="button" class="content-action-btn" disabled={!contentHistory.canUndo} onclick={() => contentHistory.undo()} title={`${t("common", "undo")} (Ctrl+Z)`}>
                         <span class="material-symbols-outlined" style="font-size: 16px;">undo</span>
                         <span>{t("common", "undo")}</span>
                     </button>
 
-                    <button
-                        type="button"
-                        class="content-action-btn"
-                        disabled={!contentHistory.canRedo}
-                        onclick={() => contentHistory.redo()}
-                        title={`${t("common", "redo")} (Ctrl+Y)`}
-                    >
+                    <button type="button" class="content-action-btn" disabled={!contentHistory.canRedo} onclick={() => contentHistory.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
                         <span class="material-symbols-outlined" style="font-size: 16px;">redo</span>
                         <span>{t("common", "redo")}</span>
                     </button>
 
                     {#if hasContent}
-                        <button
-                            type="button"
-                            class="content-action-btn"
-                            onclick={openReorderDialog}
-                            title={t("song_edit", "reorder_sections")}
-                        >
+                        <button type="button" class="content-action-btn" onclick={openReorderDialog} title={t("song_edit", "reorder_sections")}>
                             <span class="material-symbols-outlined" style="font-size: 16px;">reorder</span>
                             <span>{t("song_edit", "reorder")}</span>
                         </button>
                     {/if}
                 </div>
 
-                <md-outlined-text-field
+                <HighlightedTextarea
                     id="song-content-input"
-                    bind:this={contentInputEl}
-                    type="textarea"
                     label={t("song_edit", "content")}
                     placeholder={t("song_edit", "content_placeholder")}
                     rows={8}
                     value={song.content}
                     oninput={(e: Event) => updateValue(e, "content")}
                     onkeydown={contentHistory.handleKeyDown}
-                    style="width: 100%;resize: none;{hasContent && !hasMedia ? 'flex: 1;' : ''}"
-                >
-                </md-outlined-text-field>
+                    style="width: 100%; min-height: 220px; {hasContent && !hasMedia ? 'flex: 1;' : ''}"
+                />
             </div>
 
             <input type="file" accept="image/*,application/pdf,.pdf" multiple bind:this={fileInputEl} onchange={handleAddMedia} style="display: none;" />
@@ -481,12 +451,7 @@
     </div>
 </main>
 
-<ReorderSectionsDialog
-    open={showReorderDialog}
-    initialText={reorderInitialText}
-    onApply={applyReorderedContent}
-    onClose={() => (showReorderDialog = false)}
-/>
+<ReorderSectionsDialog open={showReorderDialog} initialText={reorderInitialText} onApply={applyReorderedContent} onClose={() => (showReorderDialog = false)} />
 
 <ProgressDialog open={isConvertingPdf} title={t("song_edit", "converting_pdf_title")} icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
 

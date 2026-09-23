@@ -15,6 +15,18 @@ export function isFullscreenActive(): boolean {
     return !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).mozFullScreenElement || (document as any).msFullscreenElement)
 }
 
+export function onFullscreenChange(callback: (isActive: boolean) => void): () => void {
+    if (typeof document === "undefined") return () => () => {}
+    const handler = () => {
+        callback(isFullscreenActive())
+    }
+    const events = ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"]
+    events.forEach((evt) => document.addEventListener(evt, handler))
+    return () => {
+        events.forEach((evt) => document.removeEventListener(evt, handler))
+    }
+}
+
 export async function enterFullscreen(element?: HTMLElement | null, force: boolean = false): Promise<boolean> {
     if (typeof document === "undefined") return false
 

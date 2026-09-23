@@ -33,6 +33,9 @@ export const popups = {
     },
     settings: {
         component: SettingsDialog
+    },
+    paste_link: {
+        component: TextInputDialog
     }
 }
 

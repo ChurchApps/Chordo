@@ -50,12 +50,27 @@ export async function createShare(payload: SharePayload): Promise<string> {
     const data = (await res.json()) as { id: string; url: string }
     if (!data?.id) throw new Error("Invalid response from share API")
 
+    cacheShareData(data.id, hash, payload)
+    return createShareUrl(data.id)
+}
+
+export async function cacheSharePayload(payload: SharePayload, shareId: string): Promise<void> {
+    const rawId = extractSharePayloadFromUrl(shareId) || shareId
+    const cleanId = getCleanId(rawId)
+    if (!cleanId) return
+
+    const payloadStr = JSON.stringify(payload)
+    const hash = await sha256(payloadStr)
+
+    cacheShareData(cleanId, hash, payload)
+}
+
+function cacheShareData(id: string, hash: string, payload: SharePayload): void {
     storage.settings.shareCache = storage.settings.shareCache || {}
-    storage.settings.shareCache[hash] = { id: data.id, createdAt: Date.now() }
+    storage.settings.shareCache[hash] = { id, createdAt: Date.now() }
     storage.persist()
 
-    shareDataCache.set(data.id, payload)
-    return createShareUrl(data.id)
+    shareDataCache.set(id, payload)
 }
 
 // --- URL Parsing & Resolution ---
@@ -66,12 +81,16 @@ export function extractSharePayloadFromUrl(url: string = typeof window !== "unde
     return match ? decodeURIComponent(match[1]) : null
 }
 
-export async function fetchShare(id: string): Promise<SharePayload | null> {
-    const cleanId = decodeURIComponent(id)
+function getCleanId(rawId: string): string {
+    return decodeURIComponent(rawId)
         .replace(/^https?:\/\/content\.chordo\.org\//, "")
         .replace(/\.json$/, "")
         .trim()
+}
 
+export async function fetchShare(id: string): Promise<SharePayload | null> {
+    const rawId = extractSharePayloadFromUrl(id) || id
+    const cleanId = getCleanId(rawId)
     if (!cleanId) return null
     if (shareDataCache.has(cleanId)) return shareDataCache.get(cleanId)!
 
@@ -154,6 +173,15 @@ export async function copyCurrentShareLink(): Promise<boolean> {
 }
 
 export async function pasteSharedFromClipboard(): Promise<boolean> {
+    const { isIosStandalone } = await import("$lib/utils/iosPwa")
+
+    // iOS PWA never grants clipboard-read — open the manual input dialog directly
+    if (isIosStandalone()) {
+        const { setActivePopup } = await import("$lib/state/menu.svelte")
+        setActivePopup("paste_link")
+        return true
+    }
+
     if (typeof navigator === "undefined" || !navigator.clipboard) {
         showToast(t("share", "paste_reading_error"), "error")
         return false
@@ -186,8 +214,10 @@ export async function pasteSharedFromClipboard(): Promise<boolean> {
         }
     } catch (err) {
         console.error("Failed to read clipboard:", err)
-        showToast(t("share", "paste_reading_error"), "error")
-        return false
+        // Fall back to manual dialog instead of just showing an error
+        const { setActivePopup } = await import("$lib/state/menu.svelte")
+        setActivePopup("paste_link")
+        return true
     }
 }
 

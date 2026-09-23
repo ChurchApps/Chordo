@@ -37,7 +37,7 @@
             {confirmState.config?.title ?? t("common", "confirm")}
         </div>
 
-        <div slot="content">
+        <div slot="content" class="dialog-content">
             {confirmState.config?.message ?? ""}
         </div>
 
@@ -58,6 +58,10 @@
 {/if}
 
 <style>
+    .dialog-content {
+        white-space: pre-line;
+    }
+
     .destructive {
         --md-filled-button-container-color: var(--md-sys-color-error, #ba1a1a);
         --md-filled-button-label-text-color: #ffffff;

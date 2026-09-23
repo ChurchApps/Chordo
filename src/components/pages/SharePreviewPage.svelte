@@ -2,17 +2,18 @@
     import { Folder } from "$lib/models/Folder"
     import { List } from "$lib/models/List"
     import { Song } from "$lib/models/Song"
-    import { copyCurrentShareLink } from "$lib/share/share"
+    import { copyCurrentShareLink, cacheSharePayload } from "$lib/share/share"
     import { clearSharePayload, sharePreviewState } from "$lib/share/share.svelte"
+    import { buildListSharePayload, buildSongSharePayload, isListContentEqual, isSongContentEqual } from "$lib/share/shareCodec"
     import { promptConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { menuState, setActivePage } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { getId } from "$lib/utils/common"
     import { isIosSafariNonStandalone } from "$lib/utils/iosPwa"
     import { parsePlaybackUrl } from "$lib/utils/playback"
-    import { getId } from "$lib/utils/common"
     import ChordPro from "../song/ChordPro.svelte"
 
     let payload = $derived(sharePreviewState.payload)
@@ -22,9 +23,7 @@
         return new Song(payload.song)
     })
 
-    type PreviewListItem =
-        | { type: "section"; name: string }
-        | { type: "song"; song: Song; transposed?: string; songIndex: number }
+    type PreviewListItem = { type: "section"; name: string } | { type: "song"; song: Song; transposed?: string; songIndex: number }
 
     let previewListItems = $derived.by<PreviewListItem[]>(() => {
         if (!payload || payload.type !== "list") return []
@@ -48,28 +47,28 @@
         })
     })
 
-    // Check if single song already exists by ID
-    let existingSongById = $derived.by(() => {
+    // Existing single song match
+    let existingSong = $derived.by(() => {
         if (!payload || payload.type !== "song") return null
-        const sharedSong = payload.song
-        return (sharedSong.id && storage.songs.find((s) => s.id === sharedSong.id)) || null
+        const s = payload.song
+        return (s.id && storage.songs.find((e) => e.id === s.id)) || storage.songs.find((e) => e.name.trim().toLowerCase() === s.name.trim().toLowerCase()) || null
     })
 
-    // Check if single song already exists by Name (and not same ID)
-    let existingSongByName = $derived.by(() => {
-        if (!payload || payload.type !== "song") return null
-        const sharedSong = payload.song
-        if (existingSongById) return null
-        return storage.songs.find((s) => s.name.trim().toLowerCase() === sharedSong.name.trim().toLowerCase()) || null
+    let isSingleSongIdentical = $derived.by(() => {
+        if (!payload || payload.type !== "song" || !existingSong) return false
+        return isSongContentEqual(existingSong, payload.song)
     })
 
-    let existingSong = $derived(existingSongById || existingSongByName)
-
-    // Check if list already exists in library
+    // Existing list match
     let existingList = $derived.by(() => {
         if (!payload || payload.type !== "list") return null
-        const sharedList = payload.list
-        return (sharedList.id && storage.lists.find((l) => l.id === sharedList.id)) || null
+        const l = payload.list
+        return (l.id && storage.lists.find((e) => e.id === l.id)) || storage.lists.find((e) => e.name.trim().toLowerCase() === l.name.trim().toLowerCase()) || null
+    })
+
+    let isListIdentical = $derived.by(() => {
+        if (!payload || payload.type !== "list" || !existingList) return false
+        return isListContentEqual(existingList, payload.list, storage.songs)
     })
 
     function handleSongPlayback(song: Song) {
@@ -135,21 +134,31 @@
         const shared = payload.song
         let songToOpen: Song
 
-        if (existingSongById) {
-            songToOpen = await applySongData(existingSongById, shared)
-            showToast(`Updated "${shared.name}" in your library`, "success")
-        } else if (existingSongByName) {
-            const overwrite = await askNameConflict(shared.name)
-            if (overwrite) {
-                songToOpen = await applySongData(existingSongByName, shared)
-                showToast(`Updated "${shared.name}" in your library`, "success")
+        if (existingSong) {
+            if (isSingleSongIdentical) {
+                songToOpen = existingSong
+                showToast(`"${shared.name}" has already been imported`, "info")
             } else {
-                songToOpen = await createNewSong(shared, true)
-                showToast(`Imported "${shared.name}" to your library`, "success")
+                const isSameId = existingSong.id === shared.id
+                const overwrite = isSameId || (await askNameConflict(shared.name))
+                if (overwrite) {
+                    songToOpen = await applySongData(existingSong, shared)
+                    showToast(`Updated "${shared.name}" in your library`, "success")
+                } else {
+                    songToOpen = await createNewSong(shared, true)
+                    showToast(`Imported "${shared.name}" to your library`, "success")
+                }
             }
         } else {
             songToOpen = await createNewSong(shared)
             showToast(`Imported "${shared.name}" to your library`, "success")
+        }
+
+        const rawShareId = sharePreviewState.rawPayload
+        if (rawShareId) {
+            const freshPayload = await buildSongSharePayload(songToOpen)
+            await cacheSharePayload(freshPayload, rawShareId)
+            if (payload) await cacheSharePayload(payload, rawShareId)
         }
 
         storage.persist()
@@ -161,11 +170,21 @@
         if (!payload || payload.type !== "list") return
         const sharedList = payload.list
 
-        // 1. Batch prompt for exact ID matches
-        const idMatches = sharedList.songs.filter((s) => s.id && storage.songs.some((e) => e.id === s.id))
+        // 1. Batch prompt for exact ID matches that differ in content
+        const idMatches = sharedList.songs.filter((s) => {
+            if (!s.id) return false
+            const existing = storage.songs.find((e) => e.id === s.id)
+            if (!existing) return false
+            return !isSongContentEqual(existing, s)
+        })
         let overwriteIdMatches = false
         if (idMatches.length > 0) {
-            const msg = (idMatches.length === 1 ? t("confirm", "overwrite_song_msg") : t("confirm", "overwrite_songs_msg")).replace("{count}", idMatches.length.toString())
+            let msg = (idMatches.length === 1 ? t("confirm", "overwrite_song_msg") : t("confirm", "overwrite_songs_msg")).replace("{count}", idMatches.length.toString())
+
+            const DISPLAY_LIMIT = 8
+            if (idMatches.length <= DISPLAY_LIMIT) {
+                msg += `\n\n${idMatches.map((s) => `• ${s.name}`).join("\n")}`
+            }
 
             overwriteIdMatches = await promptConfirm({
                 title: t("confirm", "overwrite_songs_title"),
@@ -175,9 +194,15 @@
             })
         }
 
-        // 2. Individual prompt per name collision
+        // 2. Individual prompt per name collision that differs in content
         const nameDecisions = new Map<string, boolean>()
-        const nameCollisions = sharedList.songs.filter((s) => (!s.id || !storage.songs.some((e) => e.id === s.id)) && storage.songs.some((e) => e.name.trim().toLowerCase() === s.name.trim().toLowerCase()))
+        const nameCollisions = sharedList.songs.filter((s) => {
+            const hasIdMatch = s.id && storage.songs.some((e) => e.id === s.id)
+            if (hasIdMatch) return false
+            const existing = storage.songs.find((e) => e.name.trim().toLowerCase() === s.name.trim().toLowerCase())
+            if (!existing) return false
+            return !isSongContentEqual(existing, s)
+        })
 
         for (const s of nameCollisions) {
             const norm = s.name.trim().toLowerCase()
@@ -207,11 +232,18 @@
                     let songName = sharedSong.name
 
                     if (matchById) {
-                        if (overwriteIdMatches) await applySongData(matchById, sharedSong)
+                        const isSame = isSongContentEqual(matchById, sharedSong)
+                        if (!isSame && overwriteIdMatches) {
+                            await applySongData(matchById, sharedSong)
+                        }
                         songId = matchById.id
                         songName = matchById.name
                     } else if (matchByName) {
-                        if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
+                        const isSame = isSongContentEqual(matchByName, sharedSong)
+                        if (isSame) {
+                            songId = matchByName.id
+                            songName = matchByName.name
+                        } else if (nameDecisions.get(sharedSong.name.trim().toLowerCase())) {
                             await applySongData(matchByName, sharedSong)
                             songId = matchByName.id
                             songName = matchByName.name
@@ -230,15 +262,18 @@
         ).filter(Boolean) as any[]
 
         // 4. Create or replace list
-        const existingListMatch = sharedList.id ? storage.lists.find((l) => l.id === sharedList.id) : null
         let listToOpen: List
 
-        if (existingListMatch) {
-            existingListMatch.name = sharedList.name
-            existingListMatch.songs = resolvedSongs
-            storage.updateList(existingListMatch)
-            listToOpen = existingListMatch
-            showToast(`Updated "${existingListMatch.name}" in your library`, "success")
+        if (existingList) {
+            if (!isListIdentical) {
+                existingList.name = sharedList.name
+                existingList.songs = resolvedSongs
+                storage.updateList(existingList)
+                showToast(`Updated "${existingList.name}" in your library`, "success")
+            } else {
+                showToast(`"${existingList.name}" has already been imported`, "info")
+            }
+            listToOpen = existingList
         } else {
             const newList = new List({
                 id: sharedList.id,
@@ -262,6 +297,13 @@
             storage.addList(newList)
             listToOpen = newList
             showToast(`Imported "${newList.name}" into ${targetFolder.name}`, "success")
+        }
+
+        const rawShareId = sharePreviewState.rawPayload
+        if (rawShareId) {
+            const freshPayload = await buildListSharePayload(listToOpen, storage.songs)
+            await cacheSharePayload(freshPayload, rawShareId)
+            if (payload) await cacheSharePayload(payload, rawShareId)
         }
 
         storage.persist()
@@ -307,16 +349,18 @@
                 </div>
             </div>
 
-            {#if existingSongById}
-                <div class="alert warning">
-                    <span class="material-symbols-outlined">info</span>
-                    <span>"{existingSongById.name}" already exists in your library. Importing will replace it.</span>
-                </div>
-            {:else if existingSongByName}
-                <div class="alert warning">
-                    <span class="material-symbols-outlined">info</span>
-                    <span>A song named "{existingSongByName.name}" already exists in your library.</span>
-                </div>
+            {#if existingSong}
+                {#if isSingleSongIdentical}
+                    <div class="alert info">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>"{existingSong.name}" has already been imported.</span>
+                    </div>
+                {:else}
+                    <div class="alert warning">
+                        <span class="material-symbols-outlined">info</span>
+                        <span>"{existingSong.name}" already exists in your library. Importing will replace it.</span>
+                    </div>
+                {/if}
             {/if}
 
             <div class="sheet-container">
@@ -340,13 +384,19 @@
             </div>
         </div>
     {:else if payload.type === "list"}
-        {@const list = payload.list}
         <div class="share-card compact">
             {#if existingList}
-                <div class="alert warning">
-                    <span class="material-symbols-outlined">info</span>
-                    <span>"{existingList.name}" already exists in your library. Importing will replace it.</span>
-                </div>
+                {#if isListIdentical}
+                    <div class="alert info">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>"{existingList.name}" has already been imported.</span>
+                    </div>
+                {:else}
+                    <div class="alert warning">
+                        <span class="material-symbols-outlined">info</span>
+                        <span>"{existingList.name}" already exists in your library. Importing will replace it.</span>
+                    </div>
+                {/if}
             {/if}
             <!-- <div class="card-top">
                 <div class="title-section">
@@ -450,13 +500,11 @@
         flex: 1;
         height: 100%;
         overflow-y: auto;
-        padding: 16px 20px 32px 20px;
+        padding: 0 20px calc(76px + env(safe-area-inset-bottom, 0px)) 20px;
         box-sizing: border-box;
         max-width: 860px;
         margin: 0 auto;
         width: 100%;
-
-        padding-top: 0;
     }
 
     .empty-card {
@@ -567,6 +615,12 @@
         background-color: #fff3e0;
         color: #b26a00;
         border: 1px solid #ffe0b2;
+    }
+
+    .alert.info {
+        background-color: #e8f4fd;
+        color: #0d47a1;
+        border: 1px solid #bbdefb;
     }
 
     .alert .material-symbols-outlined {
@@ -719,7 +773,7 @@
     /* Bottom center action container */
     .bottom-center-action {
         position: fixed;
-        bottom: 20px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
         left: 50%;
         transform: translateX(-50%);
 
@@ -727,10 +781,11 @@
         justify-content: center;
         align-items: center;
         gap: 12px;
-        padding: 16px 16px 8px 16px;
+        padding: 0 16px;
         width: 100%;
         max-width: 600px;
         box-sizing: border-box;
+        pointer-events: none;
     }
 
     .bottom-center-action :global(md-filled-button),
@@ -740,6 +795,7 @@
         font-size: 0.95rem;
         font-weight: 600;
         flex: 1;
+        pointer-events: auto;
     }
 
     .bottom-center-action :global(md-outlined-button) {
@@ -748,7 +804,7 @@
 
     @media (max-width: 600px) {
         .share-page-wrapper {
-            padding: 12px 12px 24px 12px;
+            padding: 0 12px calc(80px + env(safe-area-inset-bottom, 0px)) 12px;
         }
 
         .paper-preview {
@@ -758,7 +814,8 @@
         .bottom-center-action {
             flex-direction: column;
             gap: 8px;
-            bottom: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            padding: 0 12px;
         }
 
         .bottom-center-action :global(md-filled-button),

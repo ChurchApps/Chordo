@@ -17,7 +17,8 @@
         "original": "Original",
         "copy": "Copy",
         "undo": "Undo",
-        "redo": "Redo"
+        "redo": "Redo",
+        "open": "Open"
     },
     "pages": {
         "folder": "Folder",
@@ -126,6 +127,8 @@
         "page": "Page",
         "converting_pdf_title": "Converting PDF",
         "preparing_pdf": "Preparing PDF...",
+        "pdf_not_supported": "Your browser does not support PDF import. Please use image files or switch browser.",
+        "pdf_import_error": "Could not import PDF file.",
         "pulling_content_title": "Pulling song content",
         "fetching_webpage": "Fetching webpage and converting chords...",
         "pull_error_default": "Could not pull chords from URL.",
@@ -211,7 +214,8 @@
         "shared_no_media": "Shared! Note: Attached images/PDFs are not included.",
         "shared_media_warning": "Shared! Note: It is recommended to use text content instead of media.",
         "copy_failed": "Failed to copy link",
-        "generate_failed": "Failed to generate share link"
+        "generate_failed": "Failed to generate share link",
+        "paste_link_label": "Paste share link"
     },
     "export": {
         "success": "Exported successfully!",

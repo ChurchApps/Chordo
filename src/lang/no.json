@@ -17,7 +17,8 @@
         "original": "Original",
         "copy": "Kopi",
         "undo": "Angre",
-        "redo": "Gjør om"
+        "redo": "Gjør om",
+        "open": "Åpne"
     },
     "pages": {
         "folder": "Mappe",
@@ -126,6 +127,8 @@
         "page": "Side",
         "converting_pdf_title": "Konverterer PDF",
         "preparing_pdf": "Forbereder PDF...",
+        "pdf_not_supported": "Nettleseren din støtter ikke import av PDF. Vennligst bruk bildefiler eller bytt nettleser.",
+        "pdf_import_error": "Kunne ikke importere PDF-fil.",
         "pulling_content_title": "Henter sanginnhold",
         "fetching_webpage": "Henter nettside og konverterer akkorder...",
         "pull_error_default": "Kunne ikke hente akkorder fra URL-en.",
@@ -211,7 +214,8 @@
         "shared_no_media": "Delt! Merk: Bilder/PDF-vedlegg er ikke inkludert.",
         "shared_media_warning": "Delt! Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "copy_failed": "Kunne ikke kopiere lenke",
-        "generate_failed": "Kunne ikke opprette delingslenke"
+        "generate_failed": "Kunne ikke opprette delingslenke",
+        "paste_link_label": "Lim inn delingslenke"
     },
     "export": {
         "success": "Eksportert!",

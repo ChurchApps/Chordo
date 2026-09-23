@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
-    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePage, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { exitFullscreen, isFullscreenActive, toggleFullscreen } from "$lib/utils/fullscreen"
+    import { exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
     import { onMount } from "svelte"
@@ -66,10 +66,36 @@
     })
 
     let actionsVisible = $state(false)
+    let isDrawing = $state(false)
     let hideTimeout: ReturnType<typeof setTimeout> | undefined
 
     // Carousel state
-    let currentPageIndex = $state(savedFullscreenPosition.pageIndex ?? savedFullscreenPosition.index ?? 0)
+    const initialSlideIndex = (() => {
+        if (savedFullscreenPosition.pageIndex != null) {
+            return savedFullscreenPosition.pageIndex
+        }
+        if (savedFullscreenPosition.index != null) {
+            const targetIdx = savedFullscreenPosition.index
+            const slideIdx = slides.findIndex((s) => {
+                if (s.originalIndex === targetIdx) return true
+                if (s.type === "section" && s.sections.some((sec) => sec.originalIndex === targetIdx)) return true
+                return false
+            })
+            if (slideIdx !== -1) return slideIdx
+            return Math.min(targetIdx, Math.max(0, slides.length - 1))
+        }
+        return 0
+    })()
+
+    let currentPageIndex = $state(initialSlideIndex)
+    let currentSlideIndex = $derived.by(() => {
+        const origIdx = pageSongIndexMap[currentPageIndex] ?? null
+        if (origIdx !== null) {
+            const slideIdx = slides.findIndex((s) => s.originalIndex === origIdx || (s.type === "section" && s.sections.some((sec) => sec.originalIndex === origIdx)))
+            if (slideIdx !== -1) return slideIdx
+        }
+        return Math.max(0, Math.min(currentPageIndex, slides.length - 1))
+    })
     let totalPages = $state(1)
     let sliderEl = $state<HTMLDivElement | null>(null)
 
@@ -79,6 +105,7 @@
     let currentTranslate = 0
     let prevTranslate = 0
     let didDrag = false
+    let initialPinchDist = 0
 
     // Dynamic pagination mappings
     let pageSongMap: Array<string | null> = []
@@ -86,6 +113,10 @@
     let pageSongIndexMap: number[] = []
     let songPageId = $state("")
     let previousPage = -1
+
+    let lastActiveOriginalIndex: number | null = null
+    let lastActivePageInSong = 0
+    let lastActiveSongId: string | null = null
 
     function toggleActions() {
         actionsVisible = !actionsVisible
@@ -114,12 +145,27 @@
         }
     }
 
+    function exitSongFullscreen() {
+        savedFullscreenPosition.pageIndex = currentPageIndex
+        savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
+        if (popupState.popupId !== null) setActivePopup(null)
+        if (isFullscreenActive()) {
+            exitFullscreen()
+        }
+        goBack()
+    }
+
     let moreMenuOpen = $state(false)
+    const mountTime = typeof performance !== "undefined" ? performance.now() : Date.now()
 
     // --- Actions Header Toggle & Click Navigation ---
     function windowClick(e: MouseEvent) {
         if (didDrag) return
+        if (isDrawing) return
         if (popupState.popupId !== null) return
+        // Ignore the opening tap/click that triggered fullscreen entry
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+        if (now - mountTime < 350) return
         const target = e.target as HTMLElement | null
         if (
             target?.closest("header") ||
@@ -136,13 +182,14 @@
             return
 
         const screenWidth = window.innerWidth
-        const clickX = e.clientX
-        const ratio = clickX / screenWidth
+        const screenHeight = window.innerHeight
+        const ratioX = e.clientX / screenWidth
+        const ratioY = e.clientY / screenHeight
 
-        // Center 1/5 (40% - 60%) toggles action buttons
-        if (ratio >= 0.4 && ratio <= 0.6) {
+        // Top 15% or Center (40% - 60%) toggles action buttons
+        if (ratioY <= 0.15 || (ratioX >= 0.4 && ratioX <= 0.6)) {
             toggleActions()
-        } else if (ratio < 0.4) {
+        } else if (ratioX < 0.4) {
             goToPrevPage()
         } else {
             goToNextPage()
@@ -150,6 +197,10 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
+        if (isDrawing) {
+            if (e.key === "Escape") isDrawing = false
+            return
+        }
         if (e.key === "ArrowLeft") {
             goToPrevPage()
         } else if (e.key === "ArrowRight" || e.key === " ") {
@@ -163,43 +214,77 @@
     function updatePageCount() {
         if (!sliderEl) return
 
-        const pages = Array.from(sliderEl.querySelectorAll<HTMLElement>(".paper-page"))
-        const slideEls = Array.from(sliderEl.querySelectorAll<HTMLElement>(".slide"))
+        const slideEls = Array.from(sliderEl.querySelectorAll<HTMLElement>(":scope > .slide"))
+        if (slideEls.length === 0) return
 
-        totalPages = pages.length || slideEls.length || 1
-        const isRealLayout = pages.length > 0
+        const newPageSongMap: Array<string | null> = []
+        const newPageIndexMap: number[] = []
+        const newPageSongIndexMap: number[] = []
 
-        if (isRealLayout) {
-            pageSongMap = pages.map((page) => {
-                const slideEl = page.closest(".slide") as HTMLElement | null
-                const index = slideEl ? slideEls.indexOf(slideEl) : -1
-                const slideItem = slides[index]
-                if (!slideItem) return null
-                return slideItem.type === "song" ? (slideItem.songItem.id ?? null) : null
-            })
+        let hasAnyPaperPage = false
+        slideEls.forEach((slideEl, slideIndex) => {
+            const slideItem = slides[slideIndex]
+            const songId = slideItem?.type === "song" ? (slideItem.songItem.id ?? null) : null
+            const originalIndex = slideItem?.originalIndex ?? slideIndex
 
-            pageIndexMap = pages.map((page) => {
-                const slideEl = page.closest(".slide")
-                return slideEl ? Array.from(slideEl.querySelectorAll(".paper-page")).indexOf(page) : 0
-            })
+            const paperPages = Array.from(slideEl.querySelectorAll<HTMLElement>(".paper-page"))
+            if (paperPages.length > 0) {
+                hasAnyPaperPage = true
+                paperPages.forEach((_, pageInSong) => {
+                    newPageSongMap.push(songId)
+                    newPageIndexMap.push(pageInSong)
+                    newPageSongIndexMap.push(originalIndex)
+                })
+            } else {
+                // Placeholder or section slide: counts as 1 slot in the carousel
+                newPageSongMap.push(songId)
+                newPageIndexMap.push(0)
+                newPageSongIndexMap.push(originalIndex)
+            }
+        })
 
-            pageSongIndexMap = pages.map((page) => {
-                const slideEl = page.closest(".slide") as HTMLElement | null
-                const index = slideEl ? slideEls.indexOf(slideEl) : 0
-                const slideItem = slides[index]
-                return slideItem?.originalIndex ?? index
-            })
-        } else {
-            pageSongMap = slides.map((s) => (s.type === "song" ? (s.songItem.id ?? null) : null))
-            pageIndexMap = slides.map(() => 0)
-            pageSongIndexMap = slides.map((s, i) => s.originalIndex ?? i)
-        }
+        pageSongMap = newPageSongMap
+        pageIndexMap = newPageIndexMap
+        pageSongIndexMap = newPageSongIndexMap
+        totalPages = pageSongMap.length || slides.length || 1
 
         if (!initialPositionConsumed) {
-            restoreInitialPosition(isRealLayout)
-        } else if (currentPageIndex >= totalPages) {
-            currentPageIndex = Math.max(0, totalPages - 1)
-            setPositionByIndex()
+            restoreInitialPosition(hasAnyPaperPage)
+        } else {
+            let targetPage = -1
+
+            if (lastActiveOriginalIndex !== null) {
+                const matchingPages: number[] = []
+                for (let i = 0; i < pageSongIndexMap.length; i++) {
+                    if (pageSongIndexMap[i] === lastActiveOriginalIndex) {
+                        matchingPages.push(i)
+                    }
+                }
+                if (matchingPages.length > 0) {
+                    const offset = Math.min(lastActivePageInSong, matchingPages.length - 1)
+                    targetPage = matchingPages[Math.max(0, offset)]
+                }
+            }
+
+            if (targetPage === -1 && lastActiveSongId !== null) {
+                const matchingPages: number[] = []
+                for (let i = 0; i < pageSongMap.length; i++) {
+                    if (pageSongMap[i] === lastActiveSongId) {
+                        matchingPages.push(i)
+                    }
+                }
+                if (matchingPages.length > 0) {
+                    const offset = Math.min(lastActivePageInSong, matchingPages.length - 1)
+                    targetPage = matchingPages[Math.max(0, offset)]
+                }
+            }
+
+            if (targetPage === -1) {
+                targetPage = Math.max(0, Math.min(currentPageIndex, totalPages - 1))
+            }
+
+            currentPageIndex = targetPage
+            setPositionByIndex(false)
         }
     }
 
@@ -237,6 +322,7 @@
 
     // --- Drag & Touch Handlers ---
     function pointerDown(e: PointerEvent) {
+        if (isDrawing || initialPinchDist > 0) return
         isDragging = true
         didDrag = false
         startX = e.clientX
@@ -244,7 +330,7 @@
     }
 
     function pointerMove(e: PointerEvent) {
-        if (!isDragging || !sliderEl) return
+        if (initialPinchDist > 0 || !isDragging || !sliderEl) return
         const delta = e.clientX - startX
         if (Math.abs(delta) > 6) didDrag = true
         currentTranslate = prevTranslate + delta
@@ -252,6 +338,10 @@
     }
 
     function pointerUp(e: PointerEvent) {
+        if (initialPinchDist > 0) {
+            isDragging = false
+            return
+        }
         if (!isDragging || !sliderEl) return
         isDragging = false
 
@@ -268,6 +358,25 @@
         setPositionByIndex()
         sliderEl.releasePointerCapture?.(e.pointerId)
         setTimeout(() => (didDrag = false), 100)
+    }
+
+    // --- Pinch-to-exit Handlers ---
+    function handleTouchStart(e: TouchEvent) {
+        if (isDrawing || popupState.popupId !== null) return
+        if (e.touches.length >= 2) {
+            initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
+            didDrag = true
+        }
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+        if (e.touches.length >= 2 && initialPinchDist > 0) {
+            const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
+            if (initialPinchDist - currentDist > 60) {
+                initialPinchDist = 0
+                exitSongFullscreen()
+            }
+        }
     }
 
     function getTransitionDuration(): number {
@@ -308,6 +417,10 @@
         const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
+        lastActiveOriginalIndex = songIndexInList
+        lastActivePageInSong = pageInSong
+        lastActiveSongId = songId
+
         if (initialPositionConsumed && songIndexInList >= 0 && (list ? songIndexInList < list.songs.length : songIndexInList < slides.length)) {
             savedFullscreenPosition.index = songIndexInList
         }
@@ -340,8 +453,22 @@
     }
 
     // --- Lifecycle & DOM Observation ---
+    let hasBeenFullscreen = false
+
     onMount(() => {
         requestWakeLock()
+
+        if (isFullscreenActive()) {
+            hasBeenFullscreen = true
+        }
+
+        const removeFullscreenListener = onFullscreenChange((isActive) => {
+            if (isActive) {
+                hasBeenFullscreen = true
+            } else if (hasBeenFullscreen) {
+                exitSongFullscreen()
+            }
+        })
 
         const resizeObserver = new ResizeObserver(() => {
             scheduleUpdatePageCount(true)
@@ -351,42 +478,26 @@
             resizeObserver.observe(sliderEl)
         }
 
-        const mutationObserver = new MutationObserver(() => {
-            scheduleUpdatePageCount(false)
-        })
-
-        if (sliderEl) {
-            mutationObserver.observe(sliderEl, {
-                childList: true,
-                subtree: true,
-                attributes: true
-            })
-        }
-
         updatePageCount()
         setPositionByIndex(false)
 
         return () => {
             if (updateRafId !== null) cancelAnimationFrame(updateRafId)
+            removeFullscreenListener()
             resizeObserver.disconnect()
-            mutationObserver.disconnect()
             releaseWakeLock()
             exitFullscreen()
         }
     })
 </script>
 
-<svelte:window onclick={windowClick} onkeydown={handleKeydown} />
+<svelte:window onclick={windowClick} onkeydown={handleKeydown} ontouchstart={handleTouchStart} ontouchmove={handleTouchMove} ontouchend={() => (initialPinchDist = 0)} ontouchcancel={() => (initialPinchDist = 0)} />
 
 {#if actionsVisible}
     <header transition:slide={{ duration: 200, axis: "y" }}>
         <div class="actions">
             <md-icon-button
-                onclick={() => {
-                    savedFullscreenPosition.pageIndex = currentPageIndex
-                    savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
-                    goBack()
-                }}
+                onclick={exitSongFullscreen}
                 aria-label="Back"
             >
                 <md-icon>arrow_back</md-icon>
@@ -404,19 +515,19 @@
                     aria-label={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
                     title={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
                 >
-                    <md-icon>lyrics</md-icon>
-                    <md-icon slot="selected">lyrics</md-icon>
+                    <md-icon>text_fields</md-icon>
+                    <md-icon slot="selected">text_fields</md-icon>
                 </md-icon-button>
 
                 <md-icon-button
                     onclick={() => {
-                        savedFullscreenPosition.pageIndex = currentPageIndex
-                        savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
-                        setActivePage("song_draw", songPageId)
+                        isDrawing = true
+                        actionsVisible = false
+                        clearTimeout(hideTimeout)
                     }}
                     aria-label="Draw"
                 >
-                    <md-icon>draw</md-icon>
+                    <md-icon>gesture</md-icon>
                 </md-icon-button>
             {/if}
 
@@ -500,53 +611,71 @@
             onpointerup={pointerUp}
             onpointercancel={pointerUp}
             onlostpointercapture={pointerUp}
-            style="touch-action: pan-y;"
+            style="touch-action: pan-y; transform: translateX(-{initialSlideIndex * 100}vw);"
         >
             {#each slides as slideItem, i}
-                {#if slideItem.type === "song"}
-                    {@const songId = slideItem.songItem?.id ?? null}
-                    {@const song = storage.getSongById(songId, storage.songs)}
-                    {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
-                    {@const hasMedia = !!song?.images.length}
+                {@const shouldRender = Math.abs(i - currentSlideIndex) <= 1 || slides.length <= 2}
+                {#if shouldRender}
+                    {#if slideItem.type === "song"}
+                        {@const songId = slideItem.songItem?.id ?? null}
+                        {@const song = storage.getSongById(songId, storage.songs)}
+                        {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
+                        {@const hasMedia = !!song?.images.length}
 
-                    {@const customBg = storage.settings.paperOptions?.background || "white"}
-                    {@const paperBg = hasMedia ? "black" : customBg}
-                    {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
+                        {@const customBg = storage.settings.paperOptions?.background || "white"}
+                        {@const paperBg = hasMedia ? "black" : customBg}
+                        {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
 
-                    <div class="slide" style="--font-scale: {fontScale};">
-                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""}>
-                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
-                                <ChordPro {songId} {targetKey} numColumns={2} lightMode={Math.abs(i - currentPageIndex) > 1} hideChords={fullscreenState.lyricsOnly} showMeta />
-                            {/key}
-                        </Paper>
-                    </div>
-                {:else if slideItem.type === "section"}
-                    {@const customBg = storage.settings.paperOptions?.background || "white"}
-                    <div class="slide">
-                        <Paper padding={16} background={customBg} headerText="">
-                            <div class="fullscreen-section-container">
-                                <div class="fullscreen-section-badge">
-                                    <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
+                        <div class="slide" style="--font-scale: {fontScale};">
+                            <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
+                                {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
+                                    <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
+                                {/key}
+                            </Paper>
+                        </div>
+                    {:else if slideItem.type === "section"}
+                        {@const customBg = storage.settings.paperOptions?.background || "white"}
+                        <div class="slide">
+                            <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
+                                <div class="fullscreen-section-container">
+                                    <div class="fullscreen-section-badge">
+                                        <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
+                                    </div>
+                                    <div class="fullscreen-sections-list">
+                                        {#each slideItem.sections as sec, sIdx}
+                                            <div class="fullscreen-section-title">{sec.name}</div>
+                                            {#if sIdx < slideItem.sections.length - 1}
+                                                <div class="fullscreen-section-divider"></div>
+                                            {/if}
+                                        {/each}
+                                    </div>
                                 </div>
-                                <div class="fullscreen-sections-list">
-                                    {#each slideItem.sections as sec, sIdx}
-                                        <div class="fullscreen-section-title">{sec.name}</div>
-                                        {#if sIdx < slideItem.sections.length - 1}
-                                            <div class="fullscreen-section-divider"></div>
-                                        {/if}
-                                    {/each}
-                                </div>
-                            </div>
-                        </Paper>
-                    </div>
+                            </Paper>
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="slide placeholder-slide" style="width: 100vw; min-width: 100vw; height: 100vh; height: 100dvh;"></div>
                 {/if}
             {/each}
         </div>
 
         {#if visibleSongId}
-            {#key visibleSongId + ":" + songPageIndex}
-                <Draw initialData={visibleSongId ? storage.getSongById(visibleSongId)?.drawings?.[songPageIndex] || "" : ""} />
-            {/key}
+            {@const drawingData = storage.getSongById(visibleSongId)?.drawings?.[songPageIndex]}
+            {#if isDrawing || !!drawingData}
+                {#key visibleSongId + ":" + songPageIndex}
+                    <Draw
+                        editable={isDrawing}
+                        initialData={drawingData || ""}
+                        onFinish={(dataUrl) => {
+                            if (visibleSong) {
+                                visibleSong.drawings[songPageIndex] = dataUrl
+                                storage.persist()
+                            }
+                            isDrawing = false
+                        }}
+                    />
+                {/key}
+            {/if}
         {/if}
     </div>
 </main>
@@ -613,6 +742,7 @@
         height: 100vh;
         height: 100dvh;
         box-sizing: border-box;
+        flex-shrink: 0;
     }
 
     /* Horizontal pagination container */
@@ -674,6 +804,7 @@
         padding: 40px 24px;
         box-sizing: border-box;
         text-align: center;
+        color: var(--paper-text-color, inherit);
     }
 
     .fullscreen-sections-list {
@@ -688,21 +819,21 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background-color: var(--md-sys-color-primary-container, #ffdcc1);
+        background-color: rgba(128, 128, 128, 0.15);
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
     .fullscreen-section-icon {
-        color: var(--md-sys-color-primary, #f5aa67);
+        color: inherit;
         font-size: 28px;
     }
 
     .fullscreen-section-title {
         font-size: 2.2rem;
         font-weight: 700;
-        color: var(--md-sys-color-on-surface, #201a17);
+        color: inherit;
         letter-spacing: 0.5px;
         line-height: 1.25;
         max-width: 90%;
@@ -712,7 +843,8 @@
     .fullscreen-section-divider {
         width: 60px;
         height: 2px;
-        background-color: var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.15));
+        background-color: currentColor;
+        opacity: 0.25;
         border-radius: 1px;
     }
 

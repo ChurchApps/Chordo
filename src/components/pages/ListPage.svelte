@@ -47,10 +47,7 @@
 
     $effect(() => {
         if (isEditing) {
-            listEditingState.onDeleteSelected = removeSelectedSongs
-            if (selectedIndices.length === 0 && listItems.length > 0) {
-                selectedIndices = [0]
-            }
+            listEditingState.onDeleteSelected = selectedIndices.length > 0 ? removeSelectedSongs : undefined
             if (selectedIndices.length === 1) {
                 const item = listItems[selectedIndices[0]]
                 listEditingState.selectedIndex = selectedIndices[0]
@@ -90,11 +87,16 @@
         return base.filter(({ item: songItem }) => songItem.name.toLowerCase().includes(searchQuery) || (songItem.song?.metadata?.artist && songItem.song.metadata.artist.toLowerCase().includes(searchQuery)))
     })
 
+    function onDragEnd() {
+        resetDragState(reorderState)
+        selectedIndices = []
+    }
+
     function onBatchMove(fromIndices: number[], targetIdx: number) {
         if (!list || fromIndices.length === 0) return
-        const { updatedList, newSelectedIndices } = applyBatchMove(list.songs, fromIndices, targetIdx)
+        const { updatedList } = applyBatchMove(list.songs, fromIndices, targetIdx)
         list.setSongs(updatedList)
-        selectedIndices = newSelectedIndices
+        selectedIndices = []
     }
 
     function startPress(e: PointerEvent, originalIdx: number) {
@@ -137,7 +139,7 @@
 
     function handleImmediatePointerDragStart(e: PointerEvent, originalIdx: number) {
         prepareImmediateDrag(originalIdx)
-        handlePointerDragStart(e, originalIdx, selectedIndices, reorderState, onBatchMove)
+        handlePointerDragStart(e, originalIdx, selectedIndices, reorderState, onBatchMove, onDragEnd)
     }
 
     function handleContextMenu(e: MouseEvent, originalIdx: number) {
@@ -154,7 +156,6 @@
             return
         }
         if (isEditing) {
-            if (selectedIndices.length === 1 && selectedIndices[0] === originalIdx) return
             if (selectedIndices.includes(originalIdx)) {
                 selectedIndices = selectedIndices.filter((i) => i !== originalIdx)
             } else {
@@ -188,7 +189,7 @@
                     ondragstart={(e) => handleImmediateDragStart(e, originalIdx)}
                     ondragover={(e) => handleItemDragOver(e, idx, reorderState)}
                     ondrop={(e) => handleItemDrop(e, idx, reorderState, onBatchMove)}
-                    ondragend={() => resetDragState(reorderState)}
+                    ondragend={onDragEnd}
                 >
                     <md-list-item
                         type="button"
@@ -232,9 +233,7 @@
                             </div>
                         {/if}
 
-                        {#if isEditing}
-                            <div slot="end" class="song-controls"></div>
-                        {:else if !songItem.isDeleted && songItem.type !== "section"}
+                        {#if !isEditing && !songItem.isDeleted && songItem.type !== "section"}
                             <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                         {/if}
                     </md-list-item>
@@ -313,7 +312,7 @@
         -webkit-touch-callout: none;
     }
     md-list-item.selected {
-        background-color: rgb(0 0 0 / 0.08);
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
     }
     .drag-handle-container {
         display: flex;
@@ -331,12 +330,6 @@
     .drag-handle-container:active {
         cursor: grabbing;
     }
-    .song-controls {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 48px;
-    }
 
     .song-headline {
         display: flex;
@@ -352,12 +345,12 @@
     .section-headline {
         font-weight: 600;
         font-size: 0.92rem;
-        color: var(--md-sys-color-primary);
+        color: black;
         letter-spacing: 0.5px;
     }
 
     .section-icon {
-        color: var(--md-sys-color-primary);
+        color: black;
         --md-icon-size: 20px;
     }
 
@@ -368,6 +361,9 @@
         --md-list-item-bottom-space: 4px;
         background-color: var(--md-sys-color-surface-container-low, rgba(0, 0, 0, 0.03));
         border-top: 2px solid rgba(0, 0, 0, 0.04);
+    }
+    md-list-item.section-item.selected {
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
     }
 
     .deleted-tag {

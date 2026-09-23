@@ -1,4 +1,4 @@
-export const SHARP_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+export const SHARP_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "Bb", "B"]
 export const FLAT_NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 export const CHROMATIC_SCALE = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
 
@@ -22,7 +22,8 @@ const ENHARMONIC_EQUIVALENTS: Record<string, string> = {
     Fb: "E",
     "E#": "F",
     H: "B",
-    Hb: "Bb"
+    Hb: "Bb",
+    "A#": "Bb"
 }
 
 /**
@@ -93,13 +94,27 @@ export function transposeNote(note: string, semitones = 0, preferFlats = false):
 export const CHORD_REGEX =
     /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:(?:maj|min|m|M|sus|add|dim|aug|\+|\-)?\d*)*(?:[\(\[](?:b|#|\+|\-)?\d+[\)\]])*(?:[\b#\+\-]\d+)*\.?$/i
 
+export const REPEAT_TOKEN_REGEX =
+    /^(?:[\(\[]\s*)?(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*(?:[\)\]]\s*)*$/i
+
+/**
+ * Checks if a token represents a repeat multiplier (e.g. "x2", "x4", "(x2)", "[x2]", "2x", "*2").
+ */
+export function isRepeatToken(token: string): boolean {
+    if (!token) return false
+    const trimmed = token.trim()
+    if (!trimmed) return false
+    return REPEAT_TOKEN_REGEX.test(trimmed)
+}
+
 /**
  * Checks if a token represents a valid musical chord (e.g. "G", "F#m7", "Bbsus2", "F/A").
  * Returns false for non-chords like section names ("[Bridge]", "[Chorus]"), repeat marks, or lyrics.
  */
 export function isChordToken(token: string): boolean {
+    if (isRepeatToken(token)) return false
     const cleaned = token.replace(/[\(\)\[\]]/g, "").trim()
-    if (!cleaned || cleaned === "|" || cleaned === "." || cleaned === "/" || cleaned === "%" || /^\(?x?\d+\)?$/i.test(cleaned)) {
+    if (!cleaned || cleaned === "|" || cleaned === "." || cleaned === "/" || cleaned === "%" || isRepeatToken(cleaned) || /^\(?x?\d+\)?$/i.test(cleaned)) {
         return false
     }
 
@@ -118,8 +133,8 @@ export function isChordToken(token: string): boolean {
 export function transposeChord(chord: string, semitones: number, preferFlats = false): string {
     if (!chord || semitones === 0) return chord
 
-    // Handle bar line chords e.g. "| E | E | G#m | F# | X5"
-    if (chord.includes("|")) {
+    // Handle bar line chords e.g. "| E | E | G#m | F# | X5" or multi-chord sequences e.g. "A B C"
+    if (chord.includes("|") || /\s/.test(chord.trim())) {
         return chord
             .split(/([|\s]+)/)
             .map((token) => (isChordToken(token) ? transposeChord(token, semitones, preferFlats) : token))
@@ -127,6 +142,17 @@ export function transposeChord(chord: string, semitones: number, preferFlats = f
     }
 
     if (!isChordToken(chord)) return chord
+
+    // Preserve wrapping parentheses or brackets if present, e.g. (Am) -> (Bm) or [Am] -> [Bm]
+    const parenMatch = chord.trim().match(/^(\()(.+)(\))$/)
+    if (parenMatch) {
+        return `(${transposeChord(parenMatch[2], semitones, preferFlats)})`
+    }
+
+    const bracketMatch = chord.trim().match(/^(\[)(.+)(\])$/)
+    if (bracketMatch) {
+        return `[${transposeChord(bracketMatch[2], semitones, preferFlats)}]`
+    }
 
     if (chord.includes("/")) {
         const [root, bass] = chord.split("/")
@@ -151,8 +177,8 @@ export function hasTransposableContent(content?: string, explicitKey?: string, i
     // Check for explicit {key: ...} or Key: ...
     if (/(\{key:\s*[^}]+\}|(?:^|\n)key:\s*\S+)/i.test(content)) return true
 
-    // Check for bracketed chords [Am] or [G/B]
-    if (/\[[A-GH][#b]?[^\]]*\]/i.test(content)) return true
+    // Check for bracketed chords [Am] or [G/B] or [A B C] or [| A | B |]
+    if (/\[[\s|]*[A-GH][#b]?[^\]]*\]/i.test(content)) return true
 
     // Check for chord lines
     const lines = content.split(/\r?\n/)
@@ -184,8 +210,8 @@ export function extractBaseKey(content?: string, explicitKey?: string): string |
         return normalizeNote(keyMatch[1])
     }
 
-    // 2. Look for the root note of the first bracketed chord [Am]
-    const bracketMatch = content.match(/\[([A-GH][#b]?)[^\]]*\]/i)
+    // 2. Look for the root note of the first bracketed chord [Am] or [ A B C ] or [| A | B |]
+    const bracketMatch = content.match(/\[[\s|]*([A-GH][#b]?)[^\]]*\]/i)
     if (bracketMatch && isValidKey(bracketMatch[1])) {
         return normalizeNote(bracketMatch[1])
     }
@@ -248,7 +274,7 @@ export function noteToNashville(note: string, baseKey: string): string {
 export function chordToNashville(chord: string, baseKey: string): string {
     if (!chord || !baseKey) return chord
 
-    if (chord.includes("|")) {
+    if (chord.includes("|") || /\s/.test(chord.trim())) {
         return chord
             .split(/([|\s]+)/)
             .map((token) => (isChordToken(token) ? chordToNashville(token, baseKey) : token))
@@ -256,6 +282,17 @@ export function chordToNashville(chord: string, baseKey: string): string {
     }
 
     if (!isChordToken(chord)) return chord
+
+    // Preserve wrapping parentheses or brackets if present, e.g. (Am) -> (6m) or [Am] -> [6m]
+    const parenMatch = chord.trim().match(/^(\()(.+)(\))$/)
+    if (parenMatch) {
+        return `(${chordToNashville(parenMatch[2], baseKey)})`
+    }
+
+    const bracketMatch = chord.trim().match(/^(\[)(.+)(\])$/)
+    if (bracketMatch) {
+        return `[${chordToNashville(bracketMatch[2], baseKey)}]`
+    }
 
     if (chord.includes("/")) {
         const [root, bass] = chord.split("/")

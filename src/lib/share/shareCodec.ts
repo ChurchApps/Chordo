@@ -1,7 +1,8 @@
-import { FileSystem } from "../storage/FileSystem"
 import type { SongMetadata } from "../chords/metadata"
 import type { List } from "../models/List"
 import type { Song } from "../models/Song"
+import { FileSystem } from "../storage/FileSystem"
+import { cleanPlaybackUrl } from "../utils/playback"
 
 // --- Types ---
 
@@ -79,6 +80,72 @@ export function trimChordContent(content = ""): string {
         .join("\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim()
+}
+
+function getNormalizedMetadata(song: any): Record<string, string> {
+    const raw = typeof song?.getMetadata === "function" ? song.getMetadata() : song?.metadata
+    if (!raw || typeof raw !== "object") return {}
+    const result: Record<string, string> = {}
+    for (const [k, v] of Object.entries(raw)) {
+        if (k === "playback" || k === "playbackUrl" || k === "spotify") continue
+        if (typeof v === "string" && v.trim()) {
+            result[k] = v.trim()
+        }
+    }
+    return result
+}
+
+export function isSongContentEqual(a?: Partial<Song | SharedSongData> | null, b?: Partial<Song | SharedSongData> | null): boolean {
+    if (!a && !b) return true
+    if (!a || !b) return false
+
+    if ((a.name || "").trim() !== (b.name || "").trim()) return false
+    if (trimChordContent(a.content || "") !== trimChordContent(b.content || "")) return false
+
+    const pbA = cleanPlaybackUrl(a.playbackUrl || (a as any).spotify || (a.metadata as any)?.playback || (a.metadata as any)?.spotify || "") || ""
+    const pbB = cleanPlaybackUrl(b.playbackUrl || (b as any).spotify || (b.metadata as any)?.playback || (b.metadata as any)?.spotify || "") || ""
+    if (pbA !== pbB) return false
+
+    if ((a.url || "").trim() !== (b.url || "").trim()) return false
+    if ((a.lastTransposed || "").trim() !== (b.lastTransposed || "").trim()) return false
+
+    const metaA = getNormalizedMetadata(a)
+    const metaB = getNormalizedMetadata(b)
+    const keysA = Object.keys(metaA)
+    if (keysA.length !== Object.keys(metaB).length || keysA.some((k) => metaA[k] !== metaB[k])) return false
+
+    const imgsA = Array.isArray(a.images) ? a.images.filter((img) => typeof img === "string" && img.trim()) : []
+    const imgsB = Array.isArray(b.images) ? b.images.filter((img) => typeof img === "string" && img.trim()) : []
+    if (imgsA.length !== imgsB.length || imgsA.some((img, i) => img !== imgsB[i])) return false
+
+    return true
+}
+
+export function isListContentEqual(existingList?: List | null, sharedList?: SharedListData | null, allSongs: Song[] = []): boolean {
+    if (!existingList && !sharedList) return true
+    if (!existingList || !sharedList) return false
+    if ((existingList.name || "").trim() !== (sharedList.name || "").trim()) return false
+
+    const existItems = existingList.songs || []
+    const sharedItems: SharedListSongItem[] = sharedList.listItems?.length ? sharedList.listItems : (sharedList.songs || []).map((s) => ({ id: s.id, songId: s.id, name: s.name, transposed: s.lastTransposed }))
+
+    if (existItems.length !== sharedItems.length) return false
+
+    return existItems.every((eItem, i) => {
+        const sItem = sharedItems[i]
+        const eIsSection = Boolean(eItem.type === "section" || eItem.isSection)
+        const sIsSection = Boolean(sItem.type === "section" || sItem.isSection)
+
+        if (eIsSection !== sIsSection) return false
+        if (eIsSection) return (eItem.name || "").trim() === (sItem.name || "").trim()
+        if ((eItem.transposed || "").trim() !== (sItem.transposed || "").trim()) return false
+
+        const targetSongId = sItem.id || sItem.songId
+        const sharedSong = (sharedList.songs || []).find((s) => s.id === targetSongId) || (sharedList.songs || [])[i]
+        const existSong = allSongs.find((s) => s.id === (eItem.id || eItem.songId))
+
+        return isSongContentEqual(existSong, sharedSong)
+    })
 }
 
 export async function cleanSongForShare(song: Song | SharedSongData): Promise<SharedSongData> {

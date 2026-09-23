@@ -20,12 +20,27 @@ function extractLyricLines(lines: string[]): string[] {
         .filter(Boolean)
 }
 
+function extractContentLines(lines: string[]): string[] {
+    return lines
+        .filter((l) => {
+            const trimmed = l.trim()
+            return trimmed && !(trimmed.startsWith("{") && trimmed.endsWith("}")) && !matchSectionHeader(trimmed)
+        })
+        .map((l) => l.replace(/\s+/g, " ").trim())
+        .filter(Boolean)
+}
+
 function cleanLyricsPreview(lines: string[]): string {
-    return extractLyricLines(lines).slice(0, 2).join(" / ")
+    const lyrics = extractLyricLines(lines)
+    if (lyrics.length > 0) {
+        return lyrics.slice(0, 2).join(" / ")
+    }
+    const rawContent = extractContentLines(lines)
+    return rawContent.slice(0, 2).join(" / ")
 }
 
 function generateCanonicalKey(name: string, lines: string[]): string {
-    const text = extractLyricLines(lines).join("\n").toLowerCase()
+    const text = extractContentLines(lines).join("\n").toLowerCase()
     return text || name.trim().toLowerCase()
 }
 
