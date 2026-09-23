@@ -1,6 +1,6 @@
 <script lang="ts">
     import { convertToChordPro } from "$lib/chords/chordproConverter"
-    import { parseChordPro } from "$lib/chords/chordproParser"
+    import { parseChordPro, splitCommentRepeat } from "$lib/chords/chordproParser"
     import { ALL_METADATA_ALIASES } from "$lib/chords/metadata"
     import { getSongKeyInfo } from "$lib/chords/transpose"
     import { FileSystem } from "$lib/storage/FileSystem"
@@ -137,7 +137,14 @@
                             </div>
                         {/if}
                     {:else if line.type === "comment"}
-                        <div class="line comment">{line.directiveValue}</div>
+                        {@const commentParts = splitCommentRepeat(line.directiveValue)}
+                        <div class="line comment">
+                            {#if commentParts}
+                                <span>{commentParts.text}</span> <span class="repeat-cell">{commentParts.repeat}</span>
+                            {:else}
+                                {line.directiveValue}
+                            {/if}
+                        </div>
                     {:else if line.type === "lyrics"}
                         {@const hasLyrics = line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
                         {#if !hideChords || hasLyrics}
@@ -151,12 +158,12 @@
                                                     {#if hasChords}
                                                         {#if token.chord}
                                                             <span class="chord-cell" class:standalone={!token.lyric || token.lyric.trim() === ""}>{token.chord}</span>
-                                                        {:else}
+                                                        {:else if !token.isRepeat}
                                                             <span class="chord-cell placeholder">&nbsp;</span>
                                                         {/if}
                                                     {/if}
 
-                                                    <span class="lyric-cell">{token.lyric || "\u200B"}</span>
+                                                    <span class="lyric-cell" class:repeat-cell={token.isRepeat}>{token.lyric || "\u200B"}</span>
                                                 </span>
                                             {/each}
                                         </span>
@@ -230,8 +237,18 @@
         line-height: 1.1;
         margin-bottom: 4px;
     }
-    .lyrics-line.chords-only .lyric-cell {
+    .lyrics-line.chords-only .lyric-cell:not(.repeat-cell) {
         display: none;
+    }
+    .repeat-cell {
+        color: var(--repeat-color, #e06c1b);
+        font-weight: 700;
+    }
+    .lyrics-line.chords-only .repeat-cell {
+        font-size: calc(0.95rem * var(--font-scale, 1));
+        line-height: 0.9;
+        margin-bottom: 1px;
+        margin-left: 0.5em;
     }
     .word {
         display: inline-flex;
@@ -251,7 +268,7 @@
     .chord-cell {
         line-height: 0.9;
         font-weight: 700;
-        font-size: calc(0.93rem * var(--font-scale, 1));
+        font-size: calc(0.95rem * var(--font-scale, 1));
         margin-bottom: 1px;
         color: var(--chord-color, #5498be);
         text-align: left;

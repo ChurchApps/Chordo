@@ -94,13 +94,27 @@ export function transposeNote(note: string, semitones = 0, preferFlats = false):
 export const CHORD_REGEX =
     /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:(?:maj|min|m|M|sus|add|dim|aug|\+|\-)?\d*)*(?:[\(\[](?:b|#|\+|\-)?\d+[\)\]])*(?:[\b#\+\-]\d+)*\.?$/i
 
+export const REPEAT_TOKEN_REGEX =
+    /^(?:[\(\[]\s*)?(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*(?:[\)\]]\s*)*$/i
+
+/**
+ * Checks if a token represents a repeat multiplier (e.g. "x2", "x4", "(x2)", "[x2]", "2x", "*2").
+ */
+export function isRepeatToken(token: string): boolean {
+    if (!token) return false
+    const trimmed = token.trim()
+    if (!trimmed) return false
+    return REPEAT_TOKEN_REGEX.test(trimmed)
+}
+
 /**
  * Checks if a token represents a valid musical chord (e.g. "G", "F#m7", "Bbsus2", "F/A").
  * Returns false for non-chords like section names ("[Bridge]", "[Chorus]"), repeat marks, or lyrics.
  */
 export function isChordToken(token: string): boolean {
+    if (isRepeatToken(token)) return false
     const cleaned = token.replace(/[\(\)\[\]]/g, "").trim()
-    if (!cleaned || cleaned === "|" || cleaned === "." || cleaned === "/" || cleaned === "%" || /^\(?x?\d+\)?$/i.test(cleaned)) {
+    if (!cleaned || cleaned === "|" || cleaned === "." || cleaned === "/" || cleaned === "%" || isRepeatToken(cleaned) || /^\(?x?\d+\)?$/i.test(cleaned)) {
         return false
     }
 
