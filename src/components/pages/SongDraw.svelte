@@ -11,6 +11,7 @@
     let pageIndex: number | null = $state(null)
 
     let song = $derived(songId ? storage.getSongById(songId) : null)
+    let hasMedia = $derived(!!song?.images.length)
 
     $effect(() => {
         if (!songPageId?.includes(":")) return
@@ -26,7 +27,7 @@
 <main>
     <div class="slider-viewport">
         <div class="slide">
-            <Paper {pageIndex} padding={12} headerText={song?.name || ""}>
+            <Paper {pageIndex} padding={hasMedia ? 0 : 10} headerText={song?.name || ""}>
                 <ChordPro {songId} numColumns={2} showMeta />
             </Paper>
         </div>
