@@ -138,13 +138,14 @@
             return
 
         const screenWidth = window.innerWidth
-        const clickX = e.clientX
-        const ratio = clickX / screenWidth
+        const screenHeight = window.innerHeight
+        const ratioX = e.clientX / screenWidth
+        const ratioY = e.clientY / screenHeight
 
-        // Center 1/5 (40% - 60%) toggles action buttons
-        if (ratio >= 0.4 && ratio <= 0.6) {
+        // Top 15% or Center (40% - 60%) toggles action buttons
+        if (ratioY <= 0.15 || (ratioX >= 0.4 && ratioX <= 0.6)) {
             toggleActions()
-        } else if (ratio < 0.4) {
+        } else if (ratioX < 0.4) {
             goToPrevPage()
         } else {
             goToNextPage()
