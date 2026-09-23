@@ -199,12 +199,16 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
     const rawTokens: ChordProToken[] = []
 
     if (parts[0]) {
-        rawTokens.push({ chord: "", lyric: parts[0].trimStart() })
+        rawTokens.push({ chord: "", lyric: parts[0] })
     }
 
     for (let i = 1; i < parts.length; i += 2) {
         let lyricPart = parts[i + 1] || ""
         if (/^\s+\S/.test(lyricPart)) {
+            const leadingSpaces = lyricPart.match(/^\s+/)![0]
+            if (rawTokens.length > 0 && !/\s$/.test(rawTokens[rawTokens.length - 1].lyric)) {
+                rawTokens[rawTokens.length - 1].lyric += leadingSpaces
+            }
             lyricPart = lyricPart.trimStart()
         }
         const chordText = semitones === "NNS" ? chordToNashville(parts[i], baseKey) : transposeChord(parts[i], semitones)
