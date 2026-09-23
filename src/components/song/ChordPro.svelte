@@ -144,7 +144,7 @@
                                 {#each line.words ?? [{ tokens: line.tokens ?? [] }] as word}
                                     <span class="word">
                                         {#each word.tokens as token}
-                                            <span class="token">
+                                            <span class="token" style={token.minWidth ? `min-width: ${token.minWidth};` : undefined}>
                                                 {#if hasChords}
                                                     {#if token.chord}
                                                         <span class="chord-cell">{token.chord}</span>
@@ -245,11 +245,11 @@
         margin-bottom: 1px;
         color: var(--chord-color, #5498be);
         text-align: left;
-        white-space: pre-wrap;
-        word-break: normal;
-        overflow-wrap: break-word;
-        max-width: 100%;
-        padding-right: 0.3em;
+        white-space: nowrap;
+        overflow: visible;
+        width: 0;
+        min-width: 100%;
+        min-height: 0.9em;
     }
     .lyric-cell {
         display: inline-block;
@@ -262,7 +262,6 @@
     .chord-cell.placeholder {
         color: transparent;
         user-select: none;
-        padding-right: 0;
     }
 
     .directive {

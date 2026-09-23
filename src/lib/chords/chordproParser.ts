@@ -6,6 +6,7 @@ export { isChordToken } from "./transpose"
 export interface ChordProToken {
     chord: string // Transposed chord text or empty string
     lyric: string // Lyric segment associated with this chord or preceding it
+    minWidth?: string // Minimum width when chord collision spacing is needed
 }
 
 export interface ChordWord {
@@ -282,6 +283,38 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
     }
 
     const allTokens = words.flatMap((w) => w.tokens)
+
+    // Calculate chord collision spacing:
+    // Only expand tokens if a chord would physically collide with the NEXT chord on the line
+    for (let i = 0; i < allTokens.length; i++) {
+        const token = allTokens[i]
+        if (!token.chord) continue
+
+        // Find the next token that has a chord
+        let nextChordIndex = -1
+        for (let j = i + 1; j < allTokens.length; j++) {
+            if (allTokens[j].chord) {
+                nextChordIndex = j
+                break
+            }
+        }
+
+        if (nextChordIndex !== -1) {
+            // Measure total lyric length from current token up to the next chord token
+            let lyricSpanLen = 0
+            for (let k = i; k < nextChordIndex; k++) {
+                lyricSpanLen += allTokens[k].lyric.length
+            }
+
+            // A chord needs its length + 1 space gap so it doesn't touch the next chord
+            const neededLen = token.chord.length + 1
+            if (neededLen > lyricSpanLen) {
+                const deficit = neededLen - lyricSpanLen
+                token.minWidth = `${token.lyric.length + deficit}ch`
+            }
+        }
+    }
+
     return { tokens: allTokens, words }
 }
 
