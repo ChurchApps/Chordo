@@ -411,8 +411,8 @@
                     aria-label={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
                     title={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
                 >
-                    <md-icon>lyrics</md-icon>
-                    <md-icon slot="selected">lyrics</md-icon>
+                    <md-icon>text_fields</md-icon>
+                    <md-icon slot="selected">text_fields</md-icon>
                 </md-icon-button>
 
                 <md-icon-button
@@ -423,7 +423,7 @@
                     }}
                     aria-label="Draw"
                 >
-                    <md-icon>draw</md-icon>
+                    <md-icon>gesture</md-icon>
                 </md-icon-button>
             {/if}
 
