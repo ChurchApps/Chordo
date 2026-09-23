@@ -1,4 +1,4 @@
-export const SHARP_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+export const SHARP_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "Bb", "B"]
 export const FLAT_NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 export const CHROMATIC_SCALE = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
 
@@ -22,7 +22,8 @@ const ENHARMONIC_EQUIVALENTS: Record<string, string> = {
     Fb: "E",
     "E#": "F",
     H: "B",
-    Hb: "Bb"
+    Hb: "Bb",
+    "A#": "Bb"
 }
 
 /**
