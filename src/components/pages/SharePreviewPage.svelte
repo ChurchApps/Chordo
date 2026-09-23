@@ -2,9 +2,9 @@
     import { Folder } from "$lib/models/Folder"
     import { List } from "$lib/models/List"
     import { Song } from "$lib/models/Song"
-    import { copyCurrentShareLink } from "$lib/share/share"
+    import { copyCurrentShareLink, cacheSharePayload } from "$lib/share/share"
     import { clearSharePayload, sharePreviewState } from "$lib/share/share.svelte"
-    import { isListContentEqual, isSongContentEqual } from "$lib/share/shareCodec"
+    import { buildListSharePayload, buildSongSharePayload, isListContentEqual, isSongContentEqual } from "$lib/share/shareCodec"
     import { promptConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { menuState, setActivePage } from "$lib/state/menu.svelte"
@@ -154,6 +154,13 @@
             showToast(`Imported "${shared.name}" to your library`, "success")
         }
 
+        const rawShareId = sharePreviewState.rawPayload
+        if (rawShareId) {
+            const freshPayload = await buildSongSharePayload(songToOpen)
+            await cacheSharePayload(freshPayload, rawShareId)
+            if (payload) await cacheSharePayload(payload, rawShareId)
+        }
+
         storage.persist()
         clearSharePayload()
         setActivePage("song", songToOpen.id, songToOpen.name)
@@ -290,6 +297,13 @@
             storage.addList(newList)
             listToOpen = newList
             showToast(`Imported "${newList.name}" into ${targetFolder.name}`, "success")
+        }
+
+        const rawShareId = sharePreviewState.rawPayload
+        if (rawShareId) {
+            const freshPayload = await buildListSharePayload(listToOpen, storage.songs)
+            await cacheSharePayload(freshPayload, rawShareId)
+            if (payload) await cacheSharePayload(payload, rawShareId)
         }
 
         storage.persist()
