@@ -24,7 +24,7 @@
         }, "")
     )
 
-    const nonTranslatablePages = ["home", "song_live", "song_draw"] as const
+    const nonTranslatablePages = ["home", "song_live"] as const
 
     let headerTitle = $derived.by(() => {
         if (menuState.customPageTitle) return menuState.customPageTitle

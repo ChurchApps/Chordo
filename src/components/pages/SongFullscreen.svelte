@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
-    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePage, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { exitFullscreen, isFullscreenActive, toggleFullscreen } from "$lib/utils/fullscreen"
@@ -66,6 +66,7 @@
     })
 
     let actionsVisible = $state(false)
+    let isDrawing = $state(false)
     let hideTimeout: ReturnType<typeof setTimeout> | undefined
 
     // Carousel state
@@ -119,6 +120,7 @@
     // --- Actions Header Toggle & Click Navigation ---
     function windowClick(e: MouseEvent) {
         if (didDrag) return
+        if (isDrawing) return
         if (popupState.popupId !== null) return
         const target = e.target as HTMLElement | null
         if (
@@ -150,6 +152,10 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
+        if (isDrawing) {
+            if (e.key === "Escape") isDrawing = false
+            return
+        }
         if (e.key === "ArrowLeft") {
             goToPrevPage()
         } else if (e.key === "ArrowRight" || e.key === " ") {
@@ -237,6 +243,7 @@
 
     // --- Drag & Touch Handlers ---
     function pointerDown(e: PointerEvent) {
+        if (isDrawing) return
         isDragging = true
         didDrag = false
         startX = e.clientX
@@ -410,9 +417,9 @@
 
                 <md-icon-button
                     onclick={() => {
-                        savedFullscreenPosition.pageIndex = currentPageIndex
-                        savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
-                        setActivePage("song_draw", songPageId)
+                        isDrawing = true
+                        actionsVisible = false
+                        clearTimeout(hideTimeout)
                     }}
                     aria-label="Draw"
                 >
@@ -545,7 +552,17 @@
 
         {#if visibleSongId}
             {#key visibleSongId + ":" + songPageIndex}
-                <Draw initialData={visibleSongId ? storage.getSongById(visibleSongId)?.drawings?.[songPageIndex] || "" : ""} />
+                <Draw
+                    editable={isDrawing}
+                    initialData={storage.getSongById(visibleSongId)?.drawings?.[songPageIndex] || ""}
+                    onFinish={(dataUrl) => {
+                        if (visibleSong) {
+                            visibleSong.drawings[songPageIndex] = dataUrl
+                            storage.persist()
+                        }
+                        isDrawing = false
+                    }}
+                />
             {/key}
         {/if}
     </div>

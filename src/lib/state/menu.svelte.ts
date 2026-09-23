@@ -44,7 +44,7 @@ export function updatePageTitle(newTitle: string | null): void {
     })
 }
 
-const fullscreenPages: Pages[] = ["song_live", "song_draw"]
+const fullscreenPages: Pages[] = ["song_live"]
 export function isFullscreenPage(page: Pages): boolean {
     return fullscreenPages.includes(page)
 }
