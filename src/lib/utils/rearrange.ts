@@ -61,6 +61,19 @@ export function handleItemDragStart(e: DragEvent, originalIdx: number, selectedI
     }
 }
 
+function autoScrollElement(el: HTMLElement | null, clientY: number): void {
+    if (!el) return
+    const scrollParent = (el.closest(".scroll-list") || el) as HTMLElement
+    if (!scrollParent || scrollParent.scrollHeight <= scrollParent.clientHeight) return
+    const rect = scrollParent.getBoundingClientRect()
+    const edge = 50
+    if (clientY < rect.top + edge) {
+        scrollParent.scrollTop -= 8
+    } else if (clientY > rect.bottom - edge) {
+        scrollParent.scrollTop += 8
+    }
+}
+
 /**
  * Handles `dragover` when hovering over a specific item target.
  */
@@ -70,6 +83,7 @@ export function handleItemDragOver(e: DragEvent, currentVisualIdx: number, state
     if (state.draggedIdx !== null && state.dragOverIdx !== currentVisualIdx) {
         state.dragOverIdx = currentVisualIdx
     }
+    autoScrollElement(e.currentTarget as HTMLElement, e.clientY)
 }
 
 /**
@@ -99,6 +113,7 @@ export function handleContainerDragOver(e: DragEvent, totalItemsCount: number, s
     if (state.draggedIdx !== null && state.dragOverIdx !== totalItemsCount) {
         state.dragOverIdx = totalItemsCount
     }
+    autoScrollElement(e.currentTarget as HTMLElement, e.clientY)
 }
 
 /**
@@ -143,8 +158,11 @@ export function handlePointerDragStart(
     onDragEnd?: () => void,
     itemSelector: string = "[data-reorder-idx]"
 ): void {
-    if (e.button !== 0 && e.pointerType === "mouse") return
+    if (e.button !== 0) return
     e.stopPropagation()
+    if (e.cancelable) {
+        e.preventDefault()
+    }
 
     state.draggedIdx = originalIdx
     state.draggedIndices = selectedIndices.includes(originalIdx) ? [...selectedIndices] : [originalIdx]
@@ -157,33 +175,11 @@ export function handlePointerDragStart(
     }
 
     let scrollRaf: number | null = null
+    let latestClientX = e.clientX
     let latestClientY = e.clientY
 
-    const checkAutoScroll = () => {
-        if (state.draggedIdx === null) return
-        if (scrollParent) {
-            const rect = scrollParent.getBoundingClientRect()
-            const edge = 50
-            if (latestClientY < rect.top + edge) {
-                scrollParent.scrollTop -= 8
-            } else if (latestClientY > rect.bottom - edge) {
-                scrollParent.scrollTop += 8
-            }
-        } else {
-            const edge = 50
-            if (latestClientY < edge) {
-                window.scrollBy(0, -8)
-            } else if (latestClientY > window.innerHeight - edge) {
-                window.scrollBy(0, 8)
-            }
-        }
-        scrollRaf = requestAnimationFrame(checkAutoScroll)
-    }
-    scrollRaf = requestAnimationFrame(checkAutoScroll)
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-        latestClientY = moveEvent.clientY
-        const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)
+    const updateDragOver = (clientX: number, clientY: number) => {
+        const el = document.elementFromPoint(clientX, clientY)
         if (!el) return
         const targetWrapper = el.closest(itemSelector)
         if (targetWrapper) {
@@ -194,17 +190,76 @@ export function handlePointerDragStart(
                     state.dragOverIdx = targetVisualIdx
                 }
             }
+        } else if (el.closest(".add-section-area")) {
+            const allItems = document.querySelectorAll(itemSelector)
+            state.dragOverIdx = allItems.length
+        } else if (scrollParent) {
+            const rect = scrollParent.getBoundingClientRect()
+            if (clientX >= rect.left && clientX <= rect.right) {
+                if (clientY <= rect.top + 30) {
+                    state.dragOverIdx = 0
+                } else if (clientY >= rect.bottom - 30 || clientY > rect.bottom) {
+                    const allItems = scrollParent.querySelectorAll(itemSelector)
+                    state.dragOverIdx = allItems.length
+                }
+            }
         }
     }
 
-    const onPointerUp = () => {
+    const checkAutoScroll = () => {
+        if (state.draggedIdx === null) return
+        if (scrollParent) {
+            const rect = scrollParent.getBoundingClientRect()
+            const edge = 60
+            if (latestClientY < rect.top + edge) {
+                const speed = Math.max(2, Math.min(14, ((rect.top + edge) - latestClientY) / 3))
+                scrollParent.scrollTop -= speed
+                updateDragOver(latestClientX, latestClientY)
+            } else if (latestClientY > rect.bottom - edge) {
+                const speed = Math.max(2, Math.min(14, (latestClientY - (rect.bottom - edge)) / 3))
+                scrollParent.scrollTop += speed
+                updateDragOver(latestClientX, latestClientY)
+            }
+        } else {
+            const edge = 60
+            if (latestClientY < edge) {
+                window.scrollBy(0, -8)
+                updateDragOver(latestClientX, latestClientY)
+            } else if (latestClientY > window.innerHeight - edge) {
+                window.scrollBy(0, 8)
+                updateDragOver(latestClientX, latestClientY)
+            }
+        }
+        scrollRaf = requestAnimationFrame(checkAutoScroll)
+    }
+    scrollRaf = requestAnimationFrame(checkAutoScroll)
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+        latestClientX = moveEvent.clientX
+        latestClientY = moveEvent.clientY
+        updateDragOver(moveEvent.clientX, moveEvent.clientY)
+    }
+
+    const cleanup = () => {
         if (scrollRaf !== null) {
             cancelAnimationFrame(scrollRaf)
             scrollRaf = null
         }
         window.removeEventListener("pointermove", onPointerMove)
         window.removeEventListener("pointerup", onPointerUp)
-        window.removeEventListener("pointercancel", onPointerUp)
+        window.removeEventListener("pointercancel", onPointerCancel)
+    }
+
+    const onPointerCancel = () => {
+        cleanup()
+        resetDragState(state)
+        if (onDragEnd) {
+            onDragEnd()
+        }
+    }
+
+    const onPointerUp = () => {
+        cleanup()
 
         if (state.draggedIdx !== null) {
             const indices = state.draggedIndices.length > 0 ? state.draggedIndices : [state.draggedIdx]
@@ -221,6 +276,6 @@ export function handlePointerDragStart(
 
     window.addEventListener("pointermove", onPointerMove, { passive: true })
     window.addEventListener("pointerup", onPointerUp)
-    window.addEventListener("pointercancel", onPointerUp)
+    window.addEventListener("pointercancel", onPointerCancel)
 }
 
