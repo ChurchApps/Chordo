@@ -71,15 +71,6 @@
         engine.syncInitialData(initialData)
     })
 
-    // Export helpers
-    export function getDrawingData(): string {
-        return engine.getData()
-    }
-
-    export function clearCanvas() {
-        engine.clear()
-    }
-
     function handleClearRequest() {
         openConfirm({
             title: t("draw", "clear_title"),

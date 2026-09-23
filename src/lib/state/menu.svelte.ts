@@ -90,8 +90,8 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
         if (action === "append" && appendData) menuState.previousPages.push(clone(appendData))
     }
 
-    if (typeof document !== "undefined" && (document as any).startViewTransition) {
-        document.documentElement.dataset.vtDirection = isFullscreenPage(menu) ? "enter_fullscreen" : "forward"
+    if (typeof document !== "undefined" && (document as any).startViewTransition && !isFullscreenPage(menu) && !isFullscreenPage(currentState.activePage)) {
+        document.documentElement.dataset.vtDirection = "forward"
         ;(document as any).startViewTransition(doSet)
     } else {
         doSet()
@@ -114,8 +114,8 @@ export function internalGoBack(): void {
         menuState.customPageTitle = previousState.customPageTitle
     }
 
-    if (typeof document !== "undefined" && (document as any).startViewTransition) {
-        document.documentElement.dataset.vtDirection = isFullscreenPage(menuState.activePage) ? "exit_fullscreen" : "back"
+    if (typeof document !== "undefined" && (document as any).startViewTransition && !isFullscreenPage(menuState.activePage) && !isFullscreenPage(previousState.activePage)) {
+        document.documentElement.dataset.vtDirection = "back"
         ;(document as any).startViewTransition(doSet)
     } else {
         doSet()

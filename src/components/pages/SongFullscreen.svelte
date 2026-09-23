@@ -87,8 +87,15 @@
         return 0
     })()
 
-    let renderAllSlides = $state(false)
     let currentPageIndex = $state(initialSlideIndex)
+    let currentSlideIndex = $derived.by(() => {
+        const origIdx = pageSongIndexMap[currentPageIndex] ?? null
+        if (origIdx !== null) {
+            const slideIdx = slides.findIndex((s) => s.originalIndex === origIdx || (s.type === "section" && s.sections.some((sec) => sec.originalIndex === origIdx)))
+            if (slideIdx !== -1) return slideIdx
+        }
+        return Math.max(0, Math.min(currentPageIndex, slides.length - 1))
+    })
     let totalPages = $state(1)
     let sliderEl = $state<HTMLDivElement | null>(null)
 
@@ -149,12 +156,16 @@
     }
 
     let moreMenuOpen = $state(false)
+    const mountTime = typeof performance !== "undefined" ? performance.now() : Date.now()
 
     // --- Actions Header Toggle & Click Navigation ---
     function windowClick(e: MouseEvent) {
         if (didDrag) return
         if (isDrawing) return
         if (popupState.popupId !== null) return
+        // Ignore the opening tap/click that triggered fullscreen entry
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now()
+        if (now - mountTime < 350) return
         const target = e.target as HTMLElement | null
         if (
             target?.closest("header") ||
@@ -470,24 +481,7 @@
         updatePageCount()
         setPositionByIndex(false)
 
-        // Defer rendering remaining slides until after initial mount / view transition completes and browser is idle
-        let deferTimer: any
-        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-            deferTimer = (window as any).requestIdleCallback(() => {
-                renderAllSlides = true
-            }, { timeout: 300 })
-        } else {
-            deferTimer = setTimeout(() => {
-                renderAllSlides = true
-            }, 200)
-        }
-
         return () => {
-            if (typeof window !== "undefined" && "cancelIdleCallback" in window && typeof deferTimer === "number") {
-                ;(window as any).cancelIdleCallback(deferTimer)
-            } else {
-                clearTimeout(deferTimer)
-            }
             if (updateRafId !== null) cancelAnimationFrame(updateRafId)
             removeFullscreenListener()
             resizeObserver.disconnect()
@@ -620,7 +614,7 @@
             style="touch-action: pan-y; transform: translateX(-{initialSlideIndex * 100}vw);"
         >
             {#each slides as slideItem, i}
-                {@const shouldRender = renderAllSlides || i === initialSlideIndex || slides.length === 1}
+                {@const shouldRender = Math.abs(i - currentSlideIndex) <= 1 || slides.length <= 2}
                 {#if shouldRender}
                     {#if slideItem.type === "song"}
                         {@const songId = slideItem.songItem?.id ?? null}

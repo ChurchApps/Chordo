@@ -2,6 +2,7 @@
     interface Props {
         id?: string
         value?: string
+        ref?: HTMLTextAreaElement | null
         label?: string
         placeholder?: string
         rows?: number
@@ -17,6 +18,7 @@
     let {
         id,
         value: propValue = $bindable(""),
+        ref = $bindable(null),
         label,
         placeholder = "",
         rows = 8,
@@ -33,14 +35,9 @@
     let backdropEl = $state<HTMLDivElement | null>(null)
     let isFocused = $state(false)
 
-    // Expose utility methods on component instance
-    export function getTextarea(): HTMLTextAreaElement | null {
-        return textareaEl
-    }
-
-    export function focus(): void {
-        textareaEl?.focus()
-    }
+    $effect(() => {
+        ref = textareaEl
+    })
 
     function escapeHtml(text: string): string {
         return text
