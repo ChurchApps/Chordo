@@ -500,13 +500,11 @@
         flex: 1;
         height: 100%;
         overflow-y: auto;
-        padding: 16px 20px 32px 20px;
+        padding: 0 20px calc(76px + env(safe-area-inset-bottom, 0px)) 20px;
         box-sizing: border-box;
         max-width: 860px;
         margin: 0 auto;
         width: 100%;
-
-        padding-top: 0;
     }
 
     .empty-card {
@@ -775,7 +773,7 @@
     /* Bottom center action container */
     .bottom-center-action {
         position: fixed;
-        bottom: 20px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
         left: 50%;
         transform: translateX(-50%);
 
@@ -783,10 +781,11 @@
         justify-content: center;
         align-items: center;
         gap: 12px;
-        padding: 16px 16px 8px 16px;
+        padding: 0 16px;
         width: 100%;
         max-width: 600px;
         box-sizing: border-box;
+        pointer-events: none;
     }
 
     .bottom-center-action :global(md-filled-button),
@@ -796,6 +795,7 @@
         font-size: 0.95rem;
         font-weight: 600;
         flex: 1;
+        pointer-events: auto;
     }
 
     .bottom-center-action :global(md-outlined-button) {
@@ -804,7 +804,7 @@
 
     @media (max-width: 600px) {
         .share-page-wrapper {
-            padding: 12px 12px 24px 12px;
+            padding: 0 12px calc(80px + env(safe-area-inset-bottom, 0px)) 12px;
         }
 
         .paper-preview {
@@ -814,7 +814,8 @@
         .bottom-center-action {
             flex-direction: column;
             gap: 8px;
-            bottom: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            padding: 0 12px;
         }
 
         .bottom-center-action :global(md-filled-button),
