@@ -277,20 +277,12 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
 
     // Snap chords to start of word if placed on whitespace immediately before or near the beginning
     for (const c of chordsWithPos) {
-        for (let wIdx = 0; wIdx < words.length; wIdx++) {
-            const w = words[wIdx]
-            const prevW = wIdx > 0 ? words[wIdx - 1] : null
-
-            // Chord is in whitespace before word start
-            if (prevW && c.index >= prevW.end && c.index < w.start) {
+        for (const w of words) {
+            // Chord is 1 char before word start (on whitespace)
+            if (c.index === w.start - 1) {
                 c.index = w.start
                 break
             }
-            if (!prevW && c.index < w.start) {
-                c.index = w.start
-                break
-            }
-
             // Chord is on 1st or 2nd character of short words (<= 4 chars) or 1st char of any word
             if (c.index > w.start && c.index <= w.start + (w.text.length <= 4 ? 2 : 1)) {
                 c.index = w.start

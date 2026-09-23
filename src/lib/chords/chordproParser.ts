@@ -254,6 +254,33 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
         words.push({ tokens: currentWordTokens })
     }
 
+    // Optimize words: If a word starts with an un-chorded token (e.g. "l" in "l[A]eter"),
+    // snap the chord to the start of the word if it won't clip the previous chord.
+    let currentPos = 0
+    let lastChordEndPos = -1
+
+    for (const word of words) {
+        const wordStartPos = currentPos
+
+        // Check if first token in word has no chord, but second token does
+        if (word.tokens.length > 1 && !word.tokens[0].chord && word.tokens[1].chord) {
+            const minAllowedPos = lastChordEndPos >= 0 ? lastChordEndPos + 1 : 0
+            if (wordStartPos >= minAllowedPos) {
+                word.tokens[0].chord = word.tokens[1].chord
+                word.tokens[0].lyric = word.tokens[0].lyric + word.tokens[1].lyric
+                word.tokens.splice(1, 1)
+            }
+        }
+
+        // Update chord positions and current lyric position
+        for (const token of word.tokens) {
+            if (token.chord) {
+                lastChordEndPos = currentPos + token.chord.length
+            }
+            currentPos += token.lyric.length
+        }
+    }
+
     const allTokens = words.flatMap((w) => w.tokens)
     return { tokens: allTokens, words }
 }
