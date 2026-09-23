@@ -70,7 +70,25 @@
     let hideTimeout: ReturnType<typeof setTimeout> | undefined
 
     // Carousel state
-    let currentPageIndex = $state(savedFullscreenPosition.pageIndex ?? savedFullscreenPosition.index ?? 0)
+    const initialSlideIndex = (() => {
+        if (savedFullscreenPosition.pageIndex != null) {
+            return savedFullscreenPosition.pageIndex
+        }
+        if (savedFullscreenPosition.index != null) {
+            const targetIdx = savedFullscreenPosition.index
+            const slideIdx = slides.findIndex((s) => {
+                if (s.originalIndex === targetIdx) return true
+                if (s.type === "section" && s.sections.some((sec) => sec.originalIndex === targetIdx)) return true
+                return false
+            })
+            if (slideIdx !== -1) return slideIdx
+            return Math.min(targetIdx, Math.max(0, slides.length - 1))
+        }
+        return 0
+    })()
+
+    let renderAllSlides = $state(false)
+    let currentPageIndex = $state(initialSlideIndex)
     let totalPages = $state(1)
     let sliderEl = $state<HTMLDivElement | null>(null)
 
@@ -185,40 +203,42 @@
     function updatePageCount() {
         if (!sliderEl) return
 
-        const pages = Array.from(sliderEl.querySelectorAll<HTMLElement>(".paper-page"))
-        const slideEls = Array.from(sliderEl.querySelectorAll<HTMLElement>(".slide"))
+        const slideEls = Array.from(sliderEl.querySelectorAll<HTMLElement>(":scope > .slide"))
+        if (slideEls.length === 0) return
 
-        totalPages = pages.length || slideEls.length || 1
-        const isRealLayout = pages.length > 0
+        const newPageSongMap: Array<string | null> = []
+        const newPageIndexMap: number[] = []
+        const newPageSongIndexMap: number[] = []
 
-        if (isRealLayout) {
-            pageSongMap = pages.map((page) => {
-                const slideEl = page.closest(".slide") as HTMLElement | null
-                const index = slideEl ? slideEls.indexOf(slideEl) : -1
-                const slideItem = slides[index]
-                if (!slideItem) return null
-                return slideItem.type === "song" ? (slideItem.songItem.id ?? null) : null
-            })
+        let hasAnyPaperPage = false
+        slideEls.forEach((slideEl, slideIndex) => {
+            const slideItem = slides[slideIndex]
+            const songId = slideItem?.type === "song" ? (slideItem.songItem.id ?? null) : null
+            const originalIndex = slideItem?.originalIndex ?? slideIndex
 
-            pageIndexMap = pages.map((page) => {
-                const slideEl = page.closest(".slide")
-                return slideEl ? Array.from(slideEl.querySelectorAll(".paper-page")).indexOf(page) : 0
-            })
+            const paperPages = Array.from(slideEl.querySelectorAll<HTMLElement>(".paper-page"))
+            if (paperPages.length > 0) {
+                hasAnyPaperPage = true
+                paperPages.forEach((_, pageInSong) => {
+                    newPageSongMap.push(songId)
+                    newPageIndexMap.push(pageInSong)
+                    newPageSongIndexMap.push(originalIndex)
+                })
+            } else {
+                // Placeholder or section slide: counts as 1 slot in the carousel
+                newPageSongMap.push(songId)
+                newPageIndexMap.push(0)
+                newPageSongIndexMap.push(originalIndex)
+            }
+        })
 
-            pageSongIndexMap = pages.map((page) => {
-                const slideEl = page.closest(".slide") as HTMLElement | null
-                const index = slideEl ? slideEls.indexOf(slideEl) : 0
-                const slideItem = slides[index]
-                return slideItem?.originalIndex ?? index
-            })
-        } else {
-            pageSongMap = slides.map((s) => (s.type === "song" ? (s.songItem.id ?? null) : null))
-            pageIndexMap = slides.map(() => 0)
-            pageSongIndexMap = slides.map((s, i) => s.originalIndex ?? i)
-        }
+        pageSongMap = newPageSongMap
+        pageIndexMap = newPageIndexMap
+        pageSongIndexMap = newPageSongIndexMap
+        totalPages = pageSongMap.length || slides.length || 1
 
         if (!initialPositionConsumed) {
-            restoreInitialPosition(isRealLayout)
+            restoreInitialPosition(hasAnyPaperPage)
         } else {
             let targetPage = -1
 
@@ -447,26 +467,30 @@
             resizeObserver.observe(sliderEl)
         }
 
-        const mutationObserver = new MutationObserver(() => {
-            scheduleUpdatePageCount(false)
-        })
-
-        if (sliderEl) {
-            mutationObserver.observe(sliderEl, {
-                childList: true,
-                subtree: true,
-                attributes: true
-            })
-        }
-
         updatePageCount()
         setPositionByIndex(false)
 
+        // Defer rendering remaining slides until after initial mount / view transition completes and browser is idle
+        let deferTimer: any
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+            deferTimer = (window as any).requestIdleCallback(() => {
+                renderAllSlides = true
+            }, { timeout: 300 })
+        } else {
+            deferTimer = setTimeout(() => {
+                renderAllSlides = true
+            }, 200)
+        }
+
         return () => {
+            if (typeof window !== "undefined" && "cancelIdleCallback" in window && typeof deferTimer === "number") {
+                ;(window as any).cancelIdleCallback(deferTimer)
+            } else {
+                clearTimeout(deferTimer)
+            }
             if (updateRafId !== null) cancelAnimationFrame(updateRafId)
             removeFullscreenListener()
             resizeObserver.disconnect()
-            mutationObserver.disconnect()
             releaseWakeLock()
             exitFullscreen()
         }
@@ -593,63 +617,71 @@
             onpointerup={pointerUp}
             onpointercancel={pointerUp}
             onlostpointercapture={pointerUp}
-            style="touch-action: pan-y;"
+            style="touch-action: pan-y; transform: translateX(-{initialSlideIndex * 100}vw);"
         >
             {#each slides as slideItem, i}
-                {#if slideItem.type === "song"}
-                    {@const songId = slideItem.songItem?.id ?? null}
-                    {@const song = storage.getSongById(songId, storage.songs)}
-                    {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
-                    {@const hasMedia = !!song?.images.length}
+                {@const shouldRender = renderAllSlides || i === initialSlideIndex || slides.length === 1}
+                {#if shouldRender}
+                    {#if slideItem.type === "song"}
+                        {@const songId = slideItem.songItem?.id ?? null}
+                        {@const song = storage.getSongById(songId, storage.songs)}
+                        {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
+                        {@const hasMedia = !!song?.images.length}
 
-                    {@const customBg = storage.settings.paperOptions?.background || "white"}
-                    {@const paperBg = hasMedia ? "black" : customBg}
-                    {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
+                        {@const customBg = storage.settings.paperOptions?.background || "white"}
+                        {@const paperBg = hasMedia ? "black" : customBg}
+                        {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
 
-                    <div class="slide" style="--font-scale: {fontScale};">
-                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""}>
-                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
-                                <ChordPro {songId} {targetKey} numColumns={2} lightMode={Math.abs(i - currentPageIndex) > 1} hideChords={fullscreenState.lyricsOnly} showMeta />
-                            {/key}
-                        </Paper>
-                    </div>
-                {:else if slideItem.type === "section"}
-                    {@const customBg = storage.settings.paperOptions?.background || "white"}
-                    <div class="slide">
-                        <Paper padding={16} background={customBg} headerText="">
-                            <div class="fullscreen-section-container">
-                                <div class="fullscreen-section-badge">
-                                    <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
+                        <div class="slide" style="--font-scale: {fontScale};">
+                            <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
+                                {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
+                                    <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
+                                {/key}
+                            </Paper>
+                        </div>
+                    {:else if slideItem.type === "section"}
+                        {@const customBg = storage.settings.paperOptions?.background || "white"}
+                        <div class="slide">
+                            <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
+                                <div class="fullscreen-section-container">
+                                    <div class="fullscreen-section-badge">
+                                        <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
+                                    </div>
+                                    <div class="fullscreen-sections-list">
+                                        {#each slideItem.sections as sec, sIdx}
+                                            <div class="fullscreen-section-title">{sec.name}</div>
+                                            {#if sIdx < slideItem.sections.length - 1}
+                                                <div class="fullscreen-section-divider"></div>
+                                            {/if}
+                                        {/each}
+                                    </div>
                                 </div>
-                                <div class="fullscreen-sections-list">
-                                    {#each slideItem.sections as sec, sIdx}
-                                        <div class="fullscreen-section-title">{sec.name}</div>
-                                        {#if sIdx < slideItem.sections.length - 1}
-                                            <div class="fullscreen-section-divider"></div>
-                                        {/if}
-                                    {/each}
-                                </div>
-                            </div>
-                        </Paper>
-                    </div>
+                            </Paper>
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="slide placeholder-slide" style="width: 100vw; min-width: 100vw; height: 100vh; height: 100dvh;"></div>
                 {/if}
             {/each}
         </div>
 
         {#if visibleSongId}
-            {#key visibleSongId + ":" + songPageIndex}
-                <Draw
-                    editable={isDrawing}
-                    initialData={storage.getSongById(visibleSongId)?.drawings?.[songPageIndex] || ""}
-                    onFinish={(dataUrl) => {
-                        if (visibleSong) {
-                            visibleSong.drawings[songPageIndex] = dataUrl
-                            storage.persist()
-                        }
-                        isDrawing = false
-                    }}
-                />
-            {/key}
+            {@const drawingData = storage.getSongById(visibleSongId)?.drawings?.[songPageIndex]}
+            {#if isDrawing || !!drawingData}
+                {#key visibleSongId + ":" + songPageIndex}
+                    <Draw
+                        editable={isDrawing}
+                        initialData={drawingData || ""}
+                        onFinish={(dataUrl) => {
+                            if (visibleSong) {
+                                visibleSong.drawings[songPageIndex] = dataUrl
+                                storage.persist()
+                            }
+                            isDrawing = false
+                        }}
+                    />
+                {/key}
+            {/if}
         {/if}
     </div>
 </main>
@@ -716,6 +748,7 @@
         height: 100vh;
         height: 100dvh;
         box-sizing: border-box;
+        flex-shrink: 0;
     }
 
     /* Horizontal pagination container */

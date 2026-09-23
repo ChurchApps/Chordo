@@ -6,12 +6,14 @@
         background = "white",
         padding = 20, // mm
         headerText = "",
+        onPaginate,
         children
     } = $props<{
         pageIndex?: number | null
         background?: string
         padding?: number
         headerText?: string
+        onPaginate?: () => void
         children: any
     }>()
 
@@ -22,194 +24,222 @@
     let sourceEl: HTMLElement
     let pagesContainerEl: HTMLElement
 
+    let isPaginating = false
+    let lastWidth = 0
+    let lastHeight = 0
+
     /**
      * Measures slotted DOM elements and distributes them across A-paper page containers.
      * Handles vertical overflow, CSS multi-column horizontal overflow, and recursive container splitting.
      */
-    async function paginate() {
+    function paginate() {
         if (!sourceEl || !pagesContainerEl || !containerEl) return
+        if (isPaginating) return
+        isPaginating = true
 
-        await tick()
+        try {
+            if (!sourceEl || !pagesContainerEl || !containerEl) return
 
-        // Clear previously generated pages
-        pagesContainerEl.innerHTML = ""
+            const nodes = Array.from(sourceEl.childNodes)
+            if (nodes.length === 0) return
 
-        const nodes = Array.from(sourceEl.childNodes)
-        if (nodes.length === 0) return
+            // Clear previously generated pages
+            pagesContainerEl.innerHTML = ""
 
-        // Helper: Constructs a new page shell
-        const createPage = (pageNum: number) => {
-            const page = document.createElement("div")
-            page.className = "paper-page"
-            page.setAttribute("data-page", pageNum.toString())
-            page.style.aspectRatio = `${ASPECT_RATIO}`
-            page.style.padding = `${padding}mm`
+            // Helper: Constructs a new page shell
+            const createPage = (pageNum: number) => {
+                const page = document.createElement("div")
+                page.className = "paper-page"
+                page.setAttribute("data-page", pageNum.toString())
+                page.style.aspectRatio = `${ASPECT_RATIO}`
+                page.style.padding = `${padding}mm`
 
-            // Top Center Header (not on first page)
-            if (headerText && pageNum > 1) {
-                const header = document.createElement("div")
-                header.className = "page-header"
-                header.textContent = headerText
-                page.appendChild(header)
+                // Top Center Header (not on first page)
+                if (headerText && pageNum > 1) {
+                    const header = document.createElement("div")
+                    header.className = "page-header"
+                    header.textContent = headerText
+                    page.appendChild(header)
+                }
+
+                const content = document.createElement("div")
+                content.className = "page-content"
+                page.appendChild(content)
+
+                const footer = document.createElement("div")
+                footer.className = "page-number"
+                footer.setAttribute("data-page", pageNum.toString())
+                page.appendChild(footer)
+
+                return { page, content }
             }
 
-            const content = document.createElement("div")
-            content.className = "page-content"
-            page.appendChild(content)
+            let currentPageNum = 1
+            let { page: currentPage, content: currentContent } = createPage(currentPageNum)
+            pagesContainerEl.appendChild(currentPage)
 
-            const footer = document.createElement("div")
-            footer.className = "page-number"
-            footer.setAttribute("data-page", pageNum.toString())
-            page.appendChild(footer)
-
-            return { page, content }
-        }
-
-        let currentPageNum = 1
-        let { page: currentPage, content: currentContent } = createPage(currentPageNum)
-        pagesContainerEl.appendChild(currentPage)
-
-        /**
-         * Checks if content exceeds either vertical height OR multi-column width capacity.
-         * Uses a +1px tolerance buffer for subpixel calculation rounding.
-         */
-        const isOverflowing = (container: HTMLElement): boolean => {
-            return container.scrollHeight > container.clientHeight + 1 || container.scrollWidth > container.clientWidth + 1
-        }
-
-        /**
-         * Recursively appends nodes to the page. If a container element overflows,
-         * it shallow-clones the container onto the current page and splits its children across pages.
-         */
-        const appendNodeWithSplitting = (node: Node, targetContainer: HTMLElement) => {
-            // Ignore empty whitespace text nodes between HTML tags
-            if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
-                return
+            /**
+             * Checks if content exceeds either vertical height OR multi-column width capacity.
+             * Uses a +1px tolerance buffer for subpixel calculation rounding.
+             */
+            const isOverflowing = (container: HTMLElement): boolean => {
+                return container.scrollHeight > container.clientHeight + 1 || container.scrollWidth > container.clientWidth + 1
             }
 
-            const clone = node.cloneNode(true) as HTMLElement
-            targetContainer.appendChild(clone)
-
-            // If it fits within page bounds, finish
-            if (!isOverflowing(currentContent)) {
-                return
+            // FAST PATH: Try cloning all non-empty root nodes into page 1 at once
+            let hasAppended = false
+            for (const node of nodes) {
+                if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) continue
+                currentContent.appendChild(node.cloneNode(true))
+                hasAppended = true
             }
 
-            // Overflow detected: remove deep clone
-            targetContainer.removeChild(clone)
+            if (hasAppended && !isOverflowing(currentContent)) {
+                // Entire song content fits on a single page! No line-by-line splitting needed.
+            } else {
+                // Multi-page or overflowing content: clear page 1 and split child elements
+                currentContent.innerHTML = ""
 
-            // If the node is a container element with children (e.g. .chordpro-container or a wrapper div),
-            // shallow-clone its outer structure and split its child elements individually.
-            if (node.nodeType === Node.ELEMENT_NODE && node.childNodes.length > 0) {
-                let currentShell = node.cloneNode(false) as HTMLElement
-                targetContainer.appendChild(currentShell)
-
-                for (const childNode of Array.from(node.childNodes)) {
-                    if (childNode.nodeType === Node.TEXT_NODE && !childNode.textContent?.trim()) {
-                        continue
+                /**
+                 * Recursively appends nodes to the page. If a container element overflows,
+                 * it shallow-clones the container onto the current page and splits its children across pages.
+                 */
+                const appendNodeWithSplitting = (node: Node, targetContainer: HTMLElement) => {
+                    // Ignore empty whitespace text nodes between HTML tags
+                    if (node.nodeType === Node.TEXT_NODE && !node.textContent?.trim()) {
+                        return
                     }
 
-                    const childClone = childNode.cloneNode(true) as HTMLElement
-                    currentShell.appendChild(childClone)
+                    const clone = node.cloneNode(true) as HTMLElement
+                    targetContainer.appendChild(clone)
 
-                    if (isOverflowing(currentContent)) {
-                        // If the shell already contains previous children on this page, move this child to a new page
-                        if (currentShell.childNodes.length > 1) {
-                            currentShell.removeChild(childClone)
+                    // If it fits within page bounds, finish
+                    if (!isOverflowing(currentContent)) {
+                        return
+                    }
 
-                            // Create new page
-                            currentPageNum++
-                            const nextPage = createPage(currentPageNum)
-                            currentPage = nextPage.page
-                            currentContent = nextPage.content
-                            pagesContainerEl.appendChild(currentPage)
+                    // Overflow detected: remove deep clone
+                    targetContainer.removeChild(clone)
 
-                            // Re-create the container shell on the new page
-                            currentShell = node.cloneNode(false) as HTMLElement
-                            currentContent.appendChild(currentShell)
+                    // If the node is a container element with children (e.g. .chordpro-container or a wrapper div),
+                    // shallow-clone its outer structure and split its child elements individually.
+                    if (node.nodeType === Node.ELEMENT_NODE && node.childNodes.length > 0) {
+                        let currentShell = node.cloneNode(false) as HTMLElement
+                        targetContainer.appendChild(currentShell)
 
-                            // Recursively add the child node to the new page container
-                            appendNodeWithSplitting(childNode, currentShell)
-                        } else {
-                            // First child in shell overflows. Move whole shell to new page if current page isn't empty.
-                            if (targetContainer.childNodes.length > 1) {
-                                targetContainer.removeChild(currentShell)
+                        for (const childNode of Array.from(node.childNodes)) {
+                            if (childNode.nodeType === Node.TEXT_NODE && !childNode.textContent?.trim()) {
+                                continue
+                            }
 
-                                currentPageNum++
-                                const nextPage = createPage(currentPageNum)
-                                currentPage = nextPage.page
-                                currentContent = nextPage.content
-                                pagesContainerEl.appendChild(currentPage)
+                            const childClone = childNode.cloneNode(true) as HTMLElement
+                            currentShell.appendChild(childClone)
 
-                                currentShell = node.cloneNode(false) as HTMLElement
-                                currentContent.appendChild(currentShell)
+                            if (isOverflowing(currentContent)) {
+                                // If the shell already contains previous children on this page, move this child to a new page
+                                if (currentShell.childNodes.length > 1) {
+                                    currentShell.removeChild(childClone)
 
-                                appendNodeWithSplitting(childNode, currentShell)
-                            } else {
-                                // Node naturally exceeds a single page height on its own; leave to prevent infinite loops
+                                    // Create new page
+                                    currentPageNum++
+                                    const nextPage = createPage(currentPageNum)
+                                    currentPage = nextPage.page
+                                    currentContent = nextPage.content
+                                    pagesContainerEl.appendChild(currentPage)
+
+                                    // Re-create the container shell on the new page
+                                    currentShell = node.cloneNode(false) as HTMLElement
+                                    currentContent.appendChild(currentShell)
+
+                                    // Recursively add the child node to the new page container
+                                    appendNodeWithSplitting(childNode, currentShell)
+                                } else {
+                                    // First child in shell overflows. Move whole shell to new page if current page isn't empty.
+                                    if (targetContainer.childNodes.length > 1) {
+                                        targetContainer.removeChild(currentShell)
+
+                                        currentPageNum++
+                                        const nextPage = createPage(currentPageNum)
+                                        currentPage = nextPage.page
+                                        currentContent = nextPage.content
+                                        pagesContainerEl.appendChild(currentPage)
+
+                                        currentShell = node.cloneNode(false) as HTMLElement
+                                        currentContent.appendChild(currentShell)
+
+                                        appendNodeWithSplitting(childNode, currentShell)
+                                    } else {
+                                        // Node naturally exceeds a single page height on its own; leave to prevent infinite loops
+                                    }
+                                }
                             }
                         }
+                    } else {
+                        // Leaf element (single line, image, text) overflowed; spin up a new page and append
+                        currentPageNum++
+                        const nextPage = createPage(currentPageNum)
+                        currentPage = nextPage.page
+                        currentContent = nextPage.content
+                        pagesContainerEl.appendChild(currentPage)
+
+                        currentContent.appendChild(clone)
                     }
                 }
-            } else {
-                // Leaf element (single line, image, text) overflowed; spin up a new page and append
-                currentPageNum++
-                const nextPage = createPage(currentPageNum)
-                currentPage = nextPage.page
-                currentContent = nextPage.content
-                pagesContainerEl.appendChild(currentPage)
 
-                currentContent.appendChild(clone)
+                // Run pagination across all root nodes in the slot
+                for (const node of nodes) {
+                    appendNodeWithSplitting(node, currentContent)
+                }
             }
-        }
 
-        // Run pagination across all root nodes in the slot
-        for (const node of nodes) {
-            appendNodeWithSplitting(node, currentContent)
-        }
+            // If a page only has content in the first column, switch it to single-column layout so lines don't break
+            const chordProContainers = pagesContainerEl.querySelectorAll<HTMLElement>(".chordpro-container")
+            chordProContainers.forEach((chordProEl) => {
+                const containerWidth = chordProEl.clientWidth
+                if (containerWidth <= 0) return
 
-        // If a page only has content in the first column, switch it to single-column layout so lines don't break
-        const chordProContainers = pagesContainerEl.querySelectorAll<HTMLElement>(".chordpro-container")
-        chordProContainers.forEach((chordProEl) => {
-            const containerWidth = chordProEl.clientWidth
-            if (containerWidth <= 0) return
+                const lines = chordProEl.querySelectorAll<HTMLElement>(".line, .chordpro-section")
+                const hasSecondColumn = Array.from(lines).some((el) => el.offsetLeft > containerWidth * 0.4)
 
-            const lines = chordProEl.querySelectorAll<HTMLElement>(".line, .chordpro-section")
-            const hasSecondColumn = Array.from(lines).some((el) => el.offsetLeft > containerWidth * 0.4)
+                if (!hasSecondColumn) {
+                    chordProEl.style.setProperty("--num-columns", "1")
+                    chordProEl.style.columnCount = "1"
+                    chordProEl.classList.add("single-column")
+                }
+            })
 
-            if (!hasSecondColumn) {
-                chordProEl.style.setProperty("--num-columns", "1")
-                chordProEl.style.columnCount = "1"
-                chordProEl.classList.add("single-column")
+            // Update "Page X / Y" footers
+            const pageNumbers = pagesContainerEl.querySelectorAll(".page-number")
+            pageNumbers.forEach((el) => {
+                const num = parseInt(el.getAttribute("data-page") || "1", 10)
+                el.textContent = `${num} / ${currentPageNum}`
+                if (currentPageNum > 1 && num < currentPageNum) el.classList.add("has-next-page")
+                else el.classList.remove("has-next-page")
+            })
+
+            // If a specific page index was requested (0-based), display only that page
+            if (typeof pageIndex === "number" && pageIndex >= 0 && pageIndex < currentPageNum) {
+                const targetPageNum = (pageIndex + 1).toString()
+                const requested = pagesContainerEl.querySelector(`.paper-page[data-page="${targetPageNum}"]`) as HTMLElement | null
+                if (requested) {
+                    pagesContainerEl.innerHTML = ""
+                    pagesContainerEl.appendChild(requested.cloneNode(true) as HTMLElement)
+                }
             }
-        })
 
-        // Update "Page X / Y" footers
-        const pageNumbers = pagesContainerEl.querySelectorAll(".page-number")
-        pageNumbers.forEach((el) => {
-            const num = parseInt(el.getAttribute("data-page") || "1", 10)
-            el.textContent = `${num} / ${currentPageNum}`
-            if (currentPageNum > 1 && num < currentPageNum) el.classList.add("has-next-page")
-            else el.classList.remove("has-next-page")
-        })
-
-        // If a specific page index was requested (0-based), display only that page
-        if (typeof pageIndex === "number" && pageIndex >= 0 && pageIndex < currentPageNum) {
-            const targetPageNum = (pageIndex + 1).toString()
-            const requested = pagesContainerEl.querySelector(`.paper-page[data-page="${targetPageNum}"]`) as HTMLElement | null
-            if (requested) {
-                pagesContainerEl.innerHTML = ""
-                pagesContainerEl.appendChild(requested.cloneNode(true) as HTMLElement)
-            }
+            onPaginate?.()
+        } finally {
+            isPaginating = false
         }
     }
 
-    let paginateTimeout: ReturnType<typeof setTimeout> | undefined
+    let paginateRafId: number | null = null
     function schedulePaginate() {
-        if (paginateTimeout) clearTimeout(paginateTimeout)
-        paginateTimeout = setTimeout(() => {
+        if (paginateRafId !== null) cancelAnimationFrame(paginateRafId)
+        paginateRafId = requestAnimationFrame(() => {
+            paginateRafId = null
             paginate()
-        }, 16)
+        })
     }
 
     $effect(() => {
@@ -221,7 +251,16 @@
 
     onMount(() => {
         // Re-paginate when container size changes
-        const resizeObserver = new ResizeObserver(() => schedulePaginate())
+        const resizeObserver = new ResizeObserver((entries) => {
+            const entry = entries[0]
+            if (entry) {
+                const { width, height } = entry.contentRect
+                if (width === lastWidth && height === lastHeight) return
+                lastWidth = width
+                lastHeight = height
+            }
+            schedulePaginate()
+        })
         if (containerEl) resizeObserver.observe(containerEl)
 
         // Re-paginate when inner DOM or slotted content mutates
@@ -241,7 +280,7 @@
         paginate()
 
         return () => {
-            if (paginateTimeout) clearTimeout(paginateTimeout)
+            if (paginateRafId !== null) cancelAnimationFrame(paginateRafId)
             resizeObserver.disconnect()
             mutationObserver.disconnect()
             sourceEl?.removeEventListener("load", handleImageLoad, true)
