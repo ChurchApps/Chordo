@@ -139,8 +139,9 @@
                     {:else if line.type === "comment"}
                         <div class="line comment">{line.directiveValue}</div>
                     {:else if line.type === "lyrics"}
-                        {#if !hideChords || line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
-                            <div class="line lyrics-line">
+                        {@const hasLyrics = line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
+                        {#if !hideChords || hasLyrics}
+                            <div class="line lyrics-line" class:chords-only={hasChords && !hasLyrics}>
                                 {#each line.words ?? [{ tokens: line.tokens ?? [] }] as word}
                                     {@const tokens = hideChords ? word.tokens.filter((t) => t.lyric && t.lyric.trim() !== "") : word.tokens}
                                     {#if tokens.length > 0}
@@ -149,7 +150,7 @@
                                                 <span class="token" style={hasChords && token.minWidth ? `min-width: ${token.minWidth};` : undefined}>
                                                     {#if hasChords}
                                                         {#if token.chord}
-                                                            <span class="chord-cell">{token.chord}</span>
+                                                            <span class="chord-cell" class:standalone={!token.lyric || token.lyric.trim() === ""}>{token.chord}</span>
                                                         {:else}
                                                             <span class="chord-cell placeholder">&nbsp;</span>
                                                         {/if}
@@ -225,6 +226,13 @@
         line-height: 1.2;
         margin-bottom: 3px;
     }
+    .lyrics-line.chords-only {
+        line-height: 1.1;
+        margin-bottom: 4px;
+    }
+    .lyrics-line.chords-only .lyric-cell {
+        display: none;
+    }
     .word {
         display: inline-flex;
         align-items: flex-end;
@@ -242,9 +250,8 @@
 
     .chord-cell {
         line-height: 0.9;
-        font-family: monospace;
         font-weight: 700;
-        font-size: calc(1rem * var(--font-scale, 1));
+        font-size: calc(0.93rem * var(--font-scale, 1));
         margin-bottom: 1px;
         color: var(--chord-color, #5498be);
         text-align: left;
@@ -253,6 +260,9 @@
         width: 0;
         min-width: 100%;
         min-height: 0.9em;
+    }
+    .chord-cell.standalone {
+        width: auto;
     }
     .lyric-cell {
         display: inline-block;

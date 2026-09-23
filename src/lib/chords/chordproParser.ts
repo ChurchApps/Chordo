@@ -285,7 +285,7 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
     const allTokens = words.flatMap((w) => w.tokens)
 
     // Calculate chord collision spacing:
-    // Only expand tokens if a chord would physically collide with the NEXT chord on the line
+    // Expand tokens if a chord would collide with the next chord or needs standalone width
     for (let i = 0; i < allTokens.length; i++) {
         const token = allTokens[i]
         if (!token.chord) continue
@@ -299,18 +299,39 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
             }
         }
 
+        const GAP = 1.5
         if (nextChordIndex !== -1) {
-            // Measure total lyric length from current token up to the next chord token
-            let lyricSpanLen = 0
-            for (let k = i; k < nextChordIndex; k++) {
-                lyricSpanLen += allTokens[k].lyric.length
-            }
+            const hasLyricText = Boolean(token.lyric && token.lyric.trim() !== "")
+            if (hasLyricText) {
+                // Chord has lyric words: measure visual span up to next chord
+                // In proportional fonts, narrow letters & spaces average ~0.4ch, standard letters ~0.75ch of monospace width
+                let lyricSpanLen = 0
+                for (let k = i; k < nextChordIndex; k++) {
+                    const nextTok = allTokens[k]
+                    if (k > i && !nextTok.lyric?.trim() && nextTok.chord) {
+                        lyricSpanLen += nextTok.chord.length + nextTok.lyric.length
+                    } else {
+                        const lyricStr = nextTok.lyric || ""
+                        for (const char of lyricStr) {
+                            if (/\s/.test(char) || /[iljf\.,'’!]/.test(char)) {
+                                lyricSpanLen += 0.4
+                            } else {
+                                lyricSpanLen += 0.75
+                            }
+                        }
+                    }
+                }
 
-            // A chord needs its length + 1 space gap so it doesn't touch the next chord
-            const neededLen = token.chord.length + 1
-            if (neededLen > lyricSpanLen) {
-                const deficit = neededLen - lyricSpanLen
-                token.minWidth = `${token.lyric.length + deficit}ch`
+                // A chord needs its length + GAP so it doesn't touch the next chord
+                const neededLen = token.chord.length + GAP
+                if (neededLen > lyricSpanLen) {
+                    token.minWidth = `${neededLen}ch`
+                }
+            } else {
+                // Standalone chord without lyric words:
+                // Needs chord length + whatever trailing spaces were typed (or 1 space gap if 0 spaces between adjacent chords)
+                const minLen = token.lyric.length > 0 ? token.chord.length + token.lyric.length : token.chord.length + 1
+                token.minWidth = `${minLen}ch`
             }
         }
     }
