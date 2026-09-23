@@ -233,9 +233,7 @@
                             </div>
                         {/if}
 
-                        {#if isEditing}
-                            <div slot="end" class="song-controls"></div>
-                        {:else if !songItem.isDeleted && songItem.type !== "section"}
+                        {#if !isEditing && !songItem.isDeleted && songItem.type !== "section"}
                             <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
                         {/if}
                     </md-list-item>
@@ -314,7 +312,7 @@
         -webkit-touch-callout: none;
     }
     md-list-item.selected {
-        background-color: rgb(0 0 0 / 0.08);
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
     }
     .drag-handle-container {
         display: flex;
@@ -332,12 +330,6 @@
     .drag-handle-container:active {
         cursor: grabbing;
     }
-    .song-controls {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 48px;
-    }
 
     .song-headline {
         display: flex;
@@ -353,12 +345,12 @@
     .section-headline {
         font-weight: 600;
         font-size: 0.92rem;
-        color: var(--md-sys-color-primary);
+        color: black;
         letter-spacing: 0.5px;
     }
 
     .section-icon {
-        color: var(--md-sys-color-primary);
+        color: black;
         --md-icon-size: 20px;
     }
 
@@ -369,6 +361,9 @@
         --md-list-item-bottom-space: 4px;
         background-color: var(--md-sys-color-surface-container-low, rgba(0, 0, 0, 0.03));
         border-top: 2px solid rgba(0, 0, 0, 0.04);
+    }
+    md-list-item.section-item.selected {
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
     }
 
     .deleted-tag {

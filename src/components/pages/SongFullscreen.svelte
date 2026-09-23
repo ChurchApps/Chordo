@@ -710,6 +710,7 @@
         padding: 40px 24px;
         box-sizing: border-box;
         text-align: center;
+        color: var(--paper-text-color, inherit);
     }
 
     .fullscreen-sections-list {
@@ -724,21 +725,21 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background-color: var(--md-sys-color-primary-container, #ffdcc1);
+        background-color: rgba(128, 128, 128, 0.15);
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
     .fullscreen-section-icon {
-        color: var(--md-sys-color-primary, #f5aa67);
+        color: inherit;
         font-size: 28px;
     }
 
     .fullscreen-section-title {
         font-size: 2.2rem;
         font-weight: 700;
-        color: var(--md-sys-color-on-surface, #201a17);
+        color: inherit;
         letter-spacing: 0.5px;
         line-height: 1.25;
         max-width: 90%;
@@ -748,7 +749,8 @@
     .fullscreen-section-divider {
         width: 60px;
         height: 2px;
-        background-color: var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.15));
+        background-color: currentColor;
+        opacity: 0.25;
         border-radius: 1px;
     }
 
