@@ -80,6 +80,7 @@
     let currentTranslate = 0
     let prevTranslate = 0
     let didDrag = false
+    let initialPinchDist = 0
 
     // Dynamic pagination mappings
     let pageSongMap: Array<string | null> = []
@@ -117,6 +118,16 @@
         } else {
             toggleActions()
         }
+    }
+
+    function exitSongFullscreen() {
+        savedFullscreenPosition.pageIndex = currentPageIndex
+        savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
+        if (popupState.popupId !== null) setActivePopup(null)
+        if (isFullscreenActive()) {
+            exitFullscreen()
+        }
+        goBack()
     }
 
     let moreMenuOpen = $state(false)
@@ -280,7 +291,7 @@
 
     // --- Drag & Touch Handlers ---
     function pointerDown(e: PointerEvent) {
-        if (isDrawing) return
+        if (isDrawing || initialPinchDist > 0) return
         isDragging = true
         didDrag = false
         startX = e.clientX
@@ -288,7 +299,7 @@
     }
 
     function pointerMove(e: PointerEvent) {
-        if (!isDragging || !sliderEl) return
+        if (initialPinchDist > 0 || !isDragging || !sliderEl) return
         const delta = e.clientX - startX
         if (Math.abs(delta) > 6) didDrag = true
         currentTranslate = prevTranslate + delta
@@ -296,6 +307,10 @@
     }
 
     function pointerUp(e: PointerEvent) {
+        if (initialPinchDist > 0) {
+            isDragging = false
+            return
+        }
         if (!isDragging || !sliderEl) return
         isDragging = false
 
@@ -312,6 +327,25 @@
         setPositionByIndex()
         sliderEl.releasePointerCapture?.(e.pointerId)
         setTimeout(() => (didDrag = false), 100)
+    }
+
+    // --- Pinch-to-exit Handlers ---
+    function handleTouchStart(e: TouchEvent) {
+        if (isDrawing || popupState.popupId !== null) return
+        if (e.touches.length >= 2) {
+            initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
+            didDrag = true
+        }
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+        if (e.touches.length >= 2 && initialPinchDist > 0) {
+            const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
+            if (initialPinchDist - currentDist > 60) {
+                initialPinchDist = 0
+                exitSongFullscreen()
+            }
+        }
     }
 
     function getTransitionDuration(): number {
@@ -401,10 +435,7 @@
             if (isActive) {
                 hasBeenFullscreen = true
             } else if (hasBeenFullscreen) {
-                savedFullscreenPosition.pageIndex = currentPageIndex
-                savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
-                if (popupState.popupId !== null) setActivePopup(null)
-                goBack()
+                exitSongFullscreen()
             }
         })
 
@@ -442,17 +473,13 @@
     })
 </script>
 
-<svelte:window onclick={windowClick} onkeydown={handleKeydown} />
+<svelte:window onclick={windowClick} onkeydown={handleKeydown} ontouchstart={handleTouchStart} ontouchmove={handleTouchMove} ontouchend={() => (initialPinchDist = 0)} ontouchcancel={() => (initialPinchDist = 0)} />
 
 {#if actionsVisible}
     <header transition:slide={{ duration: 200, axis: "y" }}>
         <div class="actions">
             <md-icon-button
-                onclick={() => {
-                    savedFullscreenPosition.pageIndex = currentPageIndex
-                    savedFullscreenPosition.index = pageSongIndexMap[currentPageIndex] ?? 0
-                    goBack()
-                }}
+                onclick={exitSongFullscreen}
                 aria-label="Back"
             >
                 <md-icon>arrow_back</md-icon>
