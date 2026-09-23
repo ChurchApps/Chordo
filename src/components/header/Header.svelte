@@ -170,9 +170,11 @@
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
                 {/if}
-                <md-icon-button aria-label="Delete selected" onclick={() => listEditingState.onDeleteSelected?.()}>
-                    <span class="material-symbols-outlined" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                </md-icon-button>
+                {#if listEditingState.onDeleteSelected}
+                    <md-icon-button aria-label="Delete selected" onclick={() => listEditingState.onDeleteSelected?.()}>
+                        <span class="material-symbols-outlined" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                    </md-icon-button>
+                {/if}
             {:else}
                 {#if menuState.activePage === "song"}
                     {@const activePlaybackUrl = currentSong?.playbackUrl || currentSong?.spotify || currentSong?.getMetadata("playback") || currentSong?.getMetadata("spotify")}

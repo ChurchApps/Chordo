@@ -140,6 +140,7 @@ export function handlePointerDragStart(
     selectedIndices: number[],
     state: ReorderState,
     onMoveBatch: (fromIndices: number[], targetIdx: number) => void,
+    onDragEnd?: () => void,
     itemSelector: string = "[data-reorder-idx]"
 ): void {
     if (e.button !== 0 && e.pointerType === "mouse") return
@@ -213,6 +214,9 @@ export function handlePointerDragStart(
             }
         }
         resetDragState(state)
+        if (onDragEnd) {
+            onDragEnd()
+        }
     }
 
     window.addEventListener("pointermove", onPointerMove, { passive: true })
