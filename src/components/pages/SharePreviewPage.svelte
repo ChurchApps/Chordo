@@ -171,6 +171,7 @@
     async function importList() {
         if (!payload || payload.type !== "list") return
         const sharedList = payload.list
+        const wasIdentical = isListIdentical
 
         // 1. Batch prompt for exact ID matches that differ in content
         const idMatches = sharedList.songs.filter((s) => {
@@ -273,7 +274,7 @@
         let listToOpen: List
 
         if (existingList) {
-            if (!isListIdentical) {
+            if (!wasIdentical) {
                 existingList.name = sharedList.name
                 existingList.songs = resolvedSongs
                 storage.updateList(existingList)
