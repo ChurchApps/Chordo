@@ -14,6 +14,7 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import { pages } from "../pages/pages"
+    import MetronomeButton from "../song/MetronomeButton.svelte"
     import TransposeButton from "../song/TransposeButton.svelte"
 
     let headerPath = $derived(
@@ -198,7 +199,10 @@
                             {/if}
                         </md-icon-button>
                     {/if}
+
+                    <MetronomeButton />
                     <TransposeButton />
+
                     <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>

@@ -13,6 +13,7 @@
         oninput?: (e: Event) => void
         onkeydown?: (e: KeyboardEvent) => void
         onchange?: (e: Event) => void
+        onblur?: (e: FocusEvent) => void
     }
 
     let {
@@ -28,7 +29,8 @@
         class: className = "",
         oninput,
         onkeydown,
-        onchange
+        onchange,
+        onblur
     }: Props = $props()
 
     let textareaEl = $state<HTMLTextAreaElement | null>(null)
@@ -117,7 +119,10 @@
             onchange={onchange}
             onscroll={handleScroll}
             onfocus={() => (isFocused = true)}
-            onblur={() => (isFocused = false)}
+            onblur={(e) => {
+                isFocused = false
+                if (onblur) onblur(e)
+            }}
             spellcheck="false"
             autocomplete="off"
             autocapitalize="off"

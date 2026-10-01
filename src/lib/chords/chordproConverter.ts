@@ -283,11 +283,6 @@ function mergeChordAndLyricLines(chordLine: string, lyricLine: string, options: 
                 c.index = w.start
                 break
             }
-            // Chord is on 1st or 2nd character of short words (<= 4 chars) or 1st char of any word
-            if (c.index > w.start && c.index <= w.start + (w.text.length <= 4 ? 2 : 1)) {
-                c.index = w.start
-                break
-            }
         }
     }
 

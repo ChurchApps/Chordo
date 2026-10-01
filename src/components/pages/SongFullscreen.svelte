@@ -2,6 +2,7 @@
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
     import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { metronomeState } from "$lib/state/metronome.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
@@ -11,6 +12,7 @@
     import { slide } from "svelte/transition"
     import Draw from "../draw/Draw.svelte"
     import ChordPro from "../song/ChordPro.svelte"
+    import MetronomeButton from "../song/MetronomeButton.svelte"
     import Paper from "../song/Paper.svelte"
     import TransposeButton from "../song/TransposeButton.svelte"
 
@@ -108,11 +110,9 @@
     let initialPinchDist = 0
 
     // Dynamic pagination mappings
-    let pageSongMap: Array<string | null> = []
-    let pageIndexMap: number[] = []
-    let pageSongIndexMap: number[] = []
-    let songPageId = $state("")
-    let previousPage = -1
+    let pageSongMap = $state<Array<string | null>>([])
+    let pageIndexMap = $state<number[]>([])
+    let pageSongIndexMap = $state<number[]>([])
 
     let lastActiveOriginalIndex: number | null = null
     let lastActivePageInSong = 0
@@ -248,6 +248,8 @@
         pageSongIndexMap = newPageSongIndexMap
         totalPages = pageSongMap.length || slides.length || 1
 
+        detectSongAndPage(currentPageIndex)
+
         if (!initialPositionConsumed) {
             restoreInitialPosition(hasAnyPaperPage)
         } else {
@@ -317,6 +319,9 @@
                 initialPositionConsumed = true
             }
             setPositionByIndex(false)
+        } else if (isRealLayout) {
+            initialPositionConsumed = true
+            detectSongAndPage(currentPageIndex)
         }
     }
 
@@ -408,34 +413,42 @@
         detectSongAndPage()
     }
 
-    let visibleSongId: string | null = $state(null)
-    let songPageIndex = $state(0)
+    let visibleSongId = $derived.by<string | null>(() => {
+        const pageCount = pageSongMap.length
+        const globalIndex = pageCount > 0 ? Math.max(0, Math.min(currentPageIndex, pageCount - 1)) : currentPageIndex
+        return (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
+    })
+    let songPageIndex = $derived.by<number>(() => {
+        const pageCount = pageSongMap.length
+        const globalIndex = pageCount > 0 ? Math.max(0, Math.min(currentPageIndex, pageCount - 1)) : currentPageIndex
+        return pageIndexMap[globalIndex] ?? 0
+    })
+
     function detectSongAndPage(index = currentPageIndex) {
         const pageCount = pageSongMap.length
         const globalIndex = pageCount > 0 ? Math.max(0, Math.min(index, pageCount - 1)) : index
-        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
-        const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
         lastActiveOriginalIndex = songIndexInList
-        lastActivePageInSong = pageInSong
-        lastActiveSongId = songId
+        lastActivePageInSong = pageIndexMap[globalIndex] ?? 0
+        lastActiveSongId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
 
         if (initialPositionConsumed && songIndexInList >= 0 && (list ? songIndexInList < list.songs.length : songIndexInList < slides.length)) {
             savedFullscreenPosition.index = songIndexInList
         }
-
-        const newSongPageId = `${songId}:${pageInSong}`
-        if (songPageId !== newSongPageId || visibleSongId !== songId || songPageIndex !== pageInSong || globalIndex !== previousPage) {
-            previousPage = globalIndex
-            songPageId = newSongPageId
-
-            visibleSongId = songId
-            songPageIndex = pageInSong
-        }
     }
 
     let visibleSong = $derived(visibleSongId ? storage.getSongById(visibleSongId, storage.songs) : null)
+
+    // Metronome
+    let visibleSongTempo = $derived(Number(visibleSong?.getMetadata?.("tempo")?.match(/\d+/)?.[0]) || null)
+    let visibleSongTimeSig = $derived(Number(visibleSong?.getMetadata?.("timeSignature")?.match(/^(\d+)/)?.[1]) || null)
+    let isMetronomeOutOfSync = $derived(!!visibleSong && ((visibleSongTempo !== null && visibleSongTempo !== metronomeState.bpm) || (visibleSongTimeSig !== null && visibleSongTimeSig !== metronomeState.beatsPerBar)))
+    function syncMetronomeWithSong() {
+        if (visibleSongTempo) metronomeState.bpm = visibleSongTempo
+        if (visibleSongTimeSig) metronomeState.beatsPerBar = visibleSongTimeSig
+    }
+
     let visiblePlaybackUrl = $derived(visibleSong?.playbackUrl || visibleSong?.spotify || visibleSong?.getMetadata("playback") || visibleSong?.getMetadata("spotify") || "")
     let visiblePlaybackInfo = $derived(parsePlaybackUrl(visiblePlaybackUrl))
     let isPlayingVisibleSong = $derived(playbackState.isOpen && !!visibleSong && (playbackState.songId === visibleSong.id || (!!visiblePlaybackUrl && playbackState.customPlaybackUrl === visiblePlaybackUrl)))
@@ -446,9 +459,8 @@
         updateRafId = requestAnimationFrame(() => {
             updateRafId = null
             updatePageCount()
-            if (immediatePosition) {
-                setPositionByIndex(false)
-            }
+            if (immediatePosition) setPositionByIndex(false)
+            else detectSongAndPage(currentPageIndex)
         })
     }
 
@@ -496,16 +508,14 @@
 {#if actionsVisible}
     <header transition:slide={{ duration: 200, axis: "y" }}>
         <div class="actions">
-            <md-icon-button
-                onclick={exitSongFullscreen}
-                aria-label="Back"
-            >
+            <md-icon-button onclick={exitSongFullscreen} aria-label="Back">
                 <md-icon>arrow_back</md-icon>
             </md-icon-button>
 
             <div style="flex:1"></div>
 
             {#if visibleSongId}
+                <MetronomeButton />
                 <TransposeButton />
 
                 <md-icon-button
@@ -614,68 +624,97 @@
             style="touch-action: pan-y; transform: translateX(-{initialSlideIndex * 100}vw);"
         >
             {#each slides as slideItem, i}
-                {@const shouldRender = Math.abs(i - currentSlideIndex) <= 1 || slides.length <= 2}
-                {#if shouldRender}
-                    {#if slideItem.type === "song"}
-                        {@const songId = slideItem.songItem?.id ?? null}
-                        {@const song = storage.getSongById(songId, storage.songs)}
-                        {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
-                        {@const hasMedia = !!song?.images.length}
+                {#if slideItem.type === "song"}
+                    {@const songId = slideItem.songItem?.id ?? null}
+                    {@const song = storage.getSongById(songId, storage.songs)}
+                    {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
+                    {@const hasMedia = !!song?.images.length}
 
-                        {@const customBg = storage.settings.paperOptions?.background || "white"}
-                        {@const paperBg = hasMedia ? "black" : customBg}
-                        {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
+                    {@const customBg = storage.settings.paperOptions?.background || "white"}
+                    {@const paperBg = hasMedia ? "black" : customBg}
+                    {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
 
-                        <div class="slide" style="--font-scale: {fontScale};">
-                            <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
-                                {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
-                                    <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
-                                {/key}
-                            </Paper>
-                        </div>
-                    {:else if slideItem.type === "section"}
-                        {@const customBg = storage.settings.paperOptions?.background || "white"}
-                        <div class="slide">
-                            <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
-                                <div class="fullscreen-section-container">
-                                    <div class="fullscreen-section-badge">
-                                        <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
-                                    </div>
-                                    <div class="fullscreen-sections-list">
-                                        {#each slideItem.sections as sec, sIdx}
-                                            <div class="fullscreen-section-title">{sec.name}</div>
-                                            {#if sIdx < slideItem.sections.length - 1}
-                                                <div class="fullscreen-section-divider"></div>
-                                            {/if}
-                                        {/each}
-                                    </div>
+                    <div class="slide" style="--font-scale: {fontScale};">
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
+                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
+                                <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
+                            {/key}
+                        </Paper>
+                    </div>
+                {:else if slideItem.type === "section"}
+                    {@const customBg = storage.settings.paperOptions?.background || "white"}
+                    <div class="slide">
+                        <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
+                            <div class="fullscreen-section-container">
+                                <div class="fullscreen-section-badge">
+                                    <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
                                 </div>
-                            </Paper>
-                        </div>
-                    {/if}
-                {:else}
-                    <div class="slide placeholder-slide" style="width: 100vw; min-width: 100vw; height: 100vh; height: 100dvh;"></div>
+                                <div class="fullscreen-sections-list">
+                                    {#each slideItem.sections as sec, sIdx}
+                                        <div class="fullscreen-section-title">{sec.name}</div>
+                                        {#if sIdx < slideItem.sections.length - 1}
+                                            <div class="fullscreen-section-divider"></div>
+                                        {/if}
+                                    {/each}
+                                </div>
+                            </div>
+                        </Paper>
+                    </div>
                 {/if}
             {/each}
         </div>
 
-        {#if visibleSongId}
-            {@const drawingData = storage.getSongById(visibleSongId)?.drawings?.[songPageIndex]}
+        {#if visibleSong}
+            {@const drawingData = visibleSong.drawings?.[songPageIndex]}
             {#if isDrawing || !!drawingData}
-                {#key visibleSongId + ":" + songPageIndex}
+                {#key visibleSong.id + ":" + songPageIndex}
                     <Draw
                         editable={isDrawing}
                         initialData={drawingData || ""}
+                        onChange={(dataUrl) => {
+                            if (!visibleSong.drawings) visibleSong.drawings = []
+                            visibleSong.drawings[songPageIndex] = dataUrl
+                        }}
                         onFinish={(dataUrl) => {
-                            if (visibleSong) {
-                                visibleSong.drawings[songPageIndex] = dataUrl
-                                storage.persist()
-                            }
+                            if (!visibleSong.drawings) visibleSong.drawings = []
+                            visibleSong.drawings[songPageIndex] = dataUrl
+                            storage.updateSong(visibleSong)
                             isDrawing = false
                         }}
                     />
                 {/key}
             {/if}
+        {/if}
+
+        <!-- Metronome -->
+        {#if metronomeState.isPlaying}
+            <div class="metronome-state">
+                {#if metronomeState.soundType === "silent"}
+                    <div class="silent-metronome-indicator">
+                        <div class="silent-dots-container">
+                            {#each Array(metronomeState.beatsPerBar) as _, i}
+                                <div class="silent-beat-dot" class:accent={i === 0} class:active={metronomeState.currentBeat === i}></div>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+
+                {#if isMetronomeOutOfSync}
+                    <button
+                        type="button"
+                        class="sync-metronome-btn"
+                        onclick={(e) => {
+                            e.stopPropagation()
+                            syncMetronomeWithSong()
+                        }}
+                    >
+                        <span class="material-symbols-outlined sync-icon">sync</span>
+                        {#if visibleSongTempo}
+                            <span class="sync-tempo-label">{visibleSongTempo}</span>
+                        {/if}
+                    </button>
+                {/if}
+            </div>
         {/if}
     </div>
 </main>
@@ -728,6 +767,121 @@
         height: 100vh;
         height: 100dvh;
         overflow: hidden;
+    }
+
+    /* Metronome */
+
+    .metronome-state {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        z-index: 50;
+        pointer-events: none;
+    }
+
+    .silent-metronome-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px;
+        background: rgba(18, 18, 18, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        z-index: 50;
+        pointer-events: none;
+        box-shadow:
+            0 3px 12px rgba(0, 0, 0, 0.3),
+            0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .silent-dots-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .silent-beat-dot {
+        width: 26px;
+        height: 2px;
+        border-radius: 1px;
+        background: rgba(255, 255, 255, 0.25);
+        transition:
+            transform 0.08s ease,
+            background 0.08s ease,
+            box-shadow 0.08s ease,
+            opacity 0.08s ease;
+    }
+
+    .silent-beat-dot.accent {
+        width: 32px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.35);
+    }
+
+    .silent-beat-dot.active {
+        background: var(--md-sys-color-primary, #f5aa67);
+        transform: scaleY(2);
+        box-shadow: 0 0 10px var(--md-sys-color-primary, #f5aa67);
+    }
+
+    .silent-beat-dot.accent.active {
+        background: var(--md-sys-color-primary, #f5aa67);
+        transform: scaleY(2.2) scaleX(1.04);
+        box-shadow: 0 0 14px var(--md-sys-color-primary, #f5aa67);
+    }
+
+    .sync-metronome-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        color: black;
+        background: rgba(18, 18, 18, 0.1);
+        border: 2px solid rgba(0, 0, 0, 0.7);
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        cursor: pointer;
+        pointer-events: auto;
+        user-select: none;
+        outline: none;
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease,
+            transform 0.15s ease;
+    }
+
+    .sync-metronome-btn:hover {
+        background: rgba(255, 255, 255, 0.22);
+        border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .sync-metronome-btn:active {
+        transform: scale(0.95);
+    }
+
+    .sync-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sync-tempo-label {
+        font-family: inherit;
+        line-height: 1;
+        letter-spacing: 0.2px;
     }
 
     .slider {

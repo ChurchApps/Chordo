@@ -154,6 +154,15 @@
         "original": "Original",
         "nashville": "Nashville"
     },
+    "metronome": {
+        "title": "Metronome",
+        "bpm": "BPM",
+        "start": "Start",
+        "stop": "Stop",
+        "time_signature": "Time signature",
+        "song_tempo": "Song tempo",
+        "sound": "Sound"
+    },
     "draw": {
         "clear": "Clear",
         "done": "Done",

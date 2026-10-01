@@ -36,9 +36,6 @@
         onApply: (newVal) => {
             if (!song) return
             song.content = newVal
-            if (newVal.trim()) {
-                syncMetadataFromText(newVal)
-            }
             storage.updateSong(song)
             storage.persist()
         }
@@ -121,10 +118,6 @@
 
         song[key] = value
 
-        if (key === "content" && value.trim()) {
-            syncMetadataFromText(value)
-        }
-
         storage.updateSong(song)
         storage.persist()
 
@@ -132,6 +125,22 @@
             if (currentSongName !== value) updatePageTitle(value)
             currentSongName = value
         }
+    }
+
+    function handleContentBlur() {
+        if (!song || !song.content) return
+        const originalContent = song.content
+        syncMetadataFromText(song.content)
+        if (song.content !== originalContent) {
+            contentHistory.set(song.content, true)
+            storage.updateSong(song)
+            storage.persist()
+        }
+    }
+
+    function handleDone() {
+        handleContentBlur()
+        goBack()
     }
 
     function openReorderDialog() {
@@ -397,6 +406,7 @@
                     rows={8}
                     value={song.content}
                     oninput={(e: Event) => updateValue(e, "content")}
+                    onblur={handleContentBlur}
                     onkeydown={contentHistory.handleKeyDown}
                     style="width: 100%; min-height: 220px; {hasContent && !hasMedia ? 'flex: 1;' : ''}"
                 />
@@ -420,7 +430,7 @@
                                 <span class="page-badge">{t("song_edit", "page")} {idx + 1}</span>
                                 <div class="card-actions">
                                     <md-icon-button type="button" onclick={() => rotateSongImage(song, idx)}>
-                                        <md-icon>rotate_right</md-icon>
+                                         <md-icon>rotate_right</md-icon>
                                     </md-icon-button>
                                     <md-icon-button type="button" disabled={idx === 0} onclick={() => moveSongImage(song, idx, idx - 1)}>
                                         <md-icon>arrow_upward</md-icon>
@@ -458,7 +468,7 @@
 <ProgressDialog open={isPulling} title={t("song_edit", "pulling_content_title")} icon="download" detail={urlInput} message={t("song_edit", "fetching_webpage")} progress={0} indeterminate={true} />
 
 <div class="fab-container">
-    <md-fab aria-label={t("common", "done")} onclick={goBack}>
+    <md-fab aria-label={t("common", "done")} onclick={handleDone}>
         <span class="material-symbols-outlined" slot="icon">check</span>
     </md-fab>
 </div>
