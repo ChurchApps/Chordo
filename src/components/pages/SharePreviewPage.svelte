@@ -2,7 +2,7 @@
     import { Folder } from "$lib/models/Folder"
     import { List } from "$lib/models/List"
     import { Song } from "$lib/models/Song"
-    import { copyCurrentShareLink, cacheSharePayload } from "$lib/share/share"
+    import { cacheSharePayload, copyCurrentShareLink } from "$lib/share/share"
     import { clearSharePayload, sharePreviewState } from "$lib/share/share.svelte"
     import { buildListSharePayload, buildSongSharePayload, isListContentEqual, isSongContentEqual } from "$lib/share/shareCodec"
     import { promptConfirm } from "$lib/state/confirm.svelte"
@@ -119,13 +119,13 @@
         return newSong
     }
 
-    function askNameConflict(songName: string): Promise<boolean> {
+    function askNameConflict(songName: string): Promise<boolean | null> {
         const msg = t("confirm", "song_name_conflict_msg").replace("{name}", songName)
         return promptConfirm({
             title: t("confirm", "name_conflict_title"),
             message: msg,
             confirmLabel: t("confirm", "overwrite"),
-            cancelLabel: t("confirm", "import_separately")
+            secondaryLabel: t("confirm", "import_separately")
         })
     }
 
@@ -140,8 +140,10 @@
                 showToast(`"${shared.name}" has already been imported`, "info")
             } else {
                 const isSameId = existingSong.id === shared.id
-                const overwrite = isSameId || (await askNameConflict(shared.name))
-                if (overwrite) {
+                const choice = isSameId ? true : await askNameConflict(shared.name)
+                if (choice === null) return
+
+                if (choice) {
                     songToOpen = await applySongData(existingSong, shared)
                     showToast(`Updated "${shared.name}" in your library`, "success")
                 } else {
@@ -186,12 +188,15 @@
                 msg += `\n\n${idMatches.map((s) => `• ${s.name}`).join("\n")}`
             }
 
-            overwriteIdMatches = await promptConfirm({
+            const choice = await promptConfirm({
                 title: t("confirm", "overwrite_songs_title"),
                 message: msg,
                 confirmLabel: t("confirm", "overwrite"),
-                cancelLabel: t("confirm", "keep_existing")
+                secondaryLabel: t("confirm", "keep_existing")
             })
+            if (choice === null) return
+
+            overwriteIdMatches = choice
         }
 
         // 2. Individual prompt per name collision that differs in content
@@ -208,7 +213,10 @@
             const norm = s.name.trim().toLowerCase()
             if (!nameDecisions.has(norm)) {
                 await new Promise((r) => setTimeout(r, 60))
-                nameDecisions.set(norm, await askNameConflict(s.name))
+                const choice = await askNameConflict(s.name)
+                if (choice === null) return
+
+                nameDecisions.set(norm, choice)
             }
         }
 

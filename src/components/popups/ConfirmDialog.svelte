@@ -20,6 +20,16 @@
         }
     }
 
+    async function handleSecondary() {
+        if (isActionTaken) return
+        isActionTaken = true
+        const callback = confirmState.config?.onSecondary ?? confirmState.config?.onCancel
+        closeConfirm()
+        if (callback) {
+            await callback()
+        }
+    }
+
     async function handleCancel() {
         if (isActionTaken) return
         isActionTaken = true
@@ -42,8 +52,8 @@
         </div>
 
         <div slot="actions">
-            <md-text-button role="button" tabindex="0" onclick={handleCancel}>
-                {confirmState.config?.cancelLabel ?? t("common", "cancel")}
+            <md-text-button role="button" tabindex="0" onclick={handleSecondary}>
+                {confirmState.config?.secondaryLabel ?? confirmState.config?.cancelLabel ?? t("common", "cancel")}
             </md-text-button>
             <md-filled-button
                 role="button"
