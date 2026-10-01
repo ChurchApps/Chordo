@@ -614,47 +614,42 @@
             style="touch-action: pan-y; transform: translateX(-{initialSlideIndex * 100}vw);"
         >
             {#each slides as slideItem, i}
-                {@const shouldRender = Math.abs(i - currentSlideIndex) <= 1 || slides.length <= 2}
-                {#if shouldRender}
-                    {#if slideItem.type === "song"}
-                        {@const songId = slideItem.songItem?.id ?? null}
-                        {@const song = storage.getSongById(songId, storage.songs)}
-                        {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
-                        {@const hasMedia = !!song?.images.length}
+                {#if slideItem.type === "song"}
+                    {@const songId = slideItem.songItem?.id ?? null}
+                    {@const song = storage.getSongById(songId, storage.songs)}
+                    {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
+                    {@const hasMedia = !!song?.images.length}
 
-                        {@const customBg = storage.settings.paperOptions?.background || "white"}
-                        {@const paperBg = hasMedia ? "black" : customBg}
-                        {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
+                    {@const customBg = storage.settings.paperOptions?.background || "white"}
+                    {@const paperBg = hasMedia ? "black" : customBg}
+                    {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
 
-                        <div class="slide" style="--font-scale: {fontScale};">
-                            <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
-                                {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
-                                    <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
-                                {/key}
-                            </Paper>
-                        </div>
-                    {:else if slideItem.type === "section"}
-                        {@const customBg = storage.settings.paperOptions?.background || "white"}
-                        <div class="slide">
-                            <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
-                                <div class="fullscreen-section-container">
-                                    <div class="fullscreen-section-badge">
-                                        <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
-                                    </div>
-                                    <div class="fullscreen-sections-list">
-                                        {#each slideItem.sections as sec, sIdx}
-                                            <div class="fullscreen-section-title">{sec.name}</div>
-                                            {#if sIdx < slideItem.sections.length - 1}
-                                                <div class="fullscreen-section-divider"></div>
-                                            {/if}
-                                        {/each}
-                                    </div>
+                    <div class="slide" style="--font-scale: {fontScale};">
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
+                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
+                                <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
+                            {/key}
+                        </Paper>
+                    </div>
+                {:else if slideItem.type === "section"}
+                    {@const customBg = storage.settings.paperOptions?.background || "white"}
+                    <div class="slide">
+                        <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
+                            <div class="fullscreen-section-container">
+                                <div class="fullscreen-section-badge">
+                                    <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
                                 </div>
-                            </Paper>
-                        </div>
-                    {/if}
-                {:else}
-                    <div class="slide placeholder-slide" style="width: 100vw; min-width: 100vw; height: 100vh; height: 100dvh;"></div>
+                                <div class="fullscreen-sections-list">
+                                    {#each slideItem.sections as sec, sIdx}
+                                        <div class="fullscreen-section-title">{sec.name}</div>
+                                        {#if sIdx < slideItem.sections.length - 1}
+                                            <div class="fullscreen-section-divider"></div>
+                                        {/if}
+                                    {/each}
+                                </div>
+                            </div>
+                        </Paper>
+                    </div>
                 {/if}
             {/each}
         </div>
