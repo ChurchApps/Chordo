@@ -154,6 +154,15 @@
         "original": "Original",
         "nashville": "Nashville"
     },
+    "metronome": {
+        "title": "Metronom",
+        "bpm": "BPM",
+        "start": "Start",
+        "stop": "Stopp",
+        "time_signature": "Taktart",
+        "song_tempo": "Sangens tempo",
+        "sound": "Lyd"
+    },
     "draw": {
         "clear": "Tøm",
         "done": "Ferdig",

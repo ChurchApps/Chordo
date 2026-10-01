@@ -11,6 +11,7 @@
     import { slide } from "svelte/transition"
     import Draw from "../draw/Draw.svelte"
     import ChordPro from "../song/ChordPro.svelte"
+    import MetronomeButton from "../song/MetronomeButton.svelte"
     import Paper from "../song/Paper.svelte"
     import TransposeButton from "../song/TransposeButton.svelte"
 
@@ -503,6 +504,7 @@
             <div style="flex:1"></div>
 
             {#if visibleSongId}
+                <MetronomeButton />
                 <TransposeButton />
 
                 <md-icon-button

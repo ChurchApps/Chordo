@@ -1,4 +1,5 @@
 import AboutDialog from "./AboutDialog.svelte"
+import MetronomeDialog from "./MetronomeDialog.svelte"
 import SettingsDialog from "./SettingsDialog.svelte"
 import TextInputDialog from "./TextInputDialog.svelte"
 import TransposeDialog from "./TransposeDialog.svelte"
@@ -27,6 +28,9 @@ export const popups = {
     },
     transpose: {
         component: TransposeDialog
+    },
+    metronome: {
+        component: MetronomeDialog
     },
     about: {
         component: AboutDialog
