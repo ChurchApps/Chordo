@@ -2,6 +2,7 @@
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
     import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { metronomeState } from "$lib/state/metronome.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
@@ -438,6 +439,16 @@
     }
 
     let visibleSong = $derived(visibleSongId ? storage.getSongById(visibleSongId, storage.songs) : null)
+
+    // Metronome
+    let visibleSongTempo = $derived(Number(visibleSong?.getMetadata?.("tempo")?.match(/\d+/)?.[0]) || null)
+    let visibleSongTimeSig = $derived(Number(visibleSong?.getMetadata?.("timeSignature")?.match(/^(\d+)/)?.[1]) || null)
+    let isMetronomeOutOfSync = $derived(!!visibleSong && ((visibleSongTempo !== null && visibleSongTempo !== metronomeState.bpm) || (visibleSongTimeSig !== null && visibleSongTimeSig !== metronomeState.beatsPerBar)))
+    function syncMetronomeWithSong() {
+        if (visibleSongTempo) metronomeState.bpm = visibleSongTempo
+        if (visibleSongTimeSig) metronomeState.beatsPerBar = visibleSongTimeSig
+    }
+
     let visiblePlaybackUrl = $derived(visibleSong?.playbackUrl || visibleSong?.spotify || visibleSong?.getMetadata("playback") || visibleSong?.getMetadata("spotify") || "")
     let visiblePlaybackInfo = $derived(parsePlaybackUrl(visiblePlaybackUrl))
     let isPlayingVisibleSong = $derived(playbackState.isOpen && !!visibleSong && (playbackState.songId === visibleSong.id || (!!visiblePlaybackUrl && playbackState.customPlaybackUrl === visiblePlaybackUrl)))
@@ -674,6 +685,37 @@
                 {/key}
             {/if}
         {/if}
+
+        <!-- Metronome -->
+        {#if metronomeState.isPlaying}
+            <div class="metronome-state">
+                {#if metronomeState.soundType === "silent"}
+                    <div class="silent-metronome-indicator">
+                        <div class="silent-dots-container">
+                            {#each Array(metronomeState.beatsPerBar) as _, i}
+                                <div class="silent-beat-dot" class:accent={i === 0} class:active={metronomeState.currentBeat === i}></div>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+
+                {#if isMetronomeOutOfSync}
+                    <button
+                        type="button"
+                        class="sync-metronome-btn"
+                        onclick={(e) => {
+                            e.stopPropagation()
+                            syncMetronomeWithSong()
+                        }}
+                    >
+                        <span class="material-symbols-outlined sync-icon">sync</span>
+                        {#if visibleSongTempo}
+                            <span class="sync-tempo-label">{visibleSongTempo}</span>
+                        {/if}
+                    </button>
+                {/if}
+            </div>
+        {/if}
     </div>
 </main>
 
@@ -725,6 +767,121 @@
         height: 100vh;
         height: 100dvh;
         overflow: hidden;
+    }
+
+    /* Metronome */
+
+    .metronome-state {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        z-index: 50;
+        pointer-events: none;
+    }
+
+    .silent-metronome-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px;
+        background: rgba(18, 18, 18, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        z-index: 50;
+        pointer-events: none;
+        box-shadow:
+            0 3px 12px rgba(0, 0, 0, 0.3),
+            0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .silent-dots-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .silent-beat-dot {
+        width: 26px;
+        height: 2px;
+        border-radius: 1px;
+        background: rgba(255, 255, 255, 0.25);
+        transition:
+            transform 0.08s ease,
+            background 0.08s ease,
+            box-shadow 0.08s ease,
+            opacity 0.08s ease;
+    }
+
+    .silent-beat-dot.accent {
+        width: 32px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.35);
+    }
+
+    .silent-beat-dot.active {
+        background: var(--md-sys-color-primary, #f5aa67);
+        transform: scaleY(2);
+        box-shadow: 0 0 10px var(--md-sys-color-primary, #f5aa67);
+    }
+
+    .silent-beat-dot.accent.active {
+        background: var(--md-sys-color-primary, #f5aa67);
+        transform: scaleY(2.2) scaleX(1.04);
+        box-shadow: 0 0 14px var(--md-sys-color-primary, #f5aa67);
+    }
+
+    .sync-metronome-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        color: black;
+        background: rgba(18, 18, 18, 0.1);
+        border: 2px solid rgba(0, 0, 0, 0.7);
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        cursor: pointer;
+        pointer-events: auto;
+        user-select: none;
+        outline: none;
+        transition:
+            background 0.15s ease,
+            border-color 0.15s ease,
+            transform 0.15s ease;
+    }
+
+    .sync-metronome-btn:hover {
+        background: rgba(255, 255, 255, 0.22);
+        border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .sync-metronome-btn:active {
+        transform: scale(0.95);
+    }
+
+    .sync-icon {
+        font-size: 13px;
+        width: 13px;
+        height: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sync-tempo-label {
+        font-family: inherit;
+        line-height: 1;
+        letter-spacing: 0.2px;
     }
 
     .slider {
