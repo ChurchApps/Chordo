@@ -130,10 +130,14 @@ export class DrawingEngine {
             context.setTransform(dpr, 0, 0, dpr, 0, 0)
 
             const initialData = this.options.getInitialData()
-            if (this.loadedDataProp === undefined && initialData) {
-                this.loadedDataProp = initialData
-                this.history.reset(initialData)
-                this.loadData(initialData)
+            if (this.loadedDataProp === undefined) {
+                this.loadedDataProp = initialData || ""
+                if (initialData) {
+                    this.history.reset(initialData)
+                    this.loadData(initialData)
+                } else {
+                    this.redraw()
+                }
             } else {
                 this.redraw()
             }
@@ -263,8 +267,10 @@ export class DrawingEngine {
     }
 
     finish() {
+        const data = this.getData()
+        this.loadedDataProp = data
         if (this.options.onFinish) {
-            this.options.onFinish(this.getData())
+            this.options.onFinish(data)
         }
     }
 

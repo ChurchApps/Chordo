@@ -108,11 +108,9 @@
     let initialPinchDist = 0
 
     // Dynamic pagination mappings
-    let pageSongMap: Array<string | null> = []
-    let pageIndexMap: number[] = []
-    let pageSongIndexMap: number[] = []
-    let songPageId = $state("")
-    let previousPage = -1
+    let pageSongMap = $state<Array<string | null>>([])
+    let pageIndexMap = $state<number[]>([])
+    let pageSongIndexMap = $state<number[]>([])
 
     let lastActiveOriginalIndex: number | null = null
     let lastActivePageInSong = 0
@@ -248,6 +246,8 @@
         pageSongIndexMap = newPageSongIndexMap
         totalPages = pageSongMap.length || slides.length || 1
 
+        detectSongAndPage(currentPageIndex)
+
         if (!initialPositionConsumed) {
             restoreInitialPosition(hasAnyPaperPage)
         } else {
@@ -317,6 +317,9 @@
                 initialPositionConsumed = true
             }
             setPositionByIndex(false)
+        } else if (isRealLayout) {
+            initialPositionConsumed = true
+            detectSongAndPage(currentPageIndex)
         }
     }
 
@@ -408,30 +411,28 @@
         detectSongAndPage()
     }
 
-    let visibleSongId: string | null = $state(null)
-    let songPageIndex = $state(0)
+    let visibleSongId = $derived.by<string | null>(() => {
+        const pageCount = pageSongMap.length
+        const globalIndex = pageCount > 0 ? Math.max(0, Math.min(currentPageIndex, pageCount - 1)) : currentPageIndex
+        return (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
+    })
+    let songPageIndex = $derived.by<number>(() => {
+        const pageCount = pageSongMap.length
+        const globalIndex = pageCount > 0 ? Math.max(0, Math.min(currentPageIndex, pageCount - 1)) : currentPageIndex
+        return pageIndexMap[globalIndex] ?? 0
+    })
+
     function detectSongAndPage(index = currentPageIndex) {
         const pageCount = pageSongMap.length
         const globalIndex = pageCount > 0 ? Math.max(0, Math.min(index, pageCount - 1)) : index
-        const songId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
-        const pageInSong = pageIndexMap[globalIndex] ?? 0
         const songIndexInList = pageSongIndexMap[globalIndex] ?? globalIndex
 
         lastActiveOriginalIndex = songIndexInList
-        lastActivePageInSong = pageInSong
-        lastActiveSongId = songId
+        lastActivePageInSong = pageIndexMap[globalIndex] ?? 0
+        lastActiveSongId = (pageCount > 0 ? pageSongMap[globalIndex] : slides[globalIndex]?.type === "song" ? slides[globalIndex].songItem.id : null) ?? null
 
         if (initialPositionConsumed && songIndexInList >= 0 && (list ? songIndexInList < list.songs.length : songIndexInList < slides.length)) {
             savedFullscreenPosition.index = songIndexInList
-        }
-
-        const newSongPageId = `${songId}:${pageInSong}`
-        if (songPageId !== newSongPageId || visibleSongId !== songId || songPageIndex !== pageInSong || globalIndex !== previousPage) {
-            previousPage = globalIndex
-            songPageId = newSongPageId
-
-            visibleSongId = songId
-            songPageIndex = pageInSong
         }
     }
 
@@ -446,9 +447,8 @@
         updateRafId = requestAnimationFrame(() => {
             updateRafId = null
             updatePageCount()
-            if (immediatePosition) {
-                setPositionByIndex(false)
-            }
+            if (immediatePosition) setPositionByIndex(false)
+            else detectSongAndPage(currentPageIndex)
         })
     }
 
@@ -496,10 +496,7 @@
 {#if actionsVisible}
     <header transition:slide={{ duration: 200, axis: "y" }}>
         <div class="actions">
-            <md-icon-button
-                onclick={exitSongFullscreen}
-                aria-label="Back"
-            >
+            <md-icon-button onclick={exitSongFullscreen} aria-label="Back">
                 <md-icon>arrow_back</md-icon>
             </md-icon-button>
 
@@ -654,18 +651,21 @@
             {/each}
         </div>
 
-        {#if visibleSongId}
-            {@const drawingData = storage.getSongById(visibleSongId)?.drawings?.[songPageIndex]}
+        {#if visibleSong}
+            {@const drawingData = visibleSong.drawings?.[songPageIndex]}
             {#if isDrawing || !!drawingData}
-                {#key visibleSongId + ":" + songPageIndex}
+                {#key visibleSong.id + ":" + songPageIndex}
                     <Draw
                         editable={isDrawing}
                         initialData={drawingData || ""}
+                        onChange={(dataUrl) => {
+                            if (!visibleSong.drawings) visibleSong.drawings = []
+                            visibleSong.drawings[songPageIndex] = dataUrl
+                        }}
                         onFinish={(dataUrl) => {
-                            if (visibleSong) {
-                                visibleSong.drawings[songPageIndex] = dataUrl
-                                storage.persist()
-                            }
+                            if (!visibleSong.drawings) visibleSong.drawings = []
+                            visibleSong.drawings[songPageIndex] = dataUrl
+                            storage.updateSong(visibleSong)
                             isDrawing = false
                         }}
                     />
