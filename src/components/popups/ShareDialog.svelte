@@ -15,8 +15,8 @@
     import "@material/web/progress/linear-progress.js"
     import "@material/web/switch/switch.js"
 
-    const isSong = $derived(popupState.popupId === "share_song" || (popupState.popupId === "share" && menuState.activePage !== "list"))
-    const isList = $derived(popupState.popupId === "share_list" || (popupState.popupId === "share" && menuState.activePage === "list"))
+    const isSong = $derived(popupState.popupId === "share_song")
+    const isList = $derived(popupState.popupId === "share_list")
 
     const song = $derived.by(() => {
         if (!isSong) return null
@@ -46,6 +46,7 @@
         }
         if (isList && list) {
             return list.songs.some((item) => {
+                if (!item.id) return false
                 const s = storage.getSongById(item.id)
                 return Boolean(s?.images && s.images.some((img) => Boolean(img && img.trim())))
             })
@@ -61,7 +62,7 @@
     const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function"
 
     $effect(() => {
-        if (popupState.popupId === "share_song" || popupState.popupId === "share_list" || popupState.popupId === "share") {
+        if (popupState.popupId === "share_song" || popupState.popupId === "share_list") {
             if (!shareUrl && !isGenerating && (song || list)) {
                 checkCachedUrl()
             }
@@ -189,7 +190,7 @@
                     </div>
                     <md-switch
                         selected={includeMedia}
-                        onchange={(e) => {
+                        onchange={(e: Event) => {
                             includeMedia = (e.target as any).selected ?? (e.target as any).checked
                             shareUrl = null
                             copied = false
@@ -208,7 +209,7 @@
                     </div>
                     <md-switch
                         selected={includeDrawings}
-                        onchange={(e) => {
+                        onchange={(e: Event) => {
                             includeDrawings = (e.target as any).selected ?? (e.target as any).checked
                             shareUrl = null
                             copied = false

@@ -232,7 +232,14 @@
         "shared_success": "Shared!",
         "copy_failed": "Failed to copy link",
         "generate_failed": "Failed to generate share link",
-        "paste_link_label": "Paste share link"
+        "paste_link_label": "Paste share link",
+        "max_access_days": "Access duration",
+        "max_access_days_desc": "Set how long shared media remains accessible after export",
+        "access_duration_fixed": "Expires after set duration (managed by author)",
+        "no_limit": "No limit",
+        "days": "days",
+        "access_expired": "Access expired",
+        "access_expired_msg": "Access to this shared content has expired."
     },
     "export": {
         "success": "Exported successfully!",

@@ -71,6 +71,11 @@
         return isListContentEqual(existingList, payload.list, storage.songs)
     })
 
+    let isPayloadExpired = $derived.by(() => {
+        if (!payload || payload.type !== "song") return false
+        return Boolean(payload.song.expiresAt && Date.now() > payload.song.expiresAt)
+    })
+
     function handleSongPlayback(song: Song) {
         const url = song.playbackUrl || song.spotify || song.getMetadata("playback") || song.getMetadata("spotify")
         if (!url) return
@@ -98,6 +103,8 @@
         if (source.url) target.url = source.url
         if (source.lastTransposed) target.lastTransposed = source.lastTransposed
         if (source.drawings && source.drawings.length > 0) target.drawings = source.drawings
+        // Only adopt expiresAt if the target song was already an imported/expiring song
+        if (target.expiresAt && source.expiresAt) target.expiresAt = source.expiresAt
         await saveSourceImages(target, source.images)
         storage.updateSong(target)
         return target
@@ -105,6 +112,8 @@
 
     async function createNewSong(source: any, forceNewId = false): Promise<Song> {
         const id = !forceNewId && source.id && !storage.songs.some((s) => s.id === source.id) ? source.id : undefined
+        const hasImages = Array.isArray(source.images) && source.images.length > 0
+        const shouldImportExpiry = hasImages && Boolean(source.expiresAt)
         const newSong = new Song({
             id,
             name: source.name,
@@ -113,6 +122,8 @@
             playbackUrl: source.playbackUrl,
             url: source.url,
             lastTransposed: source.lastTransposed,
+            accessDays: shouldImportExpiry ? source.accessDays : (source.accessDays ?? 0),
+            expiresAt: shouldImportExpiry ? source.expiresAt : undefined,
             createdAt: source.createdAt || Date.now()
         })
         await saveSourceImages(newSong, source.images)
@@ -358,6 +369,13 @@
                     </div>
                 </div>
             </div>
+
+            {#if isPayloadExpired}
+                <div class="alert warning">
+                    <span class="material-symbols-outlined">schedule</span>
+                    <span>{t("share", "access_expired_msg")}</span>
+                </div>
+            {/if}
 
             {#if existingSong}
                 {#if isSingleSongIdentical}

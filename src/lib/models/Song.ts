@@ -40,6 +40,8 @@ export class Song {
     lastTransposed?: string
     drawings: string[]
     images: string[]
+    accessDays?: number
+    expiresAt?: number
     metadata: SongMetadata
 
     constructor(data: Partial<SongKeys> = {}) {
@@ -54,6 +56,8 @@ export class Song {
         this.lastTransposed = data.lastTransposed
         this.drawings = data.drawings ?? []
         this.images = data.images ?? []
+        this.accessDays = data.accessDays ?? 0
+        this.expiresAt = data.expiresAt
         this.metadata = data.metadata ?? {}
     }
 

@@ -232,7 +232,14 @@
         "shared_success": "Delt!",
         "copy_failed": "Kunne ikke kopiere lenke",
         "generate_failed": "Kunne ikke opprette delingslenke",
-        "paste_link_label": "Lim inn delingslenke"
+        "paste_link_label": "Lim inn delingslenke",
+        "max_access_days": "Tilgangsvarighet",
+        "max_access_days_desc": "Angi hvor lenge delt media er tilgjengelig etter eksportering",
+        "access_duration_fixed": "Utløper etter angitt varighet (satt av oppretter)",
+        "no_limit": "Ingen grense",
+        "days": "dager",
+        "access_expired": "Tilgang utløpt",
+        "access_expired_msg": "Tilgangen til dette delte innholdet har utløpt."
     },
     "export": {
         "success": "Eksportert!",

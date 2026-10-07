@@ -16,6 +16,8 @@ export type SharedSongData = {
     url?: string
     lastTransposed?: string
     createdAt?: number
+    accessDays?: number
+    expiresAt?: number
     [key: string]: unknown
 }
 
@@ -181,12 +183,19 @@ export async function cleanSongForShare(
 
     const validDrawings = includeDrawings && Array.isArray(drawings) ? (drawings as string[]).filter(Boolean) : undefined
 
+    let expiresAt = (song as any).expiresAt
+    const accessDays = (song as any).accessDays
+    if (!expiresAt && canIncludeMedia && base64Images && base64Images.length > 0 && typeof accessDays === "number" && accessDays > 0) {
+        expiresAt = Date.now() + accessDays * 24 * 60 * 60 * 1000
+    }
+
     return {
         ...rest,
         name: (name as string) || "Untitled",
         content: trimmedContent,
         ...(base64Images && base64Images.length ? { images: base64Images } : {}),
         ...(validDrawings && validDrawings.length ? { drawings: validDrawings } : {}),
+        ...(expiresAt ? { expiresAt } : {}),
         ...(metadata && Object.keys(metadata).length ? { metadata } : {}),
         ...(playbackUrl ? { playbackUrl: compressUrl(playbackUrl as string) } : {}),
         ...(url ? { url: compressUrl(url as string) } : {})
@@ -204,6 +213,7 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
             content: data.song?.content || "",
             images: Array.isArray(data.song?.images) ? data.song.images : [],
             drawings: Array.isArray(data.song?.drawings) ? data.song.drawings : [],
+            expiresAt: data.song?.expiresAt,
             metadata: data.song?.metadata || {},
             playbackUrl: expandUrl(data.song?.playbackUrl),
             url: expandUrl(data.song?.url)
