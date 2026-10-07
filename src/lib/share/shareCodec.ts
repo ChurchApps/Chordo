@@ -148,25 +148,45 @@ export function isListContentEqual(existingList?: List | null, sharedList?: Shar
     })
 }
 
-export async function cleanSongForShare(song: Song | SharedSongData): Promise<SharedSongData> {
+export type SongShareOptions = {
+    includeDrawings?: boolean
+    includeMedia?: boolean
+    allowMediaWithText?: boolean
+}
+
+export type ListShareOptions = {
+    includeMedia?: boolean
+    includeDrawings?: boolean
+    allowMediaWithText?: boolean
+}
+
+export async function cleanSongForShare(
+    song: Song | SharedSongData,
+    options: SongShareOptions = {}
+): Promise<SharedSongData> {
+    const { includeMedia = true, includeDrawings = false, allowMediaWithText = false } = options
     const rawMeta = typeof (song as Record<string, unknown>).getMetadata === "function" ? (song as Song).getMetadata() : (song as SharedSongData).metadata
     const metadata = rawMeta ? Object.fromEntries(Object.entries(rawMeta).filter(([_, v]) => typeof v === "string" && v.trim())) : undefined
 
-    const { getMetadata, images, content, name, playbackUrl, url, ...rest } = song as Record<string, unknown>
+    const { getMetadata, images, drawings, content, name, playbackUrl, url, ...rest } = song as Record<string, unknown>
     const trimmedContent = trimChordContent((content as string) || "")
 
     let base64Images: string[] | undefined
-    if (!trimmedContent && Array.isArray(images) && images.length > 0) {
+    const canIncludeMedia = includeMedia && (allowMediaWithText || !trimmedContent)
+    if (canIncludeMedia && Array.isArray(images) && images.length > 0) {
         const resolved = await Promise.all(images.map((img) => (typeof img === "string" && img.trim() ? FileSystem.resolveImageUrl(img) : "")))
         const valid = resolved.filter(Boolean)
         if (valid.length > 0) base64Images = valid
     }
 
+    const validDrawings = includeDrawings && Array.isArray(drawings) ? (drawings as string[]).filter(Boolean) : undefined
+
     return {
         ...rest,
         name: (name as string) || "Untitled",
         content: trimmedContent,
-        ...(base64Images ? { images: base64Images } : {}),
+        ...(base64Images && base64Images.length ? { images: base64Images } : {}),
+        ...(validDrawings && validDrawings.length ? { drawings: validDrawings } : {}),
         ...(metadata && Object.keys(metadata).length ? { metadata } : {}),
         ...(playbackUrl ? { playbackUrl: compressUrl(playbackUrl as string) } : {}),
         ...(url ? { url: compressUrl(url as string) } : {})
@@ -183,6 +203,7 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
             name: data.song?.name || "Untitled",
             content: data.song?.content || "",
             images: Array.isArray(data.song?.images) ? data.song.images : [],
+            drawings: Array.isArray(data.song?.drawings) ? data.song.drawings : [],
             metadata: data.song?.metadata || {},
             playbackUrl: expandUrl(data.song?.playbackUrl),
             url: expandUrl(data.song?.url)
@@ -194,6 +215,7 @@ const PAYLOAD_PARSERS: Record<string, (payload: any) => SharePayload> = {
             name: s?.name || "Untitled",
             content: s?.content || "",
             images: Array.isArray(s?.images) ? s.images : [],
+            drawings: Array.isArray(s?.drawings) ? s.drawings : [],
             metadata: s?.metadata || {},
             playbackUrl: expandUrl(s?.playbackUrl),
             url: expandUrl(s?.url)
@@ -234,14 +256,28 @@ export function parseSharePayload(data: any): SharePayload | null {
     return parser ? parser(data) : null
 }
 
-export async function buildSongSharePayload(song: Song | SharedSongData): Promise<SongSharePayload> {
+export async function buildSongSharePayload(
+    song: Song | SharedSongData,
+    options: SongShareOptions = {}
+): Promise<SongSharePayload> {
     return {
         type: "song",
-        song: await cleanSongForShare(song)
+        song: await cleanSongForShare(song, {
+            includeDrawings: options.includeDrawings ?? false,
+            includeMedia: options.includeMedia ?? true,
+            allowMediaWithText: options.allowMediaWithText ?? false
+        })
     }
 }
 
-export async function buildListSharePayload(list: List, allSongs: Song[]): Promise<ListSharePayload> {
+export async function buildListSharePayload(
+    list: List,
+    allSongs: Song[],
+    options: ListShareOptions = {}
+): Promise<ListSharePayload> {
+    const includeMedia = options.includeMedia ?? false
+    const includeDrawings = options.includeDrawings ?? false
+    const allowMediaWithText = options.allowMediaWithText ?? false
     const songMap = new Map(allSongs.map((s) => [s.id, s]))
     const uniqueMap = new Map<string, number>()
     const catalogSongs: SharedSongData[] = []
@@ -270,7 +306,9 @@ export async function buildListSharePayload(list: List, allSongs: Song[]): Promi
         })
         .filter(Boolean) as SharedListSongItem[]
 
-    const cleanedSongs = await Promise.all(catalogSongs.map((s) => cleanSongForShare(s)))
+    const cleanedSongs = await Promise.all(
+        catalogSongs.map((s) => cleanSongForShare(s, { includeMedia, includeDrawings, allowMediaWithText }))
+    )
 
     return {
         type: "list",

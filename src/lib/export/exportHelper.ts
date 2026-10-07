@@ -1,6 +1,6 @@
 import type { List } from "$lib/models/List"
 import type { Song } from "$lib/models/Song"
-import { buildListSharePayload, buildSongSharePayload, parseSharePayload, type SharePayload } from "$lib/share/shareCodec"
+import { buildListSharePayload, buildSongSharePayload, parseSharePayload, type ListShareOptions, type SharePayload, type SongShareOptions } from "$lib/share/shareCodec"
 import { setSharePayload } from "$lib/share/share.svelte"
 import { setActivePage } from "$lib/state/menu.svelte"
 import { t } from "$lib/state/i18n.svelte"
@@ -11,9 +11,13 @@ import { sanitizeFilename } from "$lib/utils/common"
 /**
  * Exports a single song as an uncompressed, full JSON file.
  */
-export async function exportSongAsJson(song: Song) {
+export async function exportSongAsJson(song: Song, options: SongShareOptions = {}) {
     try {
-        const payload = await buildSongSharePayload(song)
+        const payload = await buildSongSharePayload(song, {
+            ...options,
+            includeMedia: true,
+            allowMediaWithText: true
+        })
         const jsonStr = JSON.stringify(payload, null, 2)
         const blob = new Blob([jsonStr], { type: "application/json" })
         const url = URL.createObjectURL(blob)
@@ -35,9 +39,13 @@ export async function exportSongAsJson(song: Song) {
 /**
  * Exports a setlist as an uncompressed, full JSON file containing the setlist and all song data.
  */
-export async function exportSetlistAsJson(list: List, allSongs: Song[]) {
+export async function exportSetlistAsJson(list: List, allSongs: Song[], options: ListShareOptions = {}) {
     try {
-        const payload = await buildListSharePayload(list, allSongs)
+        const payload = await buildListSharePayload(list, allSongs, {
+            ...options,
+            includeMedia: true,
+            allowMediaWithText: true
+        })
         const jsonStr = JSON.stringify(payload, null, 2)
         const blob = new Blob([jsonStr], { type: "application/json" })
         const url = URL.createObjectURL(blob)

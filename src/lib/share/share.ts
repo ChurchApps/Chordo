@@ -31,16 +31,24 @@ export function createShareUrl(id: string): string {
     return `${getShareBaseUrl()}/s?id=${encodeURIComponent(id)}`
 }
 
-export async function createShare(payload: SharePayload): Promise<string> {
+export async function getCachedShareUrl(payload: SharePayload): Promise<string | null> {
     const payloadStr = JSON.stringify(payload)
     const hash = await sha256(payloadStr)
 
-    // Check cached share ID in settings
     const cached = storage.settings?.shareCache?.[hash]
     if (cached?.id) {
         shareDataCache.set(cached.id, payload)
         return createShareUrl(cached.id)
     }
+    return null
+}
+
+export async function createShare(payload: SharePayload): Promise<string> {
+    const cachedUrl = await getCachedShareUrl(payload)
+    if (cachedUrl) return cachedUrl
+
+    const payloadStr = JSON.stringify(payload)
+    const hash = await sha256(payloadStr)
 
     const res = await fetch("https://chordo.org/api/share", {
         method: "POST",
@@ -117,26 +125,23 @@ export async function resolveSharePayload(raw: string): Promise<SharePayload | n
 
 // --- Clipboard & Native Share API ---
 
-export async function copyUrlToClipboard(url: string, title?: string, hasMedia = false): Promise<boolean> {
-    const duration = hasMedia ? 4000 : 3000
-
+export async function copyUrlToClipboard(url: string, title?: string): Promise<boolean> {
     if (navigator?.share) {
         try {
             await navigator.share({ title: title || "Chord Sheet", url })
-            const msg = hasMedia ? t("share", "shared_media_warning") : t("share", "shared_success")
-            showToast(msg, "success", duration)
+            showToast(t("share", "shared_success"), "success")
             return true
         } catch (err) {
             if ((err as Error).name === "AbortError") return false
         }
     }
 
-    const copyMsg = hasMedia ? t("share", "link_copied_media_warning") : t("share", "link_copied")
+    const copyMsg = t("share", "link_copied")
 
     if (navigator?.clipboard) {
         try {
             await navigator.clipboard.writeText(url)
-            showToast(copyMsg, "success", duration)
+            showToast(copyMsg, "success")
             return true
         } catch (e) {
             console.error("Clipboard API failed, attempting fallback:", e)
@@ -153,7 +158,7 @@ export async function copyUrlToClipboard(url: string, title?: string, hasMedia =
         document.execCommand("copy")
         document.body.removeChild(textarea)
 
-        showToast(copyMsg, "success", duration)
+        showToast(copyMsg, "success")
         return true
     } catch {
         showToast(t("share", "copy_failed"), "error")
@@ -230,9 +235,8 @@ export async function pasteSharedFromClipboard(): Promise<boolean> {
 export async function shareSong(song: Song): Promise<boolean> {
     try {
         const payload = await buildSongSharePayload(song)
-        const hasMedia = Boolean(payload.song.images?.length)
         const url = await createShare(payload)
-        return await copyUrlToClipboard(url, song.name, hasMedia)
+        return await copyUrlToClipboard(url, song.name)
     } catch (e) {
         console.error("Error creating song share URL:", e)
         showToast(t("share", "generate_failed"), "error")
@@ -243,9 +247,8 @@ export async function shareSong(song: Song): Promise<boolean> {
 export async function shareList(list: List, allSongs: Song[]): Promise<boolean> {
     try {
         const payload = await buildListSharePayload(list, allSongs)
-        const hasMedia = payload.list.songs.some((s) => Boolean(s.images?.length))
         const url = await createShare(payload)
-        return await copyUrlToClipboard(url, list.name, hasMedia)
+        return await copyUrlToClipboard(url, list.name)
     } catch (e) {
         console.error("Error creating list share URL:", e)
         showToast(t("share", "generate_failed"), "error")

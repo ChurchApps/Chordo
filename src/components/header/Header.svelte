@@ -1,10 +1,8 @@
 <script lang="ts">
-    import { exportSetlistAsJson, exportSongAsJson, importSetlistFile } from "$lib/export/exportHelper"
-    import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
+    import { importSetlistFile } from "$lib/export/exportHelper"
     import type { Folder } from "$lib/models/Folder"
     import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
-    import { shareList, shareSong } from "$lib/share/share"
     import { clearSharePayload } from "$lib/share/share.svelte"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
@@ -275,7 +273,7 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
-                                        if (currentSong) shareSong(currentSong)
+                                        setActivePopup("share_song")
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
@@ -289,15 +287,6 @@
                                 >
                                     <span class="material-symbols-outlined" slot="start">print</span>
                                     <div slot="headline">{t("menu", "print")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentSong) exportSongAsJson(currentSong)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">download</span>
-                                    <div slot="headline">{t("menu", "export_as")} JSON</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song_edit"}
                                 {@const editSong = storage.getSongById(menuState.contentId)}
@@ -325,11 +314,11 @@
                                     onclick={() => {
                                         moreMenuOpen = false
                                         if (currentList) {
-                                            const newList = Lists.duplicate(currentList.id)
-                                            if (newList) {
-                                                setActivePage("list", newList.id, newList.name, "replace")
-                                            }
-                                        }
+                                             const newList = Lists.duplicate(currentList.id)
+                                             if (newList) {
+                                                 setActivePage("list", newList.id, newList.name, "replace")
+                                             }
+                                         }
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">content_copy</span>
@@ -338,29 +327,11 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
-                                        if (currentList) shareList(currentList, storage.songs)
+                                        setActivePopup("share_list")
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
                                     <div slot="headline">{t("menu", "share_list")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentList) exportSetlistAsJson(currentList, storage.songs)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">download</span>
-                                    <div slot="headline">{t("menu", "export_as")} JSON</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentList) exportAsFreeShowProject(currentList, storage.songs)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">download</span>
-                                    <div slot="headline">{t("menu", "export_as")} FreeShow Project</div>
                                 </md-menu-item>
                                 <md-menu-item
                                     onclick={() => {
