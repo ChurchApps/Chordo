@@ -437,7 +437,7 @@
         width: 38px;
         height: 38px;
         border-radius: 50%;
-        border: 2px solid transparent;
+        border: 1px solid rgba(0, 0, 0, 0.12);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -465,6 +465,14 @@
         font-size: 20px;
         color: var(--md-sys-color-on-primary, #044444);
         font-weight: bold;
+    }
+
+    :global([data-theme="white"]) .color-circle .check-icon {
+        color: #111111;
+    }
+
+    :global([data-theme="monochrome"]) .color-circle .check-icon {
+        color: #ffffff;
     }
 
     .language-select,

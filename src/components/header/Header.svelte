@@ -474,6 +474,12 @@
         z-index: 10;
 
         user-select: none;
+        color: var(--md-sys-color-on-primary-container);
+        --md-icon-button-icon-color: var(--md-sys-color-on-primary-container);
+    }
+
+    .top-app-bar :global(md-icon-button) {
+        color: var(--md-sys-color-on-primary-container);
     }
 
     .top-bar-left {
