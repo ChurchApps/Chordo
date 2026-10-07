@@ -1,14 +1,21 @@
 <script lang="ts">
-    import { slide } from "svelte/transition"
-    import { closePlayback, playbackState, togglePlaybackMinimized } from "$lib/state/playback.svelte"
-    import { openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
-    import storage from "$lib/storage/StorageManager.svelte"
     import { t } from "$lib/state/i18n.svelte"
+    import { closePlayback, playbackState, togglePlaybackMinimized } from "$lib/state/playback.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
+    import { openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
+    import { slide } from "svelte/transition"
 
     let currentSong = $derived(playbackState.songId ? storage.getSongById(playbackState.songId, storage.songs) : null)
     let playbackUrl = $derived(playbackState.customPlaybackUrl || currentSong?.playbackUrl || currentSong?.spotify || currentSong?.getMetadata("playback") || currentSong?.getMetadata("spotify") || "")
     let songDisplayName = $derived(playbackState.customSongName || currentSong?.name || "")
     let info = $derived(parsePlaybackUrl(playbackUrl))
+
+    let activeEmbedUrl = $state("")
+    $effect(() => {
+        if (info && info.embedUrl && info.embedUrl !== activeEmbedUrl) {
+            activeEmbedUrl = info.embedUrl
+        }
+    })
 </script>
 
 {#if playbackState.isOpen && info}
@@ -72,7 +79,7 @@
             <div class="player-wrapper" class:spotify={info.provider === "spotify"} class:youtube={info.provider === "youtube"} class:minimized={playbackState.isMinimized}>
                 <iframe
                     title="Audio Player"
-                    src={info.embedUrl}
+                    src={activeEmbedUrl || info.embedUrl}
                     width="100%"
                     height={info.provider === "spotify" ? (playbackState.isMinimized ? "80" : "152") : playbackState.isMinimized ? "124" : "180"}
                     frameBorder="0"

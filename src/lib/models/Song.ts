@@ -1,14 +1,14 @@
-import storage from "../storage/StorageManager.svelte"
+import { type SongMetadata } from "../chords/metadata"
+import { sortSongs, type SongSortOption } from "../state/songSort.svelte"
 import { FileSystem } from "../storage/FileSystem"
-import { getId, sortByName, type NonFunctionProperties } from "../utils/common"
+import storage from "../storage/StorageManager.svelte"
+import { getId, type NonFunctionProperties } from "../utils/common"
 import { cleanPlaybackUrl } from "../utils/playback"
-import { METADATA_CONFIGS, type SongMetadata } from "../chords/metadata"
-
-export type { SongMetadata }
+export type { SongMetadata, SongSortOption }
 
 export class Songs {
-    static get(songs: Song[], listId?: string | null): Song[] {
-        if (!listId) return sortByName(songs) // get all songs
+    static get(songs: Song[], listId?: string | null, sortBy: SongSortOption = "artist_asc"): Song[] {
+        if (!listId) return sortSongs(songs, sortBy) // get all songs
 
         const list = storage.getListById(listId)
         if (!list) return []
@@ -40,6 +40,8 @@ export class Song {
     lastTransposed?: string
     drawings: string[]
     images: string[]
+    accessDays?: number
+    expiresAt?: number
     metadata: SongMetadata
 
     constructor(data: Partial<SongKeys> = {}) {
@@ -54,6 +56,8 @@ export class Song {
         this.lastTransposed = data.lastTransposed
         this.drawings = data.drawings ?? []
         this.images = data.images ?? []
+        this.accessDays = data.accessDays ?? 0
+        this.expiresAt = data.expiresAt
         this.metadata = data.metadata ?? {}
     }
 

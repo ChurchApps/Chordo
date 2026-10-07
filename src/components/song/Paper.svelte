@@ -52,7 +52,7 @@
                 page.className = "paper-page"
                 page.setAttribute("data-page", pageNum.toString())
                 page.style.aspectRatio = `${ASPECT_RATIO}`
-                page.style.padding = `${padding}mm`
+                page.style.setProperty("--paper-padding", `${padding}mm`)
 
                 // Top Center Header (not on first page)
                 if (headerText && pageNum > 1) {
@@ -353,6 +353,7 @@
 
     :global(.paper-page) {
         width: 100%;
+        padding: var(--paper-padding, 20mm);
         background: var(--background, white);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         border-radius: 2px;
@@ -363,6 +364,12 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+    }
+
+    @media (max-width: 600px) {
+        :global(.paper-page) {
+            padding: min(var(--paper-padding, 20mm), 6mm) !important;
+        }
     }
 
     :global(.page-content) {

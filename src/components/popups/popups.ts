@@ -1,6 +1,7 @@
 import AboutDialog from "./AboutDialog.svelte"
 import MetronomeDialog from "./MetronomeDialog.svelte"
 import SettingsDialog from "./SettingsDialog.svelte"
+import ShareDialog from "./ShareDialog.svelte"
 import TextInputDialog from "./TextInputDialog.svelte"
 import TransposeDialog from "./TransposeDialog.svelte"
 
@@ -40,6 +41,12 @@ export const popups = {
     },
     paste_link: {
         component: TextInputDialog
+    },
+    share_song: {
+        component: ShareDialog
+    },
+    share_list: {
+        component: ShareDialog
     }
 }
 

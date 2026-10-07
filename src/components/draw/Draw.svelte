@@ -107,6 +107,7 @@
         onpointermove={(e) => engine.draw(e)}
         onpointerup={(e) => engine.stopDrawing(e)}
         onpointercancel={(e) => engine.stopDrawing(e)}
+        oncontextmenu={(e) => e.preventDefault()}
     ></canvas>
 
     {#if editable}
@@ -203,6 +204,9 @@
         overflow: hidden;
         background-color: transparent;
         touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
         font-family:
             "Open Sans",
             system-ui,
@@ -218,11 +222,19 @@
         display: block;
         background: transparent;
         pointer-events: none;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
 
     .drawing-canvas.interactive {
         pointer-events: auto;
         cursor: crosshair;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     }
 
     .drawing-canvas.eraser-mode {

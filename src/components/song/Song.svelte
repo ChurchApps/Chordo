@@ -44,6 +44,12 @@
         padding: 0;
     }
 
+    @media (max-width: 600px) {
+        .paper {
+            padding: 20px 16px;
+        }
+    }
+
     @media print {
         .paper {
             padding: 0 !important;

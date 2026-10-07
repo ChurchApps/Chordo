@@ -17,8 +17,6 @@ export function clearSharePayload(): void {
     sharePreviewState.payload = null
     sharePreviewState.rawPayload = null
     if (typeof window !== "undefined") {
-        // Remove hash / query share params without refreshing
-        const cleanUrl = window.location.href.replace(/[#?](?:share|s)=[^&#]*/, "").replace(/[#?]$/, "")
-        window.history.replaceState(null, "", cleanUrl)
+        window.history.replaceState(null, "", "/")
     }
 }

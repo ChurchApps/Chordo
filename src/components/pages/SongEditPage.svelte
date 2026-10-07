@@ -116,7 +116,7 @@
             contentHistory.set(value)
         }
 
-        song[key] = value
+        ;(song as any)[key] = value
 
         storage.updateSong(song)
         storage.persist()
@@ -423,6 +423,36 @@
                     </md-outlined-button>
                 </div>
 
+                <div class="media-access-days-row">
+                    <div class="access-days-label-group">
+                        <span class="access-days-title">{t("share", "max_access_days")}</span>
+                        <span class="access-days-desc">{song.expiresAt ? t("share", "access_duration_fixed") : t("share", "max_access_days_desc")}</span>
+                    </div>
+                    {#if song.expiresAt}
+                        <div class="access-days-input-group">
+                            <span class="access-days-badge">{song.accessDays ? `${song.accessDays} ${t("share", "days")}` : t("share", "access_expired")}</span>
+                        </div>
+                    {:else}
+                        <div class="access-days-input-group">
+                            <input
+                                type="number"
+                                min="0"
+                                max="90"
+                                value={song.accessDays ?? 0}
+                                class="access-days-input"
+                                onchange={(e) => {
+                                    const val = parseInt((e.target as HTMLInputElement).value, 10)
+                                    const valid = isNaN(val) || val <= 0 ? 0 : Math.min(90, Math.max(0, val))
+                                    song.accessDays = valid
+                                    storage.updateSong(song)
+                                    storage.persist()
+                                }}
+                            />
+                            <span class="access-days-suffix">{song.accessDays ? t("share", "days") : `(${t("share", "no_limit") || "No limit"})`}</span>
+                        </div>
+                    {/if}
+                </div>
+
                 <div class="images-grid">
                     {#each imageWebUrls as imageSrc, idx}
                         <div class="image-edit-card">
@@ -540,7 +570,74 @@
         justify-content: space-between;
         align-items: center;
         margin-top: 24px;
+        margin-bottom: 8px;
+    }
+
+    .media-access-days-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
         margin-bottom: 12px;
+        border-radius: 8px;
+        background-color: var(--md-sys-color-surface-container-low, #f7f2fa);
+        border: 1px solid var(--md-sys-color-outline-variant, #e7e0ec);
+    }
+
+    .access-days-label-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .access-days-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--md-sys-color-on-surface, #2b2930);
+    }
+
+    .access-days-desc {
+        font-size: 0.75rem;
+        color: var(--md-sys-color-on-surface-variant, #49454f);
+    }
+
+    .access-days-input-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .access-days-input {
+        width: 52px;
+        padding: 5px 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+        border-radius: 6px;
+        background-color: var(--md-sys-color-surface-container-highest, #e6e0e9);
+        color: var(--md-sys-color-on-surface, #1d1b20);
+        text-align: center;
+        outline: none;
+    }
+
+    .access-days-input:focus {
+        border-color: var(--md-sys-color-primary, #6750a4);
+    }
+
+    .access-days-suffix {
+        font-size: 0.8rem;
+        color: var(--md-sys-color-on-surface-variant, #49454f);
+    }
+
+    .access-days-badge {
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        background-color: var(--md-sys-color-surface-container-highest, #e6e0e9);
+        color: var(--md-sys-color-on-surface-variant, #49454f);
     }
 
     .section-title {

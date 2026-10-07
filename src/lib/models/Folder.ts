@@ -1,10 +1,12 @@
+import { sortLists, type ListSortOption } from "../state/listSort.svelte"
 import storage from "../storage/StorageManager.svelte"
 import { getId, sortByName, type NonFunctionProperties } from "../utils/common"
 import type { List } from "./List"
+export type { ListSortOption }
 
 export class Folders {
     static get(folders: Folder[]): Folder[] {
-        const shared = folders.filter((f) => f.type === "shared")
+        const shared = folders.filter((f) => f.type === "shared" && (f.lists?.length ?? 0) > 0)
         const others = folders.filter((f) => f.type !== "shared")
         return [...shared, ...sortByName(others)]
     }
@@ -34,9 +36,9 @@ export class Folder {
         this.type = data.type ?? "default"
     }
 
-    getLists(allLists: List[]) {
+    getLists(allLists: List[], sortBy: ListSortOption = "date_desc") {
         const lists = allLists.filter((l) => this.lists.includes(l.id))
-        return sortByName(lists)
+        return sortLists(lists, sortBy)
     }
 
     addList(listId: string) {

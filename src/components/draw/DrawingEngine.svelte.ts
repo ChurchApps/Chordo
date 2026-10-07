@@ -166,6 +166,7 @@ export class DrawingEngine {
 
     startDrawing(e: PointerEvent) {
         if (!this.options.getEditable() || !this.ctx) return
+        e.preventDefault()
         this.canvasRef?.setPointerCapture(e.pointerId)
         this.isDrawing = true
         const point = this.getPointerCoordinates(e)
@@ -185,6 +186,7 @@ export class DrawingEngine {
 
     draw(e: PointerEvent) {
         if (!this.isDrawing || !this.options.getEditable() || !this.ctx || !this.lastPoint) return
+        e.preventDefault()
 
         const currentPoint = this.getPointerCoordinates(e)
 
@@ -206,6 +208,7 @@ export class DrawingEngine {
 
     stopDrawing(e: PointerEvent) {
         if (!this.isDrawing) return
+        e.preventDefault()
         if (this.canvasRef?.hasPointerCapture(e.pointerId)) {
             this.canvasRef.releasePointerCapture(e.pointerId)
         }

@@ -1,4 +1,4 @@
-export type SupportedTheme = "teal" | "indigo" | "blue" | "green" | "orange" | "rose" | "slate"
+export type SupportedTheme = "teal" | "indigo" | "blue" | "green" | "orange" | "rose" | "slate" | "white" | "monochrome"
 
 export interface ThemeOption {
     id: SupportedTheme
@@ -14,7 +14,9 @@ export const SUPPORTED_THEMES: ThemeOption[] = [
     { id: "blue", labelKey: "Ocean Blue", color: "#7eb4e8", background: "#cbe2f8" },
     { id: "green", labelKey: "Forest Green", color: "#7ec89f", background: "#cbead8" },
     { id: "rose", labelKey: "Rose Pink", color: "#f296b1", background: "#fcd0dc" },
-    { id: "slate", labelKey: "Slate Grey", color: "#98aabf", background: "#d4dee8" }
+    { id: "slate", labelKey: "Slate Grey", color: "#98aabf", background: "#d4dee8" },
+    { id: "white", labelKey: "Pure White", color: "#ffffff", background: "#ffffff" },
+    { id: "monochrome", labelKey: "Monochrome Dark", color: "#1c1c1e", background: "#2c2c2e" }
 ]
 
 export const DEFAULT_THEME: SupportedTheme = "orange"

@@ -64,15 +64,18 @@ export default defineConfig({
         }
     },
     plugins: [
-        // Serve the Cloudflare Worker at /api/* during dev, so localhost matches production.
-        // Without this Vite's SPA fallback answers /api/proxy and /api/share with index.html.
+        // Serve the Cloudflare Worker at /api/* and /s* during dev, so localhost matches production.
         {
             name: "dev-api-worker",
             configureServer(server) {
                 const env = loadDevVars()
                 server.middlewares.use(async (req, res, next) => {
                     const url = req.originalUrl || req.url || ""
-                    if (!url.startsWith("/api/proxy") && !url.startsWith("/api/share")) return next()
+                    const pathname = url.split("?")[0]
+                    const isApi = url.startsWith("/api/proxy") || url.startsWith("/api/share")
+                    const isShareRoute = pathname === "/s" || pathname === "/s/"
+                    if (!isApi && !isShareRoute) return next()
+
                     try {
                         const worker = (await server.ssrLoadModule("/workers/index.ts")).default
                         const body = await readRequestBody(req)

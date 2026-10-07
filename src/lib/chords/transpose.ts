@@ -118,6 +118,11 @@ export function isChordToken(token: string): boolean {
         return false
     }
 
+    if (cleaned.startsWith("/")) {
+        const bass = cleaned.slice(1)
+        return isChordToken(bass)
+    }
+
     if (cleaned.includes("/")) {
         const parts = cleaned.split("/")
         return parts.length === 2 && isChordToken(parts[0]) && isChordToken(parts[1])
@@ -127,7 +132,7 @@ export function isChordToken(token: string): boolean {
 }
 
 /**
- * Transposes a full chord name (e.g. "G/B", "F#m7", "Bbsus2") or bracketed bar lines (e.g. "| E | E | G#m | F# | X5").
+ * Transposes a full chord name (e.g. "G/B", "F#m7", "Bbsus2", "/A") or bracketed bar lines (e.g. "| E | E | G#m | F# | X5").
  * Safely leaves non-chord tokens (such as section labels like "[Bridge]") untransposed.
  */
 export function transposeChord(chord: string, semitones: number, preferFlats = false): string {
@@ -152,6 +157,10 @@ export function transposeChord(chord: string, semitones: number, preferFlats = f
     const bracketMatch = chord.trim().match(/^(\[)(.+)(\])$/)
     if (bracketMatch) {
         return `[${transposeChord(bracketMatch[2], semitones, preferFlats)}]`
+    }
+
+    if (chord.startsWith("/")) {
+        return `/${transposeChord(chord.slice(1), semitones, preferFlats)}`
     }
 
     if (chord.includes("/")) {
@@ -292,6 +301,10 @@ export function chordToNashville(chord: string, baseKey: string): string {
     const bracketMatch = chord.trim().match(/^(\[)(.+)(\])$/)
     if (bracketMatch) {
         return `[${chordToNashville(bracketMatch[2], baseKey)}]`
+    }
+
+    if (chord.startsWith("/")) {
+        return `/${chordToNashville(chord.slice(1), baseKey)}`
     }
 
     if (chord.includes("/")) {

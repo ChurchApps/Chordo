@@ -1,16 +1,16 @@
 <script lang="ts">
-    import { exportSetlistAsJson, exportSongAsJson, importSetlistFile } from "$lib/export/exportHelper"
-    import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
+    import { importSetlistFile } from "$lib/export/exportHelper"
     import type { Folder } from "$lib/models/Folder"
     import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
-    import { shareList, shareSong } from "$lib/share/share"
     import { clearSharePayload } from "$lib/share/share.svelte"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
+    import { listSortState, setListSort } from "$lib/state/listSort.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
+    import { setSongSort, songSortState } from "$lib/state/songSort.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import { pages } from "../pages/pages"
@@ -37,6 +37,8 @@
 
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
     let moreMenuOpen = $state(false)
+    let sortMenuOpen = $state(false)
+    let sortListsMenuOpen = $state(false)
 
     let searchPlaceholder = $derived.by(() => {
         switch (menuState.activePage) {
@@ -157,9 +159,10 @@
 
             <h1 class="top-bar-title">
                 {#if isEditing}
-                    {t("common", "edit")}
+                    <span class="title-text">{t("common", "edit")}</span>
                 {:else}
-                    <span style="font-size: 0.7em;opacity: 0.7;">{headerPath}</span>{headerTitle}
+                    {#if headerPath}<span class="top-bar-path">{headerPath}</span>{/if}
+                    <span class="title-text">{headerTitle}</span>
                 {/if}
             </h1>
         </div>
@@ -206,7 +209,73 @@
                     <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
-                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
+                    {#if menuState.activePage === "all_songs"}
+                        {@const sortOptions = [
+                            { id: "artist_asc", label: t("sort", "artist_asc") },
+                            { id: "artist_desc", label: t("sort", "artist_desc") },
+                            { id: "title_asc", label: t("sort", "title_asc") },
+                            { id: "title_desc", label: t("sort", "title_desc") },
+                            { id: "date_desc", label: t("sort", "date_desc") },
+                            { id: "date_asc", label: t("sort", "date_asc") }
+                        ] as const}
+                        <div class="more-menu-wrapper">
+                            <md-icon-button id="sort-songs-btn" aria-label={t("sort", "sort_by")} title={t("sort", "sort_by")} onclick={() => (sortMenuOpen = !sortMenuOpen)}>
+                                <span class="material-symbols-outlined">sort</span>
+                            </md-icon-button>
+
+                            <md-menu id="sort-songs-menu" anchor="sort-songs-btn" open={sortMenuOpen} onclosed={() => (sortMenuOpen = false)} quick>
+                                {#each sortOptions as opt}
+                                    {@const isSelected = songSortState.sortBy === opt.id}
+                                    <md-menu-item
+                                        selected={isSelected}
+                                        class:selected={isSelected}
+                                        onclick={() => {
+                                            setSongSort(opt.id)
+                                            sortMenuOpen = false
+                                        }}
+                                    >
+                                        <div slot="headline" class:selected-headline={isSelected}>{opt.label}</div>
+                                        {#if isSelected}
+                                            <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary);">check</span>
+                                        {/if}
+                                    </md-menu-item>
+                                {/each}
+                            </md-menu>
+                        </div>
+                    {:else if menuState.activePage === "folder"}
+                        {@const listSortOptions = [
+                            { id: "date_desc", label: t("sort", "date_desc") },
+                            { id: "date_asc", label: t("sort", "date_asc") },
+                            { id: "title_asc", label: t("sort", "title_asc") },
+                            { id: "title_desc", label: t("sort", "title_desc") }
+                        ] as const}
+                        <div class="more-menu-wrapper">
+                            <md-icon-button id="sort-lists-btn" aria-label={t("sort", "sort_by")} title={t("sort", "sort_by")} onclick={() => (sortListsMenuOpen = !sortListsMenuOpen)}>
+                                <span class="material-symbols-outlined">sort</span>
+                            </md-icon-button>
+
+                            <md-menu id="sort-lists-menu" anchor="sort-lists-btn" open={sortListsMenuOpen} onclosed={() => (sortListsMenuOpen = false)} quick>
+                                {#each listSortOptions as opt}
+                                    {@const isSelected = listSortState.sortBy === opt.id}
+                                    <md-menu-item
+                                        selected={isSelected}
+                                        class:selected={isSelected}
+                                        onclick={() => {
+                                            setListSort(opt.id)
+                                            sortListsMenuOpen = false
+                                        }}
+                                    >
+                                        <div slot="headline" class:selected-headline={isSelected}>{opt.label}</div>
+                                        {#if isSelected}
+                                            <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary);">check</span>
+                                        {/if}
+                                    </md-menu-item>
+                                {/each}
+                            </md-menu>
+                        </div>
+                    {/if}
+
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>
@@ -274,7 +343,7 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
-                                        if (currentSong) shareSong(currentSong)
+                                        setActivePopup("share_song")
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
@@ -288,15 +357,6 @@
                                 >
                                     <span class="material-symbols-outlined" slot="start">print</span>
                                     <div slot="headline">{t("menu", "print")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentSong) exportSongAsJson(currentSong)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">download</span>
-                                    <div slot="headline">{t("menu", "export_as")} JSON</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song_edit"}
                                 {@const editSong = storage.getSongById(menuState.contentId)}
@@ -337,29 +397,11 @@
                                 <md-menu-item
                                     onclick={() => {
                                         moreMenuOpen = false
-                                        if (currentList) shareList(currentList, storage.songs)
+                                        setActivePopup("share_list")
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">share</span>
                                     <div slot="headline">{t("menu", "share_list")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentList) exportSetlistAsJson(currentList, storage.songs)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">download</span>
-                                    <div slot="headline">{t("menu", "export_as")} JSON</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentList) exportAsFreeShowProject(currentList, storage.songs)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">download</span>
-                                    <div slot="headline">{t("menu", "export_as")} FreeShow Project</div>
                                 </md-menu-item>
                                 <md-menu-item
                                     onclick={() => {
@@ -432,25 +474,78 @@
         z-index: 10;
 
         user-select: none;
+        color: var(--md-sys-color-on-primary-container);
+        --md-icon-button-icon-color: var(--md-sys-color-on-primary-container);
+    }
+
+    .top-app-bar :global(md-icon-button) {
+        color: var(--md-sys-color-on-primary-container);
     }
 
     .top-bar-left {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .top-bar-title {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         font-weight: 500;
         letter-spacing: 0.15px;
         color: var(--md-sys-color-on-primary-container);
+        display: flex;
+        align-items: baseline;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        margin: 0;
+    }
+
+    .top-bar-path {
+        font-size: 0.75em;
+        opacity: 0.7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex-shrink: 1;
+        min-width: 0;
+        margin-right: 4px;
+    }
+
+    .title-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex-shrink: 1;
     }
 
     .top-bar-actions {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 480px) {
+        .top-app-bar {
+            padding: 0 8px;
+        }
+
+        .top-bar-left {
+            gap: 4px;
+        }
+
+        .top-bar-title {
+            font-size: 1.05rem;
+        }
+
+        .top-bar-path {
+            display: none;
+        }
     }
 
     .more-menu-wrapper {
@@ -466,6 +561,15 @@
 
     md-menu-item {
         white-space: nowrap;
+    }
+
+    md-menu-item.selected {
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
+    }
+
+    .selected-headline {
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
     }
 
     /* search */

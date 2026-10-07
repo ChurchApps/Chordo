@@ -29,9 +29,11 @@
     }>()
 
     import { Song } from "$lib/models/Song"
+    import { t } from "$lib/state/i18n.svelte"
 
     let rawSong = $derived(customSong ?? storage.getSongById(songId ?? null, storage.songs))
     let song = $derived(rawSong ? (rawSong instanceof Song ? rawSong : new Song(rawSong)) : null)
+    let isExpired = $derived(Boolean(song?.expiresAt && Date.now() > song.expiresAt))
 
     // Ensure rendered content is in ChordPro format without modifying original song content
     let chordProContent = $derived.by(() => {
@@ -78,6 +80,12 @@
 
 {#if imageWebUrls.length > 0}
     <div class="image-song-container" class:fitParent>
+        {#if isExpired}
+            <div class="expired-watermark-overlay" aria-hidden="true">
+                <span class="expired-watermark-text">{t("share", "access_expired")}</span>
+            </div>
+        {/if}
+
         {#each imageWebUrls as imageSrc, i}
             <div class="image-page" class:fitParent>
                 <img src={imageSrc} alt={"Page " + (i + 1)} />
@@ -180,6 +188,7 @@
 
 <style>
     .chordpro-container {
+        position: relative;
         width: 100%;
         height: 100%;
         flex: 1;
@@ -355,12 +364,41 @@
     /* image */
 
     .image-song-container {
+        position: relative;
         width: 100%;
         display: flex;
         flex-direction: column;
         gap: 16px;
 
         pointer-events: none;
+    }
+
+    .expired-watermark-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 50;
+        overflow: hidden;
+        column-span: all;
+        -webkit-column-span: all;
+    }
+
+    .expired-watermark-text {
+        font-size: clamp(2.5rem, 8vw, 5.5rem);
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: rgba(210, 35, 35, 0.22);
+        transform: rotate(-25deg);
+        user-select: none;
+        text-align: center;
+        white-space: nowrap;
+        border: 4px dashed rgba(210, 35, 35, 0.22);
+        padding: 8px 24px;
+        border-radius: 12px;
     }
 
     .image-page {

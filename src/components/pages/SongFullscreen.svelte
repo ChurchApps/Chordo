@@ -367,7 +367,10 @@
 
     // --- Pinch-to-exit Handlers ---
     function handleTouchStart(e: TouchEvent) {
-        if (isDrawing || popupState.popupId !== null) return
+        if (isDrawing || popupState.popupId !== null) {
+            initialPinchDist = 0
+            return
+        }
         if (e.touches.length >= 2) {
             initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
             didDrag = true
@@ -375,6 +378,10 @@
     }
 
     function handleTouchMove(e: TouchEvent) {
+        if (isDrawing || popupState.popupId !== null) {
+            initialPinchDist = 0
+            return
+        }
         if (e.touches.length >= 2 && initialPinchDist > 0) {
             const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY)
             if (initialPinchDist - currentDist > 60) {
@@ -621,7 +628,7 @@
             onpointerup={pointerUp}
             onpointercancel={pointerUp}
             onlostpointercapture={pointerUp}
-            style="touch-action: pan-y; transform: translateX(-{initialSlideIndex * 100}vw);"
+            style="touch-action: {isDrawing ? 'none' : 'pan-y'}; transform: translateX(-{initialSlideIndex * 100}vw);"
         >
             {#each slides as slideItem, i}
                 {#if slideItem.type === "song"}
@@ -914,6 +921,11 @@
     .slider-viewport :global(.paper-page) {
         --margin-x: 10px;
         --margin-y: 10px;
+
+        @media (max-width: 600px) {
+            --margin-x: 0px;
+            --margin-y: 6px;
+        }
 
         /* Height fills the screen (leaving room for top/bottom margins) */
         height: calc(100vh - var(--margin-y)) !important;
