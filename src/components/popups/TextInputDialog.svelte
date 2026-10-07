@@ -149,7 +149,7 @@
                     icon: "content_paste",
                     title: t("home", "paste_shared"),
                     label: t("share", "paste_link_label"),
-                    placeholder: "https://chordo.org/?share=...",
+                    placeholder: "https://chordo.org/s?id=...",
                     actionLabel: t("common", "open"),
                     initialValue: "",
                     submit: async (url) => {

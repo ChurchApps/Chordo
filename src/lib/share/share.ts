@@ -26,6 +26,9 @@ export function getShareBaseUrl(): string {
 
 export function createShareUrl(id: string): string {
     return `${getShareBaseUrl()}/?share=${encodeURIComponent(id)}`
+
+    // WIP use this instead if the S3 worker works:
+    return `${getShareBaseUrl()}/s?id=${encodeURIComponent(id)}`
 }
 
 export async function createShare(payload: SharePayload): Promise<string> {
@@ -77,7 +80,8 @@ function cacheShareData(id: string, hash: string, payload: SharePayload): void {
 
 export function extractSharePayloadFromUrl(url: string = typeof window !== "undefined" ? window.location.href : ""): string | null {
     if (!url) return null
-    const match = url.match(/[?&#](?:share|s)=([^&#]+)/)
+    // Matches /s?id=..., /?share=..., /?s=..., /?id=..., or /s/:id
+    const match = url.match(/[?&#](?:id|share|s)=([^&#]+)/) || url.match(/\/s\/([^?&#]+)/)
     return match ? decodeURIComponent(match[1]) : null
 }
 
