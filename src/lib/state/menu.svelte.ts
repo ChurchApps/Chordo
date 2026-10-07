@@ -69,9 +69,9 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
                 menuState.previousPages = [{ activePage: "home", contentId: null, customPageTitle: null }]
             }
             if (typeof window !== "undefined") {
-                history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "", window.location.href)
+                history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "", "/")
                 if (menu !== "home") {
-                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
+                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", "/")
                 }
             }
         } else if (action !== "replace" && addToHistory) {
