@@ -6,6 +6,7 @@
     import { clearSharePayload } from "$lib/share/share.svelte"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
+    import { listSortState, setListSort } from "$lib/state/listSort.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
@@ -37,6 +38,7 @@
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
     let moreMenuOpen = $state(false)
     let sortMenuOpen = $state(false)
+    let sortListsMenuOpen = $state(false)
 
     let searchPlaceholder = $derived.by(() => {
         switch (menuState.activePage) {
@@ -207,7 +209,7 @@
                     <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
-                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
                     {#if menuState.activePage === "all_songs"}
                         {@const sortOptions = [
                             { id: "artist_asc", label: t("sort", "artist_asc") },
@@ -231,6 +233,37 @@
                                         onclick={() => {
                                             setSongSort(opt.id)
                                             sortMenuOpen = false
+                                        }}
+                                    >
+                                        <div slot="headline" class:selected-headline={isSelected}>{opt.label}</div>
+                                        {#if isSelected}
+                                            <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary);">check</span>
+                                        {/if}
+                                    </md-menu-item>
+                                {/each}
+                            </md-menu>
+                        </div>
+                    {:else if menuState.activePage === "folder"}
+                        {@const listSortOptions = [
+                            { id: "date_desc", label: t("sort", "date_desc") },
+                            { id: "date_asc", label: t("sort", "date_asc") },
+                            { id: "title_asc", label: t("sort", "title_asc") },
+                            { id: "title_desc", label: t("sort", "title_desc") }
+                        ] as const}
+                        <div class="more-menu-wrapper">
+                            <md-icon-button id="sort-lists-btn" aria-label={t("sort", "sort_by")} title={t("sort", "sort_by")} onclick={() => (sortListsMenuOpen = !sortListsMenuOpen)}>
+                                <span class="material-symbols-outlined">sort</span>
+                            </md-icon-button>
+
+                            <md-menu id="sort-lists-menu" anchor="sort-lists-btn" open={sortListsMenuOpen} onclosed={() => (sortListsMenuOpen = false)} quick>
+                                {#each listSortOptions as opt}
+                                    {@const isSelected = listSortState.sortBy === opt.id}
+                                    <md-menu-item
+                                        selected={isSelected}
+                                        class:selected={isSelected}
+                                        onclick={() => {
+                                            setListSort(opt.id)
+                                            sortListsMenuOpen = false
                                         }}
                                     >
                                         <div slot="headline" class:selected-headline={isSelected}>{opt.label}</div>

@@ -1,10 +1,11 @@
+import { t } from "../state/i18n.svelte"
+import type { ListSortOption } from "../state/listSort.svelte"
 import storage from "../storage/StorageManager.svelte"
 import { getId, type NonFunctionProperties } from "../utils/common"
-import { t } from "../state/i18n.svelte"
 import type { Song } from "./Song"
 
 export class Lists {
-    static get(lists: List[], folderId: string | null): List[] {
+    static get(lists: List[], folderId: string | null, sortBy: ListSortOption = "date_desc"): List[] {
         if (!folderId) {
             console.log("No folderId provided when trying to get lists.")
             return []
@@ -13,7 +14,7 @@ export class Lists {
         const folder = storage.getFolderById(folderId)
         if (!folder) return []
 
-        return folder.getLists(lists)
+        return folder.getLists(lists, sortBy)
     }
 
     static create(data: Partial<ListKeys> = {}, folderId: string): List | null {
