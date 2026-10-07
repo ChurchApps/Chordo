@@ -68,7 +68,7 @@ export function extractAndCleanSongMetadata(text: string, options: ConvertOption
         const trimmed = line.trim()
 
         if (!trimmed || /^[-=_*#~]{3,}$/.test(trimmed)) {
-            if (remainingLines.length > 0 && trimmed && !/^[-=_*#~]{3,}$/.test(trimmed)) {
+            if (remainingLines.length > 0 && !/^[-=_*#~]{3,}$/.test(trimmed)) {
                 remainingLines.push(line)
             }
             i++
@@ -159,6 +159,33 @@ export function extractAndCleanSongMetadata(text: string, options: ConvertOption
  * Converts formatted text input (lyrics with chord lines above them) into standard ChordPro format.
  */
 export function convertToChordPro(text: string, options: ConvertOptions = {}): string {
+    const rawBlocks = text.split(/(?:\r?\n){2,}/)
+    let verseIndex = 0
+
+    return rawBlocks
+        .map((block) => {
+            const trimmed = block.trim()
+            if (!trimmed) return ""
+
+            const firstLine = trimmed.split(/\r?\n/)[0].trim()
+            const header = matchSectionHeader(firstLine)
+            const verseMatch = header?.match(/^Vers(?:e)?\s*(\d+)/i)
+
+            if (verseMatch) {
+                verseIndex = Math.max(verseIndex, parseInt(verseMatch[1], 10))
+            }
+
+            const hasHeader = header || (firstLine.startsWith("{") && firstLine.endsWith("}"))
+            const content = !hasHeader && rawBlocks.length > 1 ? `{c: Verse ${++verseIndex}}\n` + trimmed : trimmed
+
+            return convertBlockToChordPro(content, options)
+        })
+        .filter(Boolean)
+        .join("\n\n")
+        .trim()
+}
+
+function convertBlockToChordPro(text: string, options: ConvertOptions = {}): string {
     const lines = text.split(/\r?\n/)
     const output: string[] = []
     let i = 0
@@ -184,10 +211,10 @@ export function convertToChordPro(text: string, options: ConvertOptions = {}): s
             continue
         }
 
-        // Bracketed ChordPro lines
+        // Bracketed ChordPro lines: simplify multiple bracket tokens (e.g. [|] [C] [|], [Bb] - [F] - [C], [Ebm] . [B] . [Gb]) into a single block
         if (line.includes("[") && line.includes("]")) {
-            // Clean up bar lines that have brackets around every bar/chord symbol: e.g. [|] [C] [-] [-] [|]
-            if (line.includes("|")) {
+            const hasSeparators = line.includes("|") || /^(\s*\[[^\]]+\]\s*[\.\-–—/•·,\s]*)+$/.test(line.trim())
+            if (hasSeparators && line.indexOf("[") !== line.lastIndexOf("[")) {
                 const cleaned = line
                     .replace(/[\[\]]/g, " ")
                     .replace(/\s+/g, " ")
@@ -320,7 +347,10 @@ export function formatStandaloneChordLine(chordLine: string, options: ConvertOpt
 
     // If it's a bar line (contains "|"), wrap the entire measure in brackets
     if (trimmed.includes("|")) {
-        const cleaned = trimmed.replace(/[\[\]]/g, " ").replace(/\s+/g, " ").trim()
+        const cleaned = trimmed
+            .replace(/[\[\]]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
         return `[${cleaned}]`
     }
 
@@ -339,5 +369,3 @@ export function formatStandaloneChordLine(chordLine: string, options: ConvertOpt
         })
         .join(" ")
 }
-
-

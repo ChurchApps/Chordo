@@ -97,6 +97,7 @@
         if (source.playbackUrl) target.playbackUrl = source.playbackUrl
         if (source.url) target.url = source.url
         if (source.lastTransposed) target.lastTransposed = source.lastTransposed
+        if (source.drawings && source.drawings.length > 0) target.drawings = source.drawings
         await saveSourceImages(target, source.images)
         storage.updateSong(target)
         return target

@@ -14,7 +14,7 @@
 
     let matchedFolders = $derived.by(() => {
         if (!isSearching) return []
-        return storage.folders.filter((f) => f.name.toLowerCase().includes(searchQuery))
+        return Folders.get(storage.folders).filter((f) => f.name.toLowerCase().includes(searchQuery))
     })
 
     let matchedLists = $derived.by(() => {

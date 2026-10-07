@@ -4,7 +4,7 @@ import type { List } from "./List"
 
 export class Folders {
     static get(folders: Folder[]): Folder[] {
-        const shared = folders.filter((f) => f.type === "shared")
+        const shared = folders.filter((f) => f.type === "shared" && (f.lists?.length ?? 0) > 0)
         const others = folders.filter((f) => f.type !== "shared")
         return [...shared, ...sortByName(others)]
     }

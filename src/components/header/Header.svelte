@@ -157,9 +157,10 @@
 
             <h1 class="top-bar-title">
                 {#if isEditing}
-                    {t("common", "edit")}
+                    <span class="title-text">{t("common", "edit")}</span>
                 {:else}
-                    <span style="font-size: 0.7em;opacity: 0.7;">{headerPath}</span>{headerTitle}
+                    {#if headerPath}<span class="top-bar-path">{headerPath}</span>{/if}
+                    <span class="title-text">{headerTitle}</span>
                 {/if}
             </h1>
         </div>
@@ -437,20 +438,67 @@
     .top-bar-left {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .top-bar-title {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         font-weight: 500;
         letter-spacing: 0.15px;
         color: var(--md-sys-color-on-primary-container);
+        display: flex;
+        align-items: baseline;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        margin: 0;
+    }
+
+    .top-bar-path {
+        font-size: 0.75em;
+        opacity: 0.7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex-shrink: 1;
+        min-width: 0;
+        margin-right: 4px;
+    }
+
+    .title-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex-shrink: 1;
     }
 
     .top-bar-actions {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 480px) {
+        .top-app-bar {
+            padding: 0 8px;
+        }
+
+        .top-bar-left {
+            gap: 4px;
+        }
+
+        .top-bar-title {
+            font-size: 1.05rem;
+        }
+
+        .top-bar-path {
+            display: none;
+        }
     }
 
     .more-menu-wrapper {
