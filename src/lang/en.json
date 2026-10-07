@@ -255,5 +255,15 @@
         "animation_none": "None",
         "animation_fast": "Fast",
         "animation_slow": "Slow"
+    },
+    "sort": {
+        "sort_by": "Sort by",
+        "title_asc": "Title (A–Z)",
+        "title_desc": "Title (Z–A)",
+        "artist_asc": "Artist (A–Z)",
+        "artist_desc": "Artist (Z–A)",
+        "date_desc": "Date added (Newest)",
+        "date_asc": "Date added (Oldest)",
+        "no_artist": "No artist"
     }
 }

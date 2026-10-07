@@ -9,6 +9,7 @@
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import { closeSearch, openSearch, searchState } from "$lib/state/search.svelte"
+    import { setSongSort, songSortState } from "$lib/state/songSort.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import { pages } from "../pages/pages"
@@ -35,6 +36,7 @@
 
     let isEditing = $derived(listEditingState.isEditing) // menuState.activePage === "list" && listEditingState.isEditing
     let moreMenuOpen = $state(false)
+    let sortMenuOpen = $state(false)
 
     let searchPlaceholder = $derived.by(() => {
         switch (menuState.activePage) {
@@ -206,6 +208,41 @@
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
                 {:else if menuState.activePage === "home" || menuState.activePage === "all_songs"}
+                    {#if menuState.activePage === "all_songs"}
+                        {@const sortOptions = [
+                            { id: "artist_asc", label: t("sort", "artist_asc") },
+                            { id: "artist_desc", label: t("sort", "artist_desc") },
+                            { id: "title_asc", label: t("sort", "title_asc") },
+                            { id: "title_desc", label: t("sort", "title_desc") },
+                            { id: "date_desc", label: t("sort", "date_desc") },
+                            { id: "date_asc", label: t("sort", "date_asc") }
+                        ] as const}
+                        <div class="more-menu-wrapper">
+                            <md-icon-button id="sort-songs-btn" aria-label={t("sort", "sort_by")} title={t("sort", "sort_by")} onclick={() => (sortMenuOpen = !sortMenuOpen)}>
+                                <span class="material-symbols-outlined">sort</span>
+                            </md-icon-button>
+
+                            <md-menu id="sort-songs-menu" anchor="sort-songs-btn" open={sortMenuOpen} onclosed={() => (sortMenuOpen = false)} quick>
+                                {#each sortOptions as opt}
+                                    {@const isSelected = songSortState.sortBy === opt.id}
+                                    <md-menu-item
+                                        selected={isSelected}
+                                        class:selected={isSelected}
+                                        onclick={() => {
+                                            setSongSort(opt.id)
+                                            sortMenuOpen = false
+                                        }}
+                                    >
+                                        <div slot="headline" class:selected-headline={isSelected}>{opt.label}</div>
+                                        {#if isSelected}
+                                            <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary);">check</span>
+                                        {/if}
+                                    </md-menu-item>
+                                {/each}
+                            </md-menu>
+                        </div>
+                    {/if}
+
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>
@@ -314,11 +351,11 @@
                                     onclick={() => {
                                         moreMenuOpen = false
                                         if (currentList) {
-                                             const newList = Lists.duplicate(currentList.id)
-                                             if (newList) {
-                                                 setActivePage("list", newList.id, newList.name, "replace")
-                                             }
-                                         }
+                                            const newList = Lists.duplicate(currentList.id)
+                                            if (newList) {
+                                                setActivePage("list", newList.id, newList.name, "replace")
+                                            }
+                                        }
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">content_copy</span>
@@ -485,6 +522,15 @@
 
     md-menu-item {
         white-space: nowrap;
+    }
+
+    md-menu-item.selected {
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
+    }
+
+    .selected-headline {
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
     }
 
     /* search */

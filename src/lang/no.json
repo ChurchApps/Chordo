@@ -255,5 +255,15 @@
         "animation_none": "Ingen",
         "animation_fast": "Rask",
         "animation_slow": "Sakte"
+    },
+    "sort": {
+        "sort_by": "Sorter etter",
+        "title_asc": "Tittel (A–Å)",
+        "title_desc": "Tittel (Å–A)",
+        "artist_asc": "Artist (A–Å)",
+        "artist_desc": "Artist (Å–A)",
+        "date_desc": "Dato lagt til (Nyeste)",
+        "date_asc": "Dato lagt til (Eldste)",
+        "no_artist": "Uten artist"
     }
 }
