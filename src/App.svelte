@@ -35,6 +35,8 @@
             if (decoded) {
                 setSharePayload(decoded, rawPayload)
                 const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
+                const artist = decoded.type === "list" ? "" : decoded.song.metadata?.artist || decoded.song.artist
+                document.title = `${title}${artist ? ` - ${artist}` : ""} • Chordo${decoded.type === "list" ? " Setlist" : ""}`
                 setActivePage("share_preview", null, title, "replace")
             } else {
                 showToast("Could not load shared content! The link might have expired.", "error", 5000)
