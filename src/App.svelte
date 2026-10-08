@@ -1,8 +1,9 @@
 <script lang="ts">
     import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
     import { setSharePayload } from "$lib/share/share.svelte"
-    import { setActivePage } from "$lib/state/menu.svelte"
+    import { menuState, setActivePage } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
+    import storage from "$lib/storage/StorageManager.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
     import "@material/web/button/filled-button.js"
     import "@material/web/button/outlined-button.js"
@@ -40,6 +41,16 @@
             }
         }
     }
+
+    let hasInitializedLanding = false
+    $effect(() => {
+        if (!hasInitializedLanding && storage.isLoaded()) {
+            hasInitializedLanding = true
+            if (!storage.hasContent() && menuState.activePage === "home" && !extractSharePayloadFromUrl()) {
+                setActivePage("landing", null, null, "replace")
+            }
+        }
+    })
 
     onMount(() => {
         handleIncomingShare()

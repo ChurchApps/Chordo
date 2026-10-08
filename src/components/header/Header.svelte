@@ -25,7 +25,7 @@
         }, "")
     )
 
-    const nonTranslatablePages = ["home", "song_live"] as const
+    const nonTranslatablePages = ["home", "landing", "song_live"] as const
 
     let headerTitle = $derived.by(() => {
         if (menuState.customPageTitle) return menuState.customPageTitle
@@ -109,7 +109,7 @@
     }
 </script>
 
-{#if isFullscreenPage(menuState.activePage)}
+{#if isFullscreenPage(menuState.activePage) || menuState.activePage === "landing"}
     <!-- don't show any headers -->
 {:else if searchState.isOpen}
     <header class="top-app-bar search-mode">
@@ -147,7 +147,7 @@
                 <md-icon-button disabled>
                     <span class="material-symbols-outlined">edit</span>
                 </md-icon-button>
-            {:else if menuState.previousPages.length > 0}
+            {:else if menuState.activePage !== "home" && menuState.previousPages.length > 0}
                 <md-icon-button aria-label="Go back" onclick={goBack}>
                     <span class="material-symbols-outlined">arrow_back</span>
                 </md-icon-button>
@@ -210,6 +210,10 @@
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
                 {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
+                    <md-icon-button aria-label="Search" onclick={openSearch}>
+                        <span class="material-symbols-outlined">search</span>
+                    </md-icon-button>
+
                     {#if menuState.activePage === "all_songs"}
                         {@const sortOptions = [
                             { id: "artist_asc", label: t("sort", "artist_asc") },
@@ -275,10 +279,6 @@
                             </md-menu>
                         </div>
                     {/if}
-
-                    <md-icon-button aria-label="Search" onclick={openSearch}>
-                        <span class="material-symbols-outlined">search</span>
-                    </md-icon-button>
                 {/if}
 
                 {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}

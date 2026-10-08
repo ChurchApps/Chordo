@@ -4,13 +4,20 @@
     import { getCurrentSong, setActivePopup } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
+    let { customOriginalKey, currentKey, onSelectKey, onClose } = $props<{
+        customOriginalKey?: string
+        currentKey?: string
+        onSelectKey?: (key: string) => void
+        onClose?: () => void
+    }>()
+
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let song = $derived(activeSongContext?.song ?? null)
     let list = $derived(activeSongContext?.list ?? null)
     let currentSongIndex = $derived(activeSongContext?.currentSongIndex ?? 0)
 
     // Base original key of the song
-    let originalKey = $derived(extractBaseKey(song?.content, song?.getMetadata("key")) || "C")
+    let originalKey = $derived(customOriginalKey || extractBaseKey(song?.content, song?.getMetadata("key")) || "C")
 
     // Determine whether sharp or flat scale should be displayed based on original key
     let displayedScale = $derived(getScaleForOriginalKey(originalKey))
@@ -34,16 +41,26 @@
     })
 
     $effect(() => {
-        const listTransposed = activeSongContext?.listItem?.transposed
-        selectedKey = listTransposed || song?.lastTransposed || originalKey
+        if (currentKey !== undefined) {
+            selectedKey = currentKey
+        } else {
+            const listTransposed = activeSongContext?.listItem?.transposed
+            selectedKey = listTransposed || song?.lastTransposed || originalKey
+        }
     })
 
     function closeDialog() {
-        setActivePopup(null)
+        if (onClose) onClose()
+        else setActivePopup(null)
     }
 
     function applyKey(newKey: string) {
         selectedKey = newKey
+        if (onSelectKey) {
+            onSelectKey(newKey)
+            return
+        }
+
         if (!song) return
 
         song.lastTransposed = newKey

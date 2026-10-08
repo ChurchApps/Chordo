@@ -49,6 +49,8 @@ export function isFullscreenPage(page: Pages): boolean {
     return fullscreenPages.includes(page)
 }
 
+const isBrowser = typeof window !== "undefined"
+
 export function setActivePage(menu: Pages, contentId?: string | null, customTitle?: string | null, action: "add" | "replace" | "append" = "add", appendData: any = null): void {
     const currentState = getCurrentState()
 
@@ -64,33 +66,34 @@ export function setActivePage(menu: Pages, contentId?: string | null, customTitl
         menuState.contentId = contentId ?? null
         menuState.customPageTitle = customTitle ?? null
 
-        if (currentState.activePage === "share_preview") {
+        if (menu === "home") {
+            menuState.previousPages = []
+            if (isBrowser) history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "", "/")
+        } else if (currentState.activePage === "share_preview") {
             if (menuState.previousPages.length === 0) {
                 menuState.previousPages = [{ activePage: "home", contentId: null, customPageTitle: null }]
             }
-            if (typeof window !== "undefined") {
+            if (isBrowser) {
                 history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "", "/")
-                if (menu !== "home") {
-                    history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", "/")
-                }
+                history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", "/")
             }
         } else if (action !== "replace" && addToHistory) {
             menuState.previousPages.push(currentState)
-            if (typeof window !== "undefined") {
+            if (isBrowser) {
                 if (action === "append" && appendData) {
                     history.pushState({ type: "page", activePage: appendData.activePage, contentId: appendData.contentId ?? null, customPageTitle: appendData.customPageTitle ?? null }, "", window.location.href)
                 }
                 history.pushState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
             }
         } else if (action === "replace") {
-            if (typeof window !== "undefined") {
+            if (isBrowser) {
                 history.replaceState({ type: "page", activePage: menu, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
             }
         }
         if (action === "append" && appendData) menuState.previousPages.push(clone(appendData))
     }
 
-    if (typeof document !== "undefined" && (document as any).startViewTransition && !isFullscreenPage(menu) && !isFullscreenPage(currentState.activePage)) {
+    if (isBrowser && (document as any).startViewTransition && !isFullscreenPage(menu) && !isFullscreenPage(currentState.activePage)) {
         document.documentElement.dataset.vtDirection = "forward"
         ;(document as any).startViewTransition(doSet)
     } else {
@@ -112,9 +115,14 @@ export function internalGoBack(): void {
         menuState.activePage = previousState.activePage
         menuState.contentId = previousState.contentId
         menuState.customPageTitle = previousState.customPageTitle
+
+        if (previousState.activePage === "home") {
+            menuState.previousPages = []
+            if (isBrowser) history.replaceState({ type: "page", activePage: "home", contentId: null, customPageTitle: null }, "", "/")
+        }
     }
 
-    if (typeof document !== "undefined" && (document as any).startViewTransition && !isFullscreenPage(menuState.activePage) && !isFullscreenPage(previousState.activePage)) {
+    if (isBrowser && (document as any).startViewTransition && !isFullscreenPage(menuState.activePage) && !isFullscreenPage(previousState.activePage)) {
         document.documentElement.dataset.vtDirection = "back"
         ;(document as any).startViewTransition(doSet)
     } else {
@@ -140,7 +148,7 @@ export function goBack(): void {
 
     if (menuState.previousPages.length > 0) {
         internalGoBack()
-        if (typeof window !== "undefined") {
+        if (isBrowser) {
             isInternalHistoryNavigating = true
             history.back()
         }
@@ -202,7 +210,7 @@ export function getCurrentSong() {
 
 /// BROWSER / ANDROID BACK BUTTON LISTENER ///
 
-if (typeof window !== "undefined") {
+if (isBrowser) {
     // Initialize current history state
     try {
         history.replaceState({ type: "page", activePage: menuState.activePage, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)

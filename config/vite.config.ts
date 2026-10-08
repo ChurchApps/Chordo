@@ -64,17 +64,15 @@ export default defineConfig({
         }
     },
     plugins: [
-        // Serve the Cloudflare Worker at /api/* and /s* during dev, so localhost matches production.
+        // Serve the Cloudflare Worker at /api/* and rewrite share metadata dynamically in dev for /s*
         {
             name: "dev-api-worker",
             configureServer(server) {
                 const env = loadDevVars()
                 server.middlewares.use(async (req, res, next) => {
                     const url = req.originalUrl || req.url || ""
-                    const pathname = url.split("?")[0]
                     const isApi = url.startsWith("/api/proxy") || url.startsWith("/api/share")
-                    const isShareRoute = pathname === "/s" || pathname === "/s/"
-                    if (!isApi && !isShareRoute) return next()
+                    if (!isApi) return next()
 
                     try {
                         const worker = (await server.ssrLoadModule("/workers/index.ts")).default
@@ -98,6 +96,20 @@ export default defineConfig({
                         res.end(`API error: ${err?.message || err}`)
                     }
                 })
+            },
+            async transformIndexHtml(html, ctx) {
+                const url = new URL(ctx.originalUrl || ctx.path, "http://x")
+                if (url.pathname !== "/s" && url.pathname !== "/s/") return html
+
+                const id = url.searchParams.get("id")
+                if (!id) return html
+
+                try {
+                    const { title } = await (await import("../workers/sharePage.ts")).fetchShareMetadata(id)
+                    return html.replaceAll("Chordo: Free Chord Sheet Manager", title)
+                } catch {
+                    return html
+                }
             }
         },
         svelte({

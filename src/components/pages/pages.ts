@@ -1,13 +1,19 @@
-import HomePage from "./HomePage.svelte"
-import FolderPage from "./FolderPage.svelte"
-import ListPage from "./ListPage.svelte"
-import SongPage from "./SongPage.svelte"
 import AllSongsPage from "./AllSongsPage.svelte"
+import FolderPage from "./FolderPage.svelte"
+import HomePage from "./HomePage.svelte"
+import LandingPage from "./LandingPage.svelte"
+import ListPage from "./ListPage.svelte"
+import SharePreviewPage from "./SharePreviewPage.svelte"
 import SongEditPage from "./SongEditPage.svelte"
 import SongFullscreen from "./SongFullscreen.svelte"
-import SharePreviewPage from "./SharePreviewPage.svelte"
+import SongPage from "./SongPage.svelte"
 
 export const pages = {
+    landing: {
+        title: "Chordo",
+        component: LandingPage
+    },
+    /// Main App
     home: {
         title: "Chordo",
         component: HomePage

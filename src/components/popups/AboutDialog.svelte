@@ -1,9 +1,14 @@
 <script lang="ts">
     import { t } from "$lib/state/i18n.svelte"
-    import { setActivePopup } from "$lib/state/menu.svelte"
+    import { setActivePage, setActivePopup } from "$lib/state/menu.svelte"
 
     function closeDialog() {
         setActivePopup(null)
+    }
+
+    function openLandingPage() {
+        closeDialog()
+        setActivePage("landing")
     }
 
     const appVersion = __APP_VERSION__
@@ -22,6 +27,12 @@
         </p>
 
         <div class="about-links">
+            <button type="button" class="about-link-btn outline" onclick={openLandingPage}>
+                <span class="material-symbols-outlined btn-icon">explore</span>
+                <span>{t("about", "landing_page")}</span>
+                <span class="material-symbols-outlined open-icon">arrow_forward</span>
+            </button>
+
             <a href="https://github.com/ChurchApps/Chordo" target="_blank" rel="noopener noreferrer" class="about-link-btn outline">
                 <svg class="icon-svg" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                     <path
@@ -112,6 +123,9 @@
     .about-link-btn {
         display: flex;
         align-items: center;
+        width: 100%;
+        cursor: pointer;
+        font-family: inherit;
         gap: 10px;
         padding: 10px 14px;
         border-radius: 10px;
