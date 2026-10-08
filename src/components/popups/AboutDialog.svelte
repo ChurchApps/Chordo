@@ -1,6 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/state/i18n.svelte"
     import { setActivePage, setActivePopup } from "$lib/state/menu.svelte"
+    import { onMount } from "svelte"
 
     function closeDialog() {
         setActivePopup(null)
@@ -12,6 +13,16 @@
     }
 
     const appVersion = __APP_VERSION__
+
+    onMount(async () => {
+        // check for service worker updates
+        if ("serviceWorker" in navigator) {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration()
+                await reg?.update()
+            } catch {}
+        }
+    })
 </script>
 
 <md-dialog open onclosed={closeDialog}>

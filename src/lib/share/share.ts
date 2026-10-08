@@ -25,9 +25,6 @@ export function getShareBaseUrl(): string {
 }
 
 export function createShareUrl(id: string): string {
-    return `${getShareBaseUrl()}/?share=${encodeURIComponent(id)}`
-
-    // WIP use this instead if the S3 worker works:
     return `${getShareBaseUrl()}/s?id=${encodeURIComponent(id)}`
 }
 

@@ -2,14 +2,7 @@
     import { useRegisterSW } from "virtual:pwa-register/svelte"
     import { t } from "$lib/state/i18n.svelte"
 
-    const { needRefresh, updateServiceWorker, offlineReady } = useRegisterSW({
-        onRegistered(r) {
-            console.log("Service Worker registered:", r)
-        },
-        onRegisterError(error) {
-            console.error("Service Worker registration error:", error)
-        }
-    })
+    const { needRefresh, updateServiceWorker, offlineReady } = useRegisterSW({ immediate: true })
 
     function close() {
         offlineReady.set(false)
