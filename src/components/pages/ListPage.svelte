@@ -1,15 +1,28 @@
 <script lang="ts">
-    import { slide } from "svelte/transition"
     import type { ListSongDisplayItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
+    import { untrack } from "svelte"
+    import { slide } from "svelte/transition"
 
     let listId = $derived(menuState.contentId)
     let list = $derived(storage.getListById(listId, storage.lists))
     let listItems = $derived(list ? list.getListItems(storage.songs) : [])
+
+    let lastTouchedListId: string | null = null
+    $effect(() => {
+        const id = listId
+        if (id && id !== lastTouchedListId) {
+            lastTouchedListId = id
+            untrack(() => {
+                const target = storage.getListById(id)
+                target?.touch()
+            })
+        }
+    })
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
     let searchQuery = $derived(searchState.query.trim().toLowerCase())
@@ -61,14 +74,6 @@
             listEditingState.onEditSelected = undefined
             listEditingState.selectedIndex = undefined
             selectedIndices = []
-        }
-    })
-
-    $effect(() => {
-        if (list) {
-            if (!list.lastUsedAt || Date.now() - list.lastUsedAt > 60 * 1000) {
-                list.touch()
-            }
         }
     })
 

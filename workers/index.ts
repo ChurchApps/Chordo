@@ -12,6 +12,6 @@ export default {
 
         if (path === "/s" || path === "/s/") return handleSharePage(req, env)
 
-        return new Response("Not found", { status: 404 })
+        return fetch(req)
     }
 }

@@ -1,14 +1,16 @@
 <script lang="ts">
+    import { extractAndCleanSongMetadata } from "$lib/chords/chordproConverter"
+    import { extractBaseKey } from "$lib/chords/transpose"
     import { t } from "$lib/state/i18n.svelte"
     import HighlightedTextarea from "../common/HighlightedTextarea.svelte"
-    import ChordPro from "../song/ChordPro.svelte"
     import TransposeDialog from "../popups/TransposeDialog.svelte"
-    import { extractBaseKey } from "$lib/chords/transpose"
+    import ChordPro from "../song/ChordPro.svelte"
 
     const DEFAULT_CHORDPRO_TEXT =
         "{title: Amazing Grace}\n\n{c: Verse 1}\n[G]Amazing [Em7]grace, how [Cadd9]sweet the [D]sound\nThat [G]saved a [Em7]wretch like [D]me\nI [G]once was [Em7]lost, but [Cadd9]now am [D]found\nWas [G]blind, but [D]now I [G]see"
     let chordProEditorText = $state(DEFAULT_CHORDPRO_TEXT)
 
+    let extractedData = $derived(extractAndCleanSongMetadata(chordProEditorText))
     let detectedKey = $derived(extractBaseKey(chordProEditorText) || "")
     let selectedTargetKey = $state<string | null>(null)
     let effectiveTargetKey = $derived(selectedTargetKey || detectedKey || "G")
@@ -17,9 +19,8 @@
 
     let demoSong = $derived({
         id: "demo_song",
-        name: "Amazing Grace",
-        content: chordProEditorText,
-        metadata: { artist: "John Newton" }
+        name: extractedData.metadata.title || "",
+        content: chordProEditorText
     })
 
     function resetDemoEditor() {
@@ -66,7 +67,7 @@
                 <span>Preview</span>
             </div>
             <div class="demo-rendered-sheet">
-                <ChordPro song={demoSong} targetKey={effectiveTargetKey} showMeta={false} fitParent={false} />
+                <ChordPro song={demoSong} targetKey={effectiveTargetKey} showMeta={false} fitParent={false} numColumns={1} />
             </div>
 
             <button class="pane-bottom-bar action-btn" onclick={() => (showTransposePopup = true)} title="Open transpose popup">
@@ -169,6 +170,7 @@
         gap: 8px;
         width: 100%;
         min-width: 0;
+        height: 100%;
     }
 
     .pane-label {
@@ -189,24 +191,32 @@
     }
 
     :global(.demo-highlighted-editor) {
+        flex: 1 1 auto !important;
         height: 100% !important;
-        min-height: 200px;
+        min-height: 180px;
         border-radius: 12px !important;
         font-family: monospace, monospace !important;
         font-size: 0.88rem !important;
     }
 
     .demo-rendered-sheet {
+        flex: 1 1 auto;
         background-color: #ffffff;
         color: #000000;
         border-radius: 12px;
         padding: 16px;
         border: 1px dashed var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.15));
         height: 100%;
-        min-height: 200px;
+        min-height: 180px;
         box-sizing: border-box;
-        overflow-y: auto;
-        max-height: 280px;
+    }
+
+    .demo-rendered-sheet :global(.chordpro-container) {
+        column-count: 1 !important;
+        -webkit-column-count: 1 !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
     }
 
     /* Shared Bottom Bar for Both Panes */

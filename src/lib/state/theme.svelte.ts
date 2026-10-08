@@ -35,10 +35,13 @@ export function setTheme(theme: SupportedTheme) {
         document.documentElement.dataset.theme = validTheme
         const matched = SUPPORTED_THEMES.find((t) => t.id === validTheme)
         if (matched) {
-            const metaTheme = document.querySelector('meta[name="theme-color"]')
-            if (metaTheme) {
-                metaTheme.setAttribute("content", matched.color)
+            let metaTheme = document.querySelector('meta[name="theme-color"]')
+            if (!metaTheme) {
+                metaTheme = document.createElement("meta")
+                metaTheme.setAttribute("name", "theme-color")
+                document.head.appendChild(metaTheme)
             }
+            metaTheme.setAttribute("content", matched.background)
         }
     }
 }
