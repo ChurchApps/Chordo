@@ -351,9 +351,13 @@
 
     @media print {
         .chordpro-container {
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
             column-count: 2 !important;
             -webkit-column-count: 2 !important;
             column-gap: 24px !important;
+            column-fill: balance !important;
         }
 
         .song-meta.hide-on-screen {
