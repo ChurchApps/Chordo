@@ -135,7 +135,9 @@
         flex-direction: column;
         align-items: center;
         width: 100%;
-        height: 100dvh;
+        height: 100%;
+        margin: 0;
+        border-radius: 0;
         background: var(--md-sys-color-primary-container);
         overflow-y: auto;
         overflow-x: hidden;
