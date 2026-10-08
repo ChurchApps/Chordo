@@ -1,3 +1,5 @@
+import { METADATA_ALIAS_MAP } from "./metadata"
+
 export const SHARP_NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "Bb", "B"]
 export const FLAT_NOTES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 export const CHROMATIC_SCALE = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
@@ -203,42 +205,233 @@ export function hasTransposableContent(content?: string, explicitKey?: string, i
     return false
 }
 
+export function extractRootNote(str?: string): string | undefined {
+    if (!str) return undefined
+    const trimmed = str.trim()
+    if (!trimmed) return undefined
+
+    // Exact key check (e.g. "G", "Bb", "C#", "F#")
+    if (isValidKey(trimmed)) {
+        return normalizeNote(trimmed)
+    }
+
+    // Strip wrapping brackets, parentheses, and slash notation (e.g. "[Am]" -> "Am", "/A" -> "A")
+    const cleaned = trimmed.replace(/^[\(\[\/]+/, "").replace(/[\)\]]+$/, "").trim()
+    if (!cleaned) return undefined
+
+    // Extract root note e.g. "Am7" -> "A", "F#m" -> "F#", "Bbsus4" -> "Bb"
+    const match = cleaned.match(/^([A-GH][#b]?)/i)
+    if (match && isValidKey(match[1])) {
+        return normalizeNote(match[1])
+    }
+
+    return undefined
+}
+
+export function parseChordInfo(chord: string): { root: string; rootIdx: number; isMinor: boolean; isDim: boolean } | null {
+    if (!chord) return null
+    let cleaned = chord.replace(/[\(\)\[\]]/g, "").trim()
+    if (!cleaned || isRepeatToken(cleaned)) return null
+
+    // If slash chord e.g. G/B, take the root chord
+    if (cleaned.includes("/")) {
+        const parts = cleaned.split("/")
+        cleaned = parts[0].trim()
+    }
+
+    if (!cleaned) return null
+
+    const match = cleaned.match(/^([A-GH][#b]?)(.*)$/i)
+    if (!match) return null
+
+    const root = normalizeNote(match[1])
+    const rootIdx = getNotePitchIndex(root)
+    if (rootIdx === -1) return null
+
+    const suffix = match[2].toLowerCase()
+    const isDim = suffix.includes("dim") || suffix.includes("°") || suffix.includes("ø") || suffix.includes("o")
+    const withoutMaj = suffix.replace(/maj/g, "").replace(/m\d*$/g, "m")
+    const isMinor = !isDim && (withoutMaj.includes("m") || withoutMaj.includes("min") || withoutMaj.startsWith("-"))
+
+    return { root, rootIdx, isMinor, isDim }
+}
+
 /**
- * Extracts the base key of a ChordPro song (from explicit metadata or first chord).
- * If the explicit key is invalid or not provided, falls back to auto-detected key from content.
+ * Guesses the most probable musical key given all chords used in a song.
+ * Scores candidate keys based on diatonic scale fit, chord function, and first/last chord weighting.
+ */
+export function guessKeyFromChords(chords: string[]): string | undefined {
+    const parsedChords: Array<{ root: string; rootIdx: number; isMinor: boolean; isDim: boolean }> = []
+    let flatPreferenceCount = 0
+
+    for (const c of chords) {
+        const info = parseChordInfo(c)
+        if (info) {
+            parsedChords.push(info)
+            if (info.root.includes("b") || FLAT_KEYS.has(info.root)) {
+                flatPreferenceCount++
+            }
+        }
+    }
+
+    if (parsedChords.length === 0) return undefined
+
+    const preferFlatsOverall = flatPreferenceCount > parsedChords.length / 2
+    const firstChord = parsedChords[0]
+    const lastChord = parsedChords[parsedChords.length - 1]
+
+    let bestScore = -Infinity
+    let bestKeyIdx = -1
+
+    for (let k = 0; k < 12; k++) {
+        let score = 0
+
+        for (const chord of parsedChords) {
+            const interval = (chord.rootIdx - k + 12) % 12
+
+            if (interval === 0) {
+                score += chord.isMinor ? 7 : 10 // Tonic (I / i)
+            } else if (interval === 7) {
+                score += chord.isMinor ? 3 : 8 // Dominant (V)
+            } else if (interval === 5) {
+                score += chord.isMinor ? 4 : 7 // Subdominant (IV / iv)
+            } else if (interval === 9) {
+                score += chord.isMinor ? 6 : 4 // Submediant (vi / VI)
+            } else if (interval === 2) {
+                score += chord.isMinor ? 5 : 3 // Supertonic (ii / II)
+            } else if (interval === 4) {
+                score += chord.isMinor ? 5 : 3 // Mediant (iii / III)
+            } else if (interval === 11) {
+                score += (chord.isDim || chord.isMinor) ? 3 : 2 // Leading tone (vii°)
+            } else if (interval === 10) {
+                score += chord.isMinor ? 2 : 3 // Subtonic (bVII)
+            } else if (interval === 3) {
+                score += 2 // bIII (minor / blues)
+            } else {
+                score -= 4 // Non-diatonic chord penalty
+            }
+        }
+
+        // First chord tonic/submediant weighting
+        if (firstChord.rootIdx === k) {
+            score += 12
+        } else if ((firstChord.rootIdx - k + 12) % 12 === 9) {
+            // First chord is relative minor (vi)
+            score += 4
+        } else if ((firstChord.rootIdx - k + 12) % 12 === 5) {
+            // First chord is IV
+            score += 2
+        }
+
+        // Last chord resolution weighting
+        if (lastChord.rootIdx === k) {
+            score += 8
+        }
+
+        if (score > bestScore) {
+            bestScore = score
+            bestKeyIdx = k
+        }
+    }
+
+    if (bestKeyIdx === -1) return undefined
+
+    const scale = preferFlatsOverall ? FLAT_NOTES : SHARP_NOTES
+    return scale[bestKeyIdx]
+}
+
+/**
+ * Extracts the base key of a ChordPro song.
+ * Checks all metadata first (explicitKey, braced directives, and unbraced key headers),
+ * and if none is found, collects all chords used across the entire content to guess the musical key.
  */
 export function extractBaseKey(content?: string, explicitKey?: string): string | undefined {
-    if (explicitKey && isValidKey(explicitKey)) {
-        return normalizeNote(explicitKey)
+    // 1. Explicit song key argument
+    if (explicitKey) {
+        const root = extractRootNote(explicitKey)
+        if (root) return root
     }
     if (!content) return undefined
 
-    // 1. Check for explicit {key: ...} directive or unbraced Key: ...
-    const keyMatch = content.match(/\{key:\s*([^}]+)\}/i) || content.match(/(?:^|\n)key:\s*([^\r\n]+)/i)
-    if (keyMatch && isValidKey(keyMatch[1])) {
-        return normalizeNote(keyMatch[1])
-    }
-
-    // 2. Look for the root note of the first bracketed chord [Am] or [ A B C ] or [| A | B |]
-    const bracketMatch = content.match(/\[[\s|]*([A-GH][#b]?)[^\]]*\]/i)
-    if (bracketMatch && isValidKey(bracketMatch[1])) {
-        return normalizeNote(bracketMatch[1])
-    }
-
-    // 3. Look for the first chord token in chord lines
     const lines = content.split(/\r?\n/)
+
+    // 2. Metadata pass: Check all metadata directives and key headers in the content
     for (const line of lines) {
         const trimmed = line.trim()
         if (!trimmed) continue
-        const tokens = trimmed.split(/[\s|:|,\-\/]+/).filter(Boolean)
-        for (const token of tokens) {
-            const match = token.replace(/[\(\)\[\]]/g, "").match(/^([A-GH][#b]?)/i)
-            if (match && /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add)?\d*(\/[A-GH](b|#)?)?$/i.test(token.replace(/[\(\)\[\]]/g, ""))) {
-                if (isValidKey(match[1])) {
-                    return normalizeNote(match[1])
+
+        // Braced directive e.g. {key: G}, {k: Em}, {Key: Bb}
+        const bracedMatch = trimmed.match(/^\{([^:}]+)(?::\s*(.*?))?\}$/)
+        if (bracedMatch) {
+            const directiveKey = bracedMatch[1].trim().toLowerCase()
+            const val = (bracedMatch[2] || "").trim()
+            if (directiveKey === "key" || directiveKey === "k" || METADATA_ALIAS_MAP[directiveKey] === "key") {
+                const root = extractRootNote(val)
+                if (root) return root
+            }
+            continue
+        }
+
+        // Unbraced header e.g. "Key: G", "k: Em"
+        const unbracedMatch = trimmed.match(/^([^:]+):\s*(.+)$/)
+        if (unbracedMatch) {
+            const headerKey = unbracedMatch[1].trim().toLowerCase()
+            const val = unbracedMatch[2].trim()
+            if (headerKey === "key" || headerKey === "k" || METADATA_ALIAS_MAP[headerKey] === "key") {
+                const root = extractRootNote(val)
+                if (root) return root
+            }
+        }
+    }
+
+    // Inline braced key directive if not on its own line: e.g. "... {key: G} ..."
+    const inlineKeyMatches = content.matchAll(/\{(?:key|k):\s*([^}]+)\}/gi)
+    for (const match of inlineKeyMatches) {
+        const root = extractRootNote(match[1])
+        if (root) return root
+    }
+
+    // 3. Chords pass: Collect all chords throughout the entire song to guess the key
+    const allChords: string[] = []
+
+    for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+
+        // Skip braced directive lines
+        if (/^\{.*\}$/.test(trimmed)) continue
+
+        // Check for bracketed chords in the line: e.g. [G], [Am], [| A | B |], [A B C]
+        const bracketMatches = Array.from(trimmed.matchAll(/\[([^\]]+)\]/g))
+        if (bracketMatches.length > 0) {
+            for (const bm of bracketMatches) {
+                const inside = bm[1].trim()
+                if (!inside) continue
+
+                // Bracket may contain multiple tokens / bar lines e.g. "| A | B |" or "A B C"
+                const tokens = inside.split(/[\s|]+/).filter(Boolean)
+                for (const token of tokens) {
+                    if (isRepeatToken(token)) continue
+                    if (isChordToken(token)) {
+                        allChords.push(token)
+                    }
+                }
+            }
+        } else {
+            // If the line has no bracketed chords, check for unbracketed chord tokens (plain chord sheet lines)
+            const tokens = trimmed.split(/[\s|:,]+/).filter(Boolean)
+            for (const token of tokens) {
+                if (isRepeatToken(token)) continue
+                if (isChordToken(token)) {
+                    allChords.push(token)
                 }
             }
         }
+    }
+
+    if (allChords.length > 0) {
+        const guessedKey = guessKeyFromChords(allChords)
+        if (guessedKey) return guessedKey
     }
 
     return undefined
