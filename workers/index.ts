@@ -10,7 +10,7 @@ export default {
         if (path === "/api/share" || path.startsWith("/api/share/")) return handleShare(req, env)
         if (path === "/api/proxy" || path.startsWith("/api/proxy/")) return proxy.fetch(req)
 
-        if (path === "/s" || path === "/s/") return handleSharePage(req)
+        if (path === "/s" || path === "/s/") return handleSharePage(req, env)
 
         return new Response("Not found", { status: 404 })
     }
