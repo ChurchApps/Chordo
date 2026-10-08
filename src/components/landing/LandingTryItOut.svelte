@@ -1,14 +1,16 @@
 <script lang="ts">
+    import { extractAndCleanSongMetadata } from "$lib/chords/chordproConverter"
+    import { extractBaseKey } from "$lib/chords/transpose"
     import { t } from "$lib/state/i18n.svelte"
     import HighlightedTextarea from "../common/HighlightedTextarea.svelte"
-    import ChordPro from "../song/ChordPro.svelte"
     import TransposeDialog from "../popups/TransposeDialog.svelte"
-    import { extractBaseKey } from "$lib/chords/transpose"
+    import ChordPro from "../song/ChordPro.svelte"
 
     const DEFAULT_CHORDPRO_TEXT =
         "{title: Amazing Grace}\n\n{c: Verse 1}\n[G]Amazing [Em7]grace, how [Cadd9]sweet the [D]sound\nThat [G]saved a [Em7]wretch like [D]me\nI [G]once was [Em7]lost, but [Cadd9]now am [D]found\nWas [G]blind, but [D]now I [G]see"
     let chordProEditorText = $state(DEFAULT_CHORDPRO_TEXT)
 
+    let extractedData = $derived(extractAndCleanSongMetadata(chordProEditorText))
     let detectedKey = $derived(extractBaseKey(chordProEditorText) || "")
     let selectedTargetKey = $state<string | null>(null)
     let effectiveTargetKey = $derived(selectedTargetKey || detectedKey || "G")
@@ -17,9 +19,8 @@
 
     let demoSong = $derived({
         id: "demo_song",
-        name: "Amazing Grace",
-        content: chordProEditorText,
-        metadata: { artist: "John Newton" }
+        name: extractedData.metadata.title || "",
+        content: chordProEditorText
     })
 
     function resetDemoEditor() {
