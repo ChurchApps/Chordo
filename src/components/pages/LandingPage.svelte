@@ -85,9 +85,11 @@
                 <span class="material-symbols-outlined link-icon">open_in_new</span>
             </a>
         </section>
+    </div>
 
-        <!-- Footer Section -->
-        <footer class="landing-footer">
+    <!-- Footer Section -->
+    <footer class="landing-footer">
+        <div class="footer-inner">
             <div class="banner-card footer-cta">
                 <div class="banner-left">
                     <div class="banner-icon-wrapper">
@@ -125,8 +127,8 @@
                     </a>
                 </div>
             </div>
-        </footer>
-    </div>
+        </div>
+    </footer>
 </main>
 
 <style>
@@ -381,14 +383,23 @@
     /* Footer */
     .landing-footer {
         display: flex;
+        justify-content: center;
+        width: 100%;
+        background: var(--md-sys-color-primary-background);
+        border-top: 1px solid var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.12));
+        box-sizing: border-box;
+    }
+
+    .footer-inner {
+        display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
         gap: 28px;
-        margin-top: 16px;
+        padding: 40px 20px 48px;
+        max-width: 860px;
         width: 100%;
-        padding-top: 24px;
-        border-top: 1px dashed var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.15));
+        box-sizing: border-box;
     }
 
     .footer-bottom {
@@ -459,8 +470,13 @@
 
     @media (max-width: 600px) {
         .landing-container {
-            padding: 24px 12px 40px;
+            padding: 24px 12px 32px;
             gap: 24px;
+        }
+
+        .footer-inner {
+            padding: 28px 12px 36px;
+            gap: 20px;
         }
 
         .banner-card {
