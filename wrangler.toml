@@ -6,7 +6,8 @@ compatibility_date = "2026-08-01"
 routes = [
     { pattern = "chordo.org/api/proxy*", zone_name = "chordo.org" },
     { pattern = "chordo.org/api/share*", zone_name = "chordo.org" },
-    { pattern = "chordo.org/s*", zone_name = "chordo.org" }
+    { pattern = "chordo.org/s", zone_name = "chordo.org" },
+    { pattern = "chordo.org/s/*", zone_name = "chordo.org" }
 ]
 
 [vars]
