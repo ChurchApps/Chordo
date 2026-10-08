@@ -116,7 +116,7 @@ export default defineConfig({
             configFile: path.resolve(__dirname, "svelte.config.js")
         }),
         VitePWA({
-            registerType: "autoUpdate",
+            registerType: "prompt",
             includeAssets: ["icons/icon.svg", "icons/maskable-icon.svg"],
             manifest: {
                 name: "Chordo: Chord Sheet Manager",
@@ -145,7 +145,7 @@ export default defineConfig({
             },
             workbox: {
                 maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-                globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,ttf,wasm,mjs}"],
+                globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,wasm,mjs}"],
                 runtimeCaching: [
                     {
                         urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
