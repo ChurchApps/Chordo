@@ -5,6 +5,8 @@ import { Settings } from "../models/Settings"
 import type { NonFunctionProperties } from "../utils/common"
 import { FileSystem } from "./FileSystem"
 
+let isLoaded = $state<boolean>(false)
+
 type NonFunctionKeys<T> = {
     [K in keyof T]: T[K] extends Function ? never : K
 }[keyof T]
@@ -17,6 +19,14 @@ class StorageManager {
     folders = $state<Folder[]>([])
     lists = $state<List[]>([])
     songs = $state<Song[]>([])
+
+    isLoaded(): boolean {
+        return isLoaded
+    }
+
+    hasContent(): boolean {
+        return this.songs.length > 0 || this.lists.length > 0 || this.folders.length > 0
+    }
 
     constructor() {
         this.load()
@@ -69,6 +79,7 @@ class StorageManager {
         const parsed = await FileSystem.loadConfig<PureAppData>("data")
         if (!parsed) {
             console.warn("No saved data found!")
+            isLoaded = true
             return
         }
 
@@ -81,6 +92,7 @@ class StorageManager {
         this.folders = folders
         this.lists = lists
         this.songs = songs
+        isLoaded = true
     }
 
     importData(data: Partial<AppData>) {
@@ -106,6 +118,7 @@ class StorageManager {
     // DEBUG
     resetAll() {
         Object.assign(this, this.DEFAULT_DATA)
+        isLoaded = true
         this.refreshSongs()
         this.refreshLists()
         this.refreshFolders()

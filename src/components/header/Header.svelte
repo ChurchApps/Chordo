@@ -25,7 +25,7 @@
         }, "")
     )
 
-    const nonTranslatablePages = ["home", "song_live"] as const
+    const nonTranslatablePages = ["home", "landing", "song_live"] as const
 
     let headerTitle = $derived.by(() => {
         if (menuState.customPageTitle) return menuState.customPageTitle
@@ -109,7 +109,7 @@
     }
 </script>
 
-{#if isFullscreenPage(menuState.activePage)}
+{#if isFullscreenPage(menuState.activePage) || menuState.activePage === "landing"}
     <!-- don't show any headers -->
 {:else if searchState.isOpen}
     <header class="top-app-bar search-mode">
