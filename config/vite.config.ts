@@ -122,7 +122,7 @@ export default defineConfig({
                 name: "Chordo: Chord Sheet Manager",
                 short_name: "Chordo",
                 description: "Manage, transpose, and annotate chord sheets in one place. Build setlists in seconds and run your show offline.",
-                theme_color: "#f5aa67",
+                theme_color: "#feddc2",
                 background_color: "#feddc2",
                 display: "standalone",
                 orientation: "any",
