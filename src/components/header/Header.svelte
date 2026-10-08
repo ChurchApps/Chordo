@@ -210,6 +210,10 @@
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
                 {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
+                    <md-icon-button aria-label="Search" onclick={openSearch}>
+                        <span class="material-symbols-outlined">search</span>
+                    </md-icon-button>
+
                     {#if menuState.activePage === "all_songs"}
                         {@const sortOptions = [
                             { id: "artist_asc", label: t("sort", "artist_asc") },
@@ -275,10 +279,6 @@
                             </md-menu>
                         </div>
                     {/if}
-
-                    <md-icon-button aria-label="Search" onclick={openSearch}>
-                        <span class="material-symbols-outlined">search</span>
-                    </md-icon-button>
                 {/if}
 
                 {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}
