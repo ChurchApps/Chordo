@@ -41,9 +41,7 @@
         class:hasMedia
         style="background-color: {paperBg}; color: {isDarkBackground ? '#e6e1e5' : '#111111'}; --font-scale: {fontScale};"
     >
-        {#key targetKey + ":" + semitones + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + paperBg + ":" + fontScale}
-            <ChordPro {songId} {targetKey} {semitones} hideChords={fullscreenState.lyricsOnly} />
-        {/key}
+        <ChordPro {songId} {targetKey} {semitones} hideChords={fullscreenState.lyricsOnly} />
     </div>
 </div>
 

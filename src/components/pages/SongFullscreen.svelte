@@ -102,7 +102,7 @@
     let sliderEl = $state<HTMLDivElement | null>(null)
 
     function initSlider(node: HTMLElement) {
-        node.style.transform = `translateX(-${initialSlideIndex * 100}vw)`
+        node.style.transform = `translate3d(-${initialSlideIndex * 100}vw, 0, 0)`
     }
 
     $effect(() => {
@@ -118,6 +118,8 @@
     let prevTranslate = 0
     let didDrag = false
     let initialPinchDist = 0
+    let moveRafId: number | null = null
+    let transitionTimer: ReturnType<typeof setTimeout> | null = null
 
     // Dynamic pagination mappings
     let pageSongMap = $state<Array<string | null>>([])
@@ -234,9 +236,13 @@
             }
             return
         }
-        if (e.key === "ArrowLeft") {
+        if (e.key === "Escape") {
+            exitSongFullscreen()
+            return
+        }
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") {
             goToPrevPage()
-        } else if (e.key === "ArrowRight" || e.key === " ") {
+        } else if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
             goToNextPage()
         }
     }
@@ -277,18 +283,29 @@
         })
 
         // Capture the active song and page before applying new pagination mappings
-        const currentSongIndexInList = lastActiveOriginalIndex ?? (pageSongIndexMap[currentPageIndex] ?? null)
-        const currentSongId = lastActiveSongId ?? (pageSongMap[currentPageIndex] ?? null)
-        const currentPageInSong = lastActivePageInSong ?? (pageIndexMap[currentPageIndex] ?? 0)
+        const currentSongIndexInList = lastActiveOriginalIndex ?? pageSongIndexMap[currentPageIndex] ?? null
+        const currentSongId = lastActiveSongId ?? pageSongMap[currentPageIndex] ?? null
+        const currentPageInSong = lastActivePageInSong ?? pageIndexMap[currentPageIndex] ?? 0
 
-        pageSongMap = newPageSongMap
-        pageIndexMap = newPageIndexMap
-        pageSongIndexMap = newPageSongIndexMap
-        totalPages = pageSongMap.length || slides.length || 1
+        // Guard state reassignment to avoid unnecessary reactivity cascades if mappings are unchanged
+        const hasMappingChanged =
+            pageSongMap.length !== newPageSongMap.length ||
+            pageIndexMap.length !== newPageIndexMap.length ||
+            pageSongIndexMap.length !== newPageSongIndexMap.length ||
+            newPageSongMap.some((v, idx) => v !== pageSongMap[idx]) ||
+            newPageIndexMap.some((v, idx) => v !== pageIndexMap[idx]) ||
+            newPageSongIndexMap.some((v, idx) => v !== pageSongIndexMap[idx])
+
+        if (hasMappingChanged) {
+            pageSongMap = newPageSongMap
+            pageIndexMap = newPageIndexMap
+            pageSongIndexMap = newPageSongIndexMap
+            totalPages = pageSongMap.length || slides.length || 1
+        }
 
         if (!initialPositionConsumed) {
             restoreInitialPosition(hasAnyPaperPage)
-        } else {
+        } else if (hasMappingChanged) {
             let targetPage = -1
 
             if (currentSongIndexInList !== null) {
@@ -375,10 +392,22 @@
         const delta = e.clientX - startX
         if (Math.abs(delta) > 6) didDrag = true
         currentTranslate = prevTranslate + delta
-        sliderEl.style.transform = `translateX(${currentTranslate}px)`
+
+        if (moveRafId === null) {
+            moveRafId = requestAnimationFrame(() => {
+                moveRafId = null
+                if (sliderEl && isDragging) {
+                    sliderEl.style.transform = `translate3d(${currentTranslate}px, 0, 0)`
+                }
+            })
+        }
     }
 
     function pointerUp(e: PointerEvent) {
+        if (moveRafId !== null) {
+            cancelAnimationFrame(moveRafId)
+            moveRafId = null
+        }
         if (initialPinchDist > 0) {
             isDragging = false
             return
@@ -387,7 +416,7 @@
         isDragging = false
 
         const movedBy = currentTranslate - prevTranslate
-        const viewportWidth = sliderEl.parentElement?.clientWidth || window.innerWidth
+        const viewportWidth = window.innerWidth
         const threshold = viewportWidth * 0.2
 
         if (movedBy < -threshold && currentPageIndex < totalPages - 1) {
@@ -436,18 +465,23 @@
 
     function setPositionByIndex(animate = true) {
         if (!sliderEl) return
-        const viewportWidth = sliderEl.parentElement?.clientWidth || window.innerWidth
+        if (transitionTimer !== null) {
+            clearTimeout(transitionTimer)
+            transitionTimer = null
+        }
+        const viewportWidth = window.innerWidth
         currentTranslate = -currentPageIndex * viewportWidth
         prevTranslate = currentTranslate
 
         const duration = animate ? getTransitionDuration() : 0
 
-        sliderEl.style.transition = duration > 0 ? `transform ${duration}ms ease` : "none"
-        sliderEl.style.transform = `translateX(${currentTranslate}px)`
+        sliderEl.style.transition = duration > 0 ? `transform ${duration}ms cubic-bezier(0.25, 1, 0.5, 1)` : "none"
+        sliderEl.style.transform = `translate3d(${currentTranslate}px, 0, 0)`
 
         if (duration > 0) {
-            setTimeout(() => {
+            transitionTimer = setTimeout(() => {
                 if (sliderEl) sliderEl.style.transition = ""
+                transitionTimer = null
             }, duration)
         } else {
             sliderEl.style.transition = ""
@@ -528,7 +562,17 @@
             }
         })
 
-        const resizeObserver = new ResizeObserver(() => {
+        let lastSliderWidth = sliderEl?.clientWidth || 0
+        let lastSliderHeight = sliderEl?.clientHeight || 0
+
+        const resizeObserver = new ResizeObserver((entries) => {
+            const entry = entries[0]
+            if (entry) {
+                const { width, height } = entry.contentRect
+                if (width === lastSliderWidth && height === lastSliderHeight) return
+                lastSliderWidth = width
+                lastSliderHeight = height
+            }
             scheduleUpdatePageCount(true)
         })
 
@@ -540,6 +584,9 @@
         setPositionByIndex(false)
 
         return () => {
+            clearTimeout(hideTimeout)
+            if (transitionTimer !== null) clearTimeout(transitionTimer)
+            if (moveRafId !== null) cancelAnimationFrame(moveRafId)
             if (updateRafId !== null) cancelAnimationFrame(updateRafId)
             removeFullscreenListener()
             resizeObserver.disconnect()
@@ -560,8 +607,8 @@
 
             <div style="flex:1"></div>
 
+            <MetronomeButton />
             {#if visibleSongId}
-                <MetronomeButton />
                 <TransposeButton />
 
                 <md-icon-button
@@ -672,10 +719,8 @@
                     {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
 
                     <div class="slide" style="--font-scale: {fontScale};">
-                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} onPaginate={() => scheduleUpdatePageCount(false)}>
-                            {#key targetKey + ":" + (song?.lastTransposed ?? "") + ":" + fullscreenState.lyricsOnly + ":" + customBg + ":" + fontScale}
-                                <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
-                            {/key}
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} onPaginate={() => scheduleUpdatePageCount(false)}>
+                            <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
                         </Paper>
                     </div>
                 {:else if slideItem.type === "section"}
@@ -936,6 +981,7 @@
         height: 100dvh;
         box-sizing: border-box;
         flex-shrink: 0;
+        contain: layout paint;
     }
 
     /* Horizontal pagination container */
