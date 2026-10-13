@@ -526,17 +526,6 @@
                 <TransposeButton />
 
                 <md-icon-button
-                    toggle
-                    selected={fullscreenState.lyricsOnly}
-                    onclick={() => setFullscreenLyricsOnly(!fullscreenState.lyricsOnly)}
-                    aria-label={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
-                    title={fullscreenState.lyricsOnly ? t("song_fullscreen", "show_chords") : t("song_fullscreen", "lyrics_only")}
-                >
-                    <md-icon>text_fields</md-icon>
-                    <md-icon slot="selected">text_fields</md-icon>
-                </md-icon-button>
-
-                <md-icon-button
                     onclick={() => {
                         isDrawing = true
                         actionsVisible = false

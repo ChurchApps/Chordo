@@ -358,6 +358,16 @@
                                     <span class="material-symbols-outlined" slot="start">print</span>
                                     <div slot="headline">{t("menu", "print")}</div>
                                 </md-menu-item>
+
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        setActivePopup("settings")
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">tune</span>
+                                    <div slot="headline">{t("menu", "settings")}</div>
+                                </md-menu-item>
                             {:else if menuState.activePage === "song_edit"}
                                 {@const editSong = storage.getSongById(menuState.contentId)}
                                 <md-menu-item
