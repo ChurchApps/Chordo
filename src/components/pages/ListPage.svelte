@@ -350,12 +350,12 @@
     .section-headline {
         font-weight: 600;
         font-size: 0.92rem;
-        color: black;
+        color: var(--md-sys-color-on-surface, #1b1b1f);
         letter-spacing: 0.5px;
     }
 
     .section-icon {
-        color: black;
+        color: var(--md-sys-color-on-surface, #1b1b1f);
         --md-icon-size: 20px;
     }
 

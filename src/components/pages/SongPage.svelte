@@ -167,7 +167,7 @@
     .section-divider-title {
         font-weight: 600;
         font-size: 1.1rem;
-        color: black;
+        color: var(--md-sys-color-on-surface, #1b1b1f);
         letter-spacing: 0.5px;
     }
 
