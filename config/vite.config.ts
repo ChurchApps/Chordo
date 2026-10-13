@@ -64,7 +64,7 @@ export default defineConfig({
         }
     },
     plugins: [
-        // Serve the Cloudflare Worker at /api/* and rewrite share metadata dynamically in dev for /s*
+        // Serve the Cloudflare Worker at /api/* in dev
         {
             name: "dev-api-worker",
             configureServer(server) {
@@ -96,20 +96,6 @@ export default defineConfig({
                         res.end(`API error: ${err?.message || err}`)
                     }
                 })
-            },
-            async transformIndexHtml(html, ctx) {
-                const url = new URL(ctx.originalUrl || ctx.path, "http://x")
-                if (url.pathname !== "/s" && url.pathname !== "/s/") return html
-
-                const id = url.searchParams.get("id")
-                if (!id) return html
-
-                try {
-                    const { title } = await (await import("../workers/sharePage.ts")).fetchShareMetadata(id)
-                    return html.replaceAll("Chordo: Free Chord Sheet Manager", title)
-                } catch {
-                    return html
-                }
             }
         },
         svelte({
@@ -144,7 +130,7 @@ export default defineConfig({
                 ]
             },
             workbox: {
-                navigateFallbackDenylist: [/^\/s/],
+                navigateFallbackDenylist: [/^\/api\//],
                 maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
                 globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,wasm,mjs}"],
                 runtimeCaching: [

@@ -25,7 +25,7 @@ export function getShareBaseUrl(): string {
 }
 
 export function createShareUrl(id: string): string {
-    return `${getShareBaseUrl()}/s?id=${encodeURIComponent(id)}`
+    return `${getShareBaseUrl()}/s/${encodeURIComponent(id)}`
 }
 
 export async function getCachedShareUrl(payload: SharePayload): Promise<string | null> {
@@ -85,8 +85,8 @@ function cacheShareData(id: string, hash: string, payload: SharePayload): void {
 
 export function extractSharePayloadFromUrl(url: string = typeof window !== "undefined" ? window.location.href : ""): string | null {
     if (!url) return null
-    // Matches /s?id=..., /?share=..., /?s=..., /?id=..., or /s/:id
-    const match = url.match(/[?&#](?:id|share|s)=([^&#]+)/) || url.match(/\/s\/([^?&#]+)/)
+    // Matches /s/:id, /s?id=..., /?share=..., /?s=..., or /?id=...
+    const match = url.match(/[?&#](?:id|share|s)=([^&#]+)/) || url.match(/\/s\/([^?&#/]+)/)
     return match ? decodeURIComponent(match[1]) : null
 }
 
@@ -94,6 +94,7 @@ function getCleanId(rawId: string): string {
     return decodeURIComponent(rawId)
         .replace(/^https?:\/\/content\.chordo\.org\//, "")
         .replace(/\.json$/, "")
+        .replace(/\/+$/, "")
         .trim()
 }
 
