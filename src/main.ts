@@ -1,5 +1,6 @@
-import { mount } from "svelte"
+import "$lib/utils/polyfills"
 import "$lib/styles/app.css"
+import { mount } from "svelte"
 import App from "./App.svelte"
 
 const app = mount(App, {

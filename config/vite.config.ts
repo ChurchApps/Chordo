@@ -42,11 +42,15 @@ export default defineConfig({
     root: rootDir,
     publicDir: path.resolve(rootDir, "public"),
     build: {
+        target: ["es2020", "safari15"],
         outDir: path.resolve(rootDir, "dist"),
         emptyOutDir: true,
         rollupOptions: {
             output: {
                 manualChunks(id) {
+                    if (id.includes("polyfills")) {
+                        return "polyfills"
+                    }
                     if (id.includes("node_modules/@material/web")) {
                         return "material-web"
                     }
