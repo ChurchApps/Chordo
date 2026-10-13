@@ -101,6 +101,16 @@
     let totalPages = $state(1)
     let sliderEl = $state<HTMLDivElement | null>(null)
 
+    function initSlider(node: HTMLElement) {
+        node.style.transform = `translateX(-${initialSlideIndex * 100}vw)`
+    }
+
+    $effect(() => {
+        // When drawing mode opens or closes, ensure slider position stays locked to current page
+        isDrawing
+        if (sliderEl && initialPositionConsumed) setPositionByIndex(false)
+    })
+
     // Gesture tracking state
     let isDragging = false
     let startX = 0
@@ -198,7 +208,10 @@
 
     function handleKeydown(e: KeyboardEvent) {
         if (isDrawing) {
-            if (e.key === "Escape") isDrawing = false
+            if (e.key === "Escape") {
+                isDrawing = false
+                setPositionByIndex(false)
+            }
             return
         }
         if (e.key === "ArrowLeft") {
@@ -530,6 +543,7 @@
                         isDrawing = true
                         actionsVisible = false
                         clearTimeout(hideTimeout)
+                        setPositionByIndex(false)
                     }}
                     aria-label="Draw"
                 >
@@ -612,12 +626,13 @@
             role="region"
             aria-label="Song carousel"
             bind:this={sliderEl}
+            use:initSlider
             onpointerdown={pointerDown}
             onpointermove={pointerMove}
             onpointerup={pointerUp}
             onpointercancel={pointerUp}
             onlostpointercapture={pointerUp}
-            style="touch-action: {isDrawing ? 'none' : 'pan-y'}; transform: translateX(-{initialSlideIndex * 100}vw);"
+            style:touch-action={isDrawing ? "none" : "pan-y"}
         >
             {#each slides as slideItem, i}
                 {#if slideItem.type === "song"}
@@ -676,6 +691,7 @@
                             visibleSong.drawings[songPageIndex] = dataUrl
                             storage.updateSong(visibleSong)
                             isDrawing = false
+                            setPositionByIndex(false)
                         }}
                     />
                 {/key}
