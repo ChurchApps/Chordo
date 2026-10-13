@@ -5,7 +5,7 @@
     import { metronomeState } from "$lib/state/metronome.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
+    import { enterFullscreen, exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
     import { parsePlaybackUrl } from "$lib/utils/playback"
     import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
     import { onMount } from "svelte"
@@ -498,6 +498,10 @@
             if (isActive) {
                 hasBeenFullscreen = true
             } else if (hasBeenFullscreen) {
+                if (isDrawing) {
+                    hasBeenFullscreen = false
+                    return
+                }
                 exitSongFullscreen()
             }
         })
@@ -692,6 +696,7 @@
                             storage.updateSong(visibleSong)
                             isDrawing = false
                             setPositionByIndex(false)
+                            if (!isFullscreenActive()) enterFullscreen()
                         }}
                     />
                 {/key}

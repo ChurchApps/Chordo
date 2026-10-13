@@ -150,8 +150,23 @@ export class DrawingEngine {
             resizeObserver.observe(canvas.parentElement)
         }
 
+        const preventTouchDefault = (e: TouchEvent) => {
+            if (this.options.getEditable()) {
+                e.preventDefault()
+            }
+        }
+
+        canvas.addEventListener("touchstart", preventTouchDefault, { passive: false })
+        canvas.addEventListener("touchmove", preventTouchDefault, { passive: false })
+        canvas.addEventListener("touchend", preventTouchDefault, { passive: false })
+        canvas.addEventListener("touchcancel", preventTouchDefault, { passive: false })
+
         return () => {
             resizeObserver.disconnect()
+            canvas.removeEventListener("touchstart", preventTouchDefault)
+            canvas.removeEventListener("touchmove", preventTouchDefault)
+            canvas.removeEventListener("touchend", preventTouchDefault)
+            canvas.removeEventListener("touchcancel", preventTouchDefault)
         }
     }
 
