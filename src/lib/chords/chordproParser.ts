@@ -1,7 +1,7 @@
-import { transposeChord, chordToNashville, isChordToken, isRepeatToken, extractBaseKey } from "./transpose"
+import { transposeChord, chordToNashville, isChordToken, isRepeatToken, extractBaseKey, REPEAT_PATTERN } from "./transpose"
 import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
 
-export { isChordToken, isRepeatToken } from "./transpose"
+export { isChordToken, isRepeatToken, REPEAT_PATTERN } from "./transpose"
 
 export interface ChordProToken {
     chord: string // Transposed chord text or empty string
@@ -38,13 +38,18 @@ export interface ParsedChordPro {
     sections: ParsedSection[]
 }
 
+const REPEAT_SPLIT_REGEX = new RegExp(
+    `^(.*?)(\\s*[\\(\\[]\\s*${REPEAT_PATTERN}\\s*[\\)\\]]|\\s+${REPEAT_PATTERN})\\s*$`,
+    "i"
+)
+
 /**
  * Splits a section/comment header into base name and repeat value if present.
  * E.g. "Chorus (x2)" -> { text: "Chorus", repeat: "(x2)" }
  */
 export function splitCommentRepeat(comment?: string): { text: string; repeat: string } | null {
     if (!comment) return null
-    const match = comment.match(/^(.*?)(\s*[\(\[]\s*(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*[\)\]]|\s+(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*))\s*$/i)
+    const match = comment.match(REPEAT_SPLIT_REGEX)
     if (match && match[2]) {
         return {
             text: match[1].trim(),
@@ -74,24 +79,30 @@ const SECTION_KEYWORDS =
 export function matchSectionHeader(line: string): string | null {
     const raw = line.trim()
     if (!raw || raw.includes("|")) return null
-    if (/^[\(\[]\s*(?:x\s*\d+|\d+\s*x)\s*[\)\]]$/i.test(raw)) return null
+    if (isRepeatToken(raw)) return null
 
     // 1. Braced directive: {c: ...}, {comment: ...}, {section: ...}
     const bracedMatch = raw.match(/^\{(?:c|comment|section):\s*(.+?)\}$/i)
     if (bracedMatch) return normalizeSection(bracedMatch[1])
 
     // A bracketed section header must have the entire line enclosed in brackets: e.g. [Verse 1] or [Chorus] (x2)
-    const isEnclosedBracket = /^[\(\[][^\)\]]+[\)\]](?:\s*(?:[\(\[]?(?:x|\*|\b)\s*\d+[\)\]]?))?\s*$/i.test(raw)
+    const isEnclosedBracket = new RegExp(
+        `^[\\(\\[][^\\)\\]]+[\\)\\]](?:\\s*(?:[\\(\\[]?${REPEAT_PATTERN}[\\)\\]]?))?\\s*$`,
+        "i"
+    ).test(raw)
 
     // Strip leading/trailing decorative markers and colons
     let str = raw.replace(/^[\s▒█■▶►◆●#=\-\*~_]+/g, "").replace(/[\s\*:]+$/g, "")
 
-    // Extract repeat multiplier (e.g. (x2), x4, (2x))
+    // Extract repeat multiplier (e.g. (x2), x4, (2x), x4/6, (x4/6), x4/x6)
     let mult = ""
-    const multMatch = str.match(/(?:\s*[\(\[]\s*(?:x\s*|\*\s*)?(\d+)\s*(?:x|\)|\b|\])+|\s+(?:x|\*)\s*(\d+))\s*$/i)
-    if (multMatch) {
-        mult = `x${multMatch[1] || multMatch[2]}`
-        str = str.slice(0, multMatch.index).trim()
+    const repeatSplit = splitCommentRepeat(str)
+    if (repeatSplit) {
+        const cleanRepeat = repeatSplit.repeat.replace(/^[\(\[]|[\)\]]$/g, "").trim()
+        mult = cleanRepeat.startsWith("x") || cleanRepeat.startsWith("*")
+            ? cleanRepeat
+            : (cleanRepeat.endsWith("x") || cleanRepeat.endsWith("*") ? cleanRepeat : `x${cleanRepeat}`)
+        str = repeatSplit.text
     }
 
     // Strip outer brackets/parentheses if whole string was enclosed
@@ -211,8 +222,10 @@ export function parseChordPro(text: string, semitones: number | "NNS" = 0): Pars
     }
 }
 
-const SEGMENT_REGEX =
-    /\((?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\)\s*|\[(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\]\s*|\b(?:x\s+\d+|\d+\s+x)\b\s*|\S+\s*|\s+/gi
+const SEGMENT_REGEX = new RegExp(
+    `\\((?:${REPEAT_PATTERN})\\)\\s*|\\[(?:${REPEAT_PATTERN})\\]\\s*|\\b(?:x\\s+\\d+(?:\\s*\\/\\s*x?\\s*\\d+)*|\\d+\\s+x)\\b\\s*|\\S+\\s*|\\s+`,
+    "gi"
+)
 
 export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 0, baseKey = "C"): { tokens: ChordProToken[]; words: ChordWord[] } {
     const trimmedLine = line.trimStart()
@@ -235,9 +248,7 @@ export function parseLyricLineToWords(line: string, semitones: number | "NNS" = 
             lyricPart = lyricPart.trimStart()
         }
 
-        const trailingRepeatMatch = bracketContent.match(
-            /^(.*?)(\s*[\(\[]\s*(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*[\)\]]|\s+(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*))\s*$/i
-        )
+        const trailingRepeatMatch = bracketContent.match(REPEAT_SPLIT_REGEX)
 
         if (isRepeatToken(bracketContent)) {
             // [x2] or [(x2)] is a repeat value, not a chord!
