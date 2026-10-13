@@ -94,11 +94,18 @@ export function transposeNote(note: string, semitones = 0, preferFlats = false):
 export const CHORD_REGEX =
     /^[A-GH](b|#)?(m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:(?:maj|min|m|M|sus|add|dim|aug|\+|\-)?\d*)*(?:[\(\[](?:b|#|\+|\-)?\d+[\)\]])*(?:[\b#\+\-]\d+)*\.?$/i
 
-export const REPEAT_TOKEN_REGEX =
-    /^(?:[\(\[]\s*)?(?:x\s*\d+|\d+\s*x|\*\s*\d+|\d+\s*\*)\s*(?:[\)\]]\s*)*$/i
+// Core repeat multiplier pattern e.g. "x2", "x4", "4x", "*2", "x4/6", "x4/x6", "4/6x", "x2/4/6"
+export const REPEAT_PATTERN =
+    /(?:(?:[x*]\s*\d+|\d+\s*[x*])(?:\s*\/\s*(?:[x*]\s*\d+|\d+\s*[x*]|\d+))*|\d+(?:\s*\/\s*\d+)*(?:\s*\/\s*(?:[x*]\s*\d+|\d+\s*[x*]))(?:\s*\/\s*(?:[x*]\s*\d+|\d+\s*[x*]|\d+))*)/
+        .source
+
+export const REPEAT_TOKEN_REGEX = new RegExp(
+    `^(?:[\\(\\[]\\s*)*${REPEAT_PATTERN}\\s*(?:[\\)\\]]\\s*)*$`,
+    "i"
+)
 
 /**
- * Checks if a token represents a repeat multiplier (e.g. "x2", "x4", "(x2)", "[x2]", "2x", "*2").
+ * Checks if a token represents a repeat multiplier (e.g. "x2", "x4", "x4/6", "x4/x6", "(x2)", "[x2]", "2x", "*2").
  */
 export function isRepeatToken(token: string): boolean {
     if (!token) return false

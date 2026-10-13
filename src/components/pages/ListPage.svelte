@@ -94,14 +94,16 @@
 
     function onDragEnd() {
         resetDragState(reorderState)
-        selectedIndices = []
     }
 
     function onBatchMove(fromIndices: number[], targetIdx: number) {
         if (!list || fromIndices.length === 0) return
         const { updatedList } = applyBatchMove(list.songs, fromIndices, targetIdx)
-        list.setSongs(updatedList)
-        selectedIndices = []
+        const isChanged = updatedList.length !== list.songs.length || updatedList.some((item, i) => item !== list.songs[i])
+        if (isChanged) {
+            list.setSongs(updatedList)
+            selectedIndices = []
+        }
     }
 
     function startPress(e: PointerEvent, originalIdx: number) {
@@ -350,12 +352,12 @@
     .section-headline {
         font-weight: 600;
         font-size: 0.92rem;
-        color: black;
+        color: var(--md-sys-color-on-surface, #1b1b1f);
         letter-spacing: 0.5px;
     }
 
     .section-icon {
-        color: black;
+        color: var(--md-sys-color-on-surface, #1b1b1f);
         --md-icon-size: 20px;
     }
 

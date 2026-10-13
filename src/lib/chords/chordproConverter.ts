@@ -1,5 +1,5 @@
 import { METADATA_ALIAS_MAP, type SongMetadata } from "./metadata"
-import { matchSectionHeader, isChordToken } from "./chordproParser"
+import { matchSectionHeader, isChordToken, isRepeatToken } from "./chordproParser"
 
 /**
  * Checks if a line is a guitar tab staff (e.g. "E |---0-5-2---|")
@@ -27,7 +27,7 @@ export function isChordLine(line: string): boolean {
     let totalNonPunctuation = 0
 
     for (const token of tokens) {
-        if (/^\(?x?\d+\)?$/i.test(token)) continue
+        if (isRepeatToken(token) || /^\(?x?\d+\)?$/i.test(token)) continue
         if (token === "." || token === "|" || token === "/" || token === "%" || token === "-") continue
 
         totalNonPunctuation++

@@ -89,18 +89,13 @@ export function handleItemDragOver(e: DragEvent, currentVisualIdx: number, state
 /**
  * Handles `drop` on a specific item target.
  */
-export function handleItemDrop(
-    e: DragEvent,
-    targetIdx: number,
-    state: ReorderState,
-    onMoveBatch: (fromIndices: number[], targetIdx: number) => void
-): void {
+export function handleItemDrop(e: DragEvent, targetIdx: number, state: ReorderState, onMoveBatch: (fromIndices: number[], targetIdx: number) => void): void {
     e.preventDefault()
     e.stopPropagation()
     if (state.draggedIdx !== null) {
         const indices = state.draggedIndices.length > 0 ? state.draggedIndices : [state.draggedIdx]
         const target = state.dragOverIdx !== null ? state.dragOverIdx : targetIdx
-        onMoveBatch(indices, target)
+        if (target !== state.draggedIdx) onMoveBatch(indices, target)
     }
     resetDragState(state)
 }
@@ -119,16 +114,11 @@ export function handleContainerDragOver(e: DragEvent, totalItemsCount: number, s
 /**
  * Handles `drop` on the empty container area (moves item to the end).
  */
-export function handleContainerDrop(
-    e: DragEvent,
-    totalItemsCount: number,
-    state: ReorderState,
-    onMoveBatch: (fromIndices: number[], targetIdx: number) => void
-): void {
+export function handleContainerDrop(e: DragEvent, totalItemsCount: number, state: ReorderState, onMoveBatch: (fromIndices: number[], targetIdx: number) => void): void {
     e.preventDefault()
     if (state.draggedIdx !== null) {
         const indices = state.draggedIndices.length > 0 ? state.draggedIndices : [state.draggedIdx]
-        onMoveBatch(indices, totalItemsCount)
+        if (totalItemsCount !== state.draggedIdx) onMoveBatch(indices, totalItemsCount)
     }
     resetDragState(state)
 }
@@ -212,7 +202,7 @@ export function handlePointerDragStart(
             const rect = scrollParent.getBoundingClientRect()
             const edge = 60
             if (latestClientY < rect.top + edge) {
-                const speed = Math.max(2, Math.min(14, ((rect.top + edge) - latestClientY) / 3))
+                const speed = Math.max(2, Math.min(14, (rect.top + edge - latestClientY) / 3))
                 scrollParent.scrollTop -= speed
                 updateDragOver(latestClientX, latestClientY)
             } else if (latestClientY > rect.bottom - edge) {
@@ -278,4 +268,3 @@ export function handlePointerDragStart(
     window.addEventListener("pointerup", onPointerUp)
     window.addEventListener("pointercancel", onPointerCancel)
 }
-

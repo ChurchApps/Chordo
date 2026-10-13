@@ -3,13 +3,14 @@
     import { Settings, type PageSwitchAnimation } from "$lib/models/Settings"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { getLocale, SUPPORTED_LANGUAGES, t, type SupportedLocale } from "$lib/state/i18n.svelte"
-    import { menuState, popupState, setActivePopup } from "$lib/state/menu.svelte"
+    import { fullscreenState, menuState, popupState, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import "@material/web/iconbutton/filled-tonal-icon-button.js"
     import "@material/web/select/outlined-select.js"
     import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
+    import "@material/web/switch/switch.js"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
     let currentTheme = $derived<SupportedTheme>(getTheme())
@@ -18,8 +19,9 @@
 
     // Paper options state
     const isSongSettings = $derived(
-        popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song")
+        popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song" || menuState.activePage === "all_songs")
     )
+    const isFullscreen = $derived(menuState.activePage === "song_live")
 
     const BACKGROUND_PRESETS = [
         { id: "white", color: "#ffffff", border: "#cac4d0", label: "White" },
@@ -249,34 +251,54 @@
 
             <hr class="section-divider" />
 
-            <!-- Page Switch Animation Section -->
+            <!-- Chords vs Text View Option -->
             <div class="settings-section">
-                <div class="section-title">
-                    <span class="material-symbols-outlined section-icon">animation</span>
-                    {t("song_fullscreen", "page_animation")}
-                </div>
-
-                <md-outlined-select
-                    value={currentPageAnimation}
-                    onchange={(e: Event) => {
-                        const target = e.target as HTMLSelectElement
-                        if (target?.value) {
-                            selectPageAnimation(target.value as PageSwitchAnimation)
-                        }
-                    }}
-                    class="animation-select"
-                >
-                    <md-select-option value="none" selected={currentPageAnimation === "none"}>
-                        <div slot="headline">{t("song_fullscreen", "animation_none")}</div>
-                    </md-select-option>
-                    <md-select-option value="fast" selected={currentPageAnimation === "fast"}>
-                        <div slot="headline">{t("song_fullscreen", "animation_fast")}</div>
-                    </md-select-option>
-                    <md-select-option value="slow" selected={currentPageAnimation === "slow"}>
-                        <div slot="headline">{t("song_fullscreen", "animation_slow")}</div>
-                    </md-select-option>
-                </md-outlined-select>
+                <label class="option-toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">{t("song_fullscreen", "lyrics_only")}</div>
+                    </div>
+                    <md-switch
+                        selected={fullscreenState.lyricsOnly}
+                        onchange={(e: Event) => {
+                            const val = Boolean((e.target as any).selected ?? (e.target as any).checked)
+                            setFullscreenLyricsOnly(val)
+                        }}
+                    ></md-switch>
+                </label>
             </div>
+
+            {#if isFullscreen}
+                <hr class="section-divider" />
+
+                <!-- Page Switch Animation Section -->
+                <div class="settings-section">
+                    <div class="section-title">
+                        <span class="material-symbols-outlined section-icon">animation</span>
+                        {t("song_fullscreen", "page_animation")}
+                    </div>
+
+                    <md-outlined-select
+                        value={currentPageAnimation}
+                        onchange={(e: Event) => {
+                            const target = e.target as HTMLSelectElement
+                            if (target?.value) {
+                                selectPageAnimation(target.value as PageSwitchAnimation)
+                            }
+                        }}
+                        class="animation-select"
+                    >
+                        <md-select-option value="none" selected={currentPageAnimation === "none"}>
+                            <div slot="headline">{t("song_fullscreen", "animation_none")}</div>
+                        </md-select-option>
+                        <md-select-option value="fast" selected={currentPageAnimation === "fast"}>
+                            <div slot="headline">{t("song_fullscreen", "animation_fast")}</div>
+                        </md-select-option>
+                        <md-select-option value="slow" selected={currentPageAnimation === "slow"}>
+                            <div slot="headline">{t("song_fullscreen", "animation_slow")}</div>
+                        </md-select-option>
+                    </md-outlined-select>
+                </div>
+            {/if}
         {:else}
             <!-- Theme Color Section -->
             <div class="settings-section">
@@ -546,5 +568,37 @@
         font-size: 0.85rem;
         font-weight: 600;
         color: var(--md-sys-color-primary);
+    }
+
+    .option-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
+        background: transparent;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.15s ease;
+    }
+
+    .option-toggle-row:hover {
+        background-color: var(--md-sys-color-surface-container-high, rgba(0, 0, 0, 0.05));
+    }
+
+    .toggle-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .toggle-title {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: var(--md-sys-color-on-surface, #1d1b20);
     }
 </style>

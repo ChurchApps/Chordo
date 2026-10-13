@@ -5,6 +5,7 @@
         pageIndex,
         background = "white",
         padding = 20, // mm
+        fontScale,
         headerText = "",
         onPaginate,
         children
@@ -12,6 +13,7 @@
         pageIndex?: number | null
         background?: string
         padding?: number
+        fontScale?: number
         headerText?: string
         onPaginate?: () => void
         children: any
@@ -194,6 +196,7 @@
 
             // If a page only has content in the first column, switch it to single-column layout so lines don't break
             const chordProContainers = pagesContainerEl.querySelectorAll<HTMLElement>(".chordpro-container")
+            const singleColumnTargets: HTMLElement[] = []
             chordProContainers.forEach((chordProEl) => {
                 const containerWidth = chordProEl.clientWidth
                 if (containerWidth <= 0) return
@@ -202,10 +205,13 @@
                 const hasSecondColumn = Array.from(lines).some((el) => el.offsetLeft > containerWidth * 0.4)
 
                 if (!hasSecondColumn) {
-                    chordProEl.style.setProperty("--num-columns", "1")
-                    chordProEl.style.columnCount = "1"
-                    chordProEl.classList.add("single-column")
+                    singleColumnTargets.push(chordProEl)
                 }
+            })
+            singleColumnTargets.forEach((chordProEl) => {
+                chordProEl.style.setProperty("--num-columns", "1")
+                chordProEl.style.columnCount = "1"
+                chordProEl.classList.add("single-column")
             })
 
             // Update "Page X / Y" footers
@@ -242,14 +248,31 @@
         })
     }
 
+    let prevPadding: number | undefined
+    let prevHeader: string | undefined
+    let prevPageIndex: number | null | undefined
+    let prevFontScale: number | undefined
+
     $effect(() => {
-        padding
-        headerText
-        pageIndex
-        schedulePaginate()
+        if (padding !== prevPadding || headerText !== prevHeader || pageIndex !== prevPageIndex || fontScale !== prevFontScale) {
+            const isInitial = prevPadding === undefined && prevHeader === undefined && prevPageIndex === undefined && prevFontScale === undefined
+            prevPadding = padding
+            prevHeader = headerText
+            prevPageIndex = pageIndex
+            prevFontScale = fontScale
+            if (!isInitial) {
+                schedulePaginate()
+            }
+        }
     })
 
     onMount(() => {
+        // Initialize last dimensions so the initial ResizeObserver event doesn't trigger a duplicate pagination pass
+        if (containerEl) {
+            lastWidth = containerEl.clientWidth
+            lastHeight = containerEl.clientHeight
+        }
+
         // Re-paginate when container size changes
         const resizeObserver = new ResizeObserver((entries) => {
             const entry = entries[0]

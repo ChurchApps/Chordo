@@ -2,7 +2,7 @@ import type { List } from "$lib/models/List"
 import type { Song } from "$lib/models/Song"
 import { parseSongSections } from "$lib/chords/sectionManager"
 import { matchSectionHeader } from "$lib/chords/chordproParser"
-import { isChordToken, transposeChord, getSemitoneDistance } from "$lib/chords/transpose"
+import { isChordToken, isRepeatToken, transposeChord, getSemitoneDistance } from "$lib/chords/transpose"
 import { isChordLine } from "$lib/chords/chordproConverter"
 import { getId } from "$lib/utils/common"
 import { showToast } from "$lib/state/toast.svelte"
@@ -27,6 +27,7 @@ export interface FreeShowTextItem {
 }
 
 export interface FreeShowSlide {
+    globalGroup?: string
     group: string | null
     color: string | null
     settings: Record<string, unknown>
@@ -82,6 +83,7 @@ export interface FreeShowProjectItem {
 
 export interface FreeShowProject {
     project: {
+        id: string
         name: string
         created: number
         modified: number
@@ -89,6 +91,7 @@ export interface FreeShowProject {
         shows: FreeShowProjectItem[]
     }
     shows: Record<string, FreeShowShow>
+    categories: Record<string, { name: string; icon: string }>
 }
 
 function getId5(): string {
@@ -105,14 +108,38 @@ function cleanGroupName(groupName: string): string {
     )
 }
 
+// const defaultGroups = {
+//     break: { color: "#f5255e" },
+//     bridge: { color: "#f52598" },
+//     chorus: { color: "#f525d2" },
+//     intro: { color: "#d525f5" },
+//     outro: { color: "#a525f5" },
+//     pre_chorus: { color: "#8825f5" },
+//     tag: { color: "#7525f5" },
+//     verse: { color: "#5825f5" }
+// }
+
+function getGlobalGroup(groupName: string): string {
+    const lower = groupName.toLowerCase()
+    if (/(?:pre[-_\s]?chorus|prechorus|pre[-_\s]?ref(?:reng)?)\b/i.test(lower)) return "pre_chorus"
+    if (/(?:chorus|kor|refrain|refreng|ref)\b/i.test(lower)) return "chorus"
+    if (/(?:bridge|bro|b[-_\s]?del)\b/i.test(lower)) return "bridge"
+    if (/(?:intro(?:duction)?|innledning)\b/i.test(lower)) return "intro"
+    if (/(?:outro|ending|avslutning|coda)\b/i.test(lower)) return "outro"
+    if (/(?:tag|hook|vamp|spoken)\b/i.test(lower)) return "tag"
+    if (/(?:break|solo|instrumental|interlude|mellomspill)\b/i.test(lower)) return "break"
+    if (/(?:verse|vers|v\d+)\b/i.test(lower) || /^v\b/i.test(lower)) return "verse"
+    return "verse"
+}
+
 function getGroupColor(groupName: string): string {
     const lower = groupName.toLowerCase()
+    if (/(?:pre[-_\s]?chorus|prechorus|pre[-_\s]?ref(?:reng)?)\b/i.test(lower)) return "#f59e0b"
     if (/(?:chorus|kor|refrain|refreng|ref)\b/i.test(lower)) return "#e11d48"
-    if (/(?:bridge|bro|b-del)\b/i.test(lower)) return "#10b981"
-    if (/(?:pre-chorus|prechorus|pre-ref|pre-refreng)\b/i.test(lower)) return "#f59e0b"
+    if (/(?:bridge|bro|b[-_\s]?del)\b/i.test(lower)) return "#10b981"
     if (/(?:intro)\b/i.test(lower)) return "#8b5cf6"
     if (/(?:outro|ending|avslutning|coda)\b/i.test(lower)) return "#6b7280"
-    if (/(?:solo|instrumental|interlude|mellomspill)\b/i.test(lower)) return "#06b6d4"
+    if (/(?:break|solo|instrumental|interlude|mellomspill)\b/i.test(lower)) return "#06b6d4"
     if (/(?:tag|hook|vamp|spoken)\b/i.test(lower)) return "#ec4899"
     return "#5825f5"
 }
@@ -122,21 +149,80 @@ function extractChord(rawToken: string): string | null {
     if (!token) return null
     if (isChordToken(token)) return token
 
-    // Match chords with rhythm slashes or dots: e.g. "E//", "Eb/G//", "A2///", "F#m7.."
-    const match = token.match(/^([A-GH](?:b|#)?(?:m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:\/[A-GH](?:b|#)?)?)/i)
+    // Match chords with rhythm slashes, dots, or spaces: e.g. "E//", "Eb/G//", "A2///", "F#m7.."
+    const match = token.match(/^([A-GH](?:b|#)?(?:m|maj|min|dim|aug|sus|add|alt|o|°|ø|\+|\-)?\d*(?:\/[A-GH](?:b|#)?)?)([\/.\s-]+)$/i)
     if (match && isChordToken(match[1])) {
         return match[1]
     }
     return null
 }
 
+function extractRepeatCountFromBottom(lines: string[]): { repeatCount: number; cleanLines: string[] } {
+    const cleanLines = [...lines]
+    let bottomIdx = cleanLines.length - 1
+    while (bottomIdx >= 0 && !cleanLines[bottomIdx].trim()) {
+        bottomIdx--
+    }
+
+    if (bottomIdx < 0) {
+        return { repeatCount: 1, cleanLines }
+    }
+
+    const rawLine = cleanLines[bottomIdx].trim()
+
+    // 1. Bottom line is entirely a repeat directive: e.g. "[x4]", "(x4)", "[4x]", "x4"
+    const standaloneMatch = rawLine.match(/^[\[\(]?\s*(?:x\s*(\d+)|(\d+)\s*x)\s*[\]\)]?$/i)
+    if (standaloneMatch) {
+        const count = parseInt(standaloneMatch[1] || standaloneMatch[2], 10)
+        cleanLines.splice(bottomIdx, 1)
+        return { repeatCount: count > 0 ? count : 1, cleanLines }
+    }
+
+    // 2. Bottom line ends with a repeat directive: e.g. "Some lyrics [x4]" or "[G]Some lyrics (x4)"
+    const trailingMatch = rawLine.match(/^(.*?)[\s\t]*[\[\(]\s*(?:x\s*(\d+)|(\d+)\s*x)\s*[\]\)]\s*$/i)
+    if (trailingMatch) {
+        const count = parseInt(trailingMatch[2] || trailingMatch[3], 10)
+        cleanLines[bottomIdx] = trailingMatch[1].trimEnd()
+        return { repeatCount: count > 0 ? count : 1, cleanLines }
+    }
+
+    return { repeatCount: 1, cleanLines }
+}
+
+function trimLine(text: string, chords: FreeShowChord[] = []): { text: string; chords: FreeShowChord[] } {
+    if (!text.trim()) {
+        return { text: "", chords }
+    }
+
+    const leadingSpaces = text.length - text.trimStart().length
+    let trimmedText = text.trimStart()
+
+    const shiftedChords = chords.map((c) => ({
+        ...c,
+        pos: Math.max(0, c.pos - leadingSpaces)
+    }))
+
+    const maxChordPos = shiftedChords.reduce((max, c) => Math.max(max, c.pos), 0)
+    const minLengthNeeded = shiftedChords.length > 0 ? maxChordPos : 0
+
+    if (trimmedText.trimEnd().length >= minLengthNeeded) {
+        trimmedText = trimmedText.trimEnd()
+    } else {
+        trimmedText = trimmedText.slice(0, Math.max(trimmedText.trimEnd().length, minLengthNeeded))
+    }
+
+    return { text: trimmedText, chords: shiftedChords }
+}
+
 function parseSectionLine(rawLine: string, semitones = 0): { text: string; chords: FreeShowChord[] } | null {
     let line = rawLine.trim()
-    if (!line || (line.startsWith("{") && line.endsWith("}")) || matchSectionHeader(line)) return null
+    if (!line || (line.startsWith("{") && line.endsWith("}")) || matchSectionHeader(line) || isRepeatToken(line)) return null
 
-    // Strip outer brackets if enclosing a bar progression or chord line: e.g. "[| Ab . . .| Cm . . .|]"
-    if (/^\[.+\]$/.test(line) && (line.includes("|") || isChordLine(line.slice(1, -1)))) {
-        line = line.slice(1, -1).trim()
+    // Strip outer brackets if enclosing a single bar progression or chord line: e.g. "[| Ab . . .| Cm . . .|]"
+    if (line.startsWith("[") && line.endsWith("]") && !line.slice(1, -1).includes("[") && !line.slice(1, -1).includes("]")) {
+        if (line.includes("|") || isChordLine(line.slice(1, -1))) {
+            line = line.slice(1, -1).trim()
+        }
     }
 
     // 1. Bracketed chordpro lines: e.g. "[Eb]Gud, vekk..." or "[|] [E//] [///] [|]"
@@ -158,7 +244,7 @@ function parseSectionLine(rawLine: string, semitones = 0): { text: string; chord
                     }
                 }
             }
-            return text.trim() || chords.length ? { text, chords } : null
+            return text.trim() || chords.length ? trimLine(text, chords) : null
         } else {
             // Chord / rhythm progression line without lyrics: e.g. "[|] [E//] [///] [|] [E] [/] [///] [|]"
             let text = ""
@@ -176,7 +262,7 @@ function parseSectionLine(rawLine: string, semitones = 0): { text: string; chord
                 }
             }
             if (chords.length) {
-                return { text: " ".repeat(text.length), chords }
+                return trimLine("", chords)
             }
         }
     }
@@ -193,17 +279,16 @@ function parseSectionLine(rawLine: string, semitones = 0): { text: string; chord
             }
         }
         if (chords.length) {
-            const maxPos = Math.max(...chords.map((c) => c.pos + c.key.length))
-            return { text: " ".repeat(Math.max(line.length, maxPos, chords.length * 8)), chords }
+            return trimLine("", chords)
         }
     }
 
     // 3. Plain lyric line
-    return { text: line, chords: [] }
+    return trimLine(line, [])
 }
 
 export function convertSongToFreeShow(song: Song, transposedKey?: string): { showId: string; show: FreeShowShow } {
-    const showId = getId("show")
+    const showId = song.id
     const layoutId = getId("layout")
     const originalKey = song.getMetadata ? song.getMetadata("key") : ""
     const targetKey = transposedKey || originalKey || ""
@@ -216,7 +301,8 @@ export function convertSongToFreeShow(song: Song, transposedKey?: string): { sho
 
     if (sections.length) {
         for (const sec of sections) {
-            const lines = sec.lines.map((l) => parseSectionLine(l, semitones)).filter(Boolean) as Array<{ text: string; chords: FreeShowChord[] }>
+            const { repeatCount, cleanLines } = extractRepeatCountFromBottom(sec.lines)
+            const lines = cleanLines.map((l) => parseSectionLine(l, semitones)).filter(Boolean) as Array<{ text: string; chords: FreeShowChord[] }>
             const group = cleanGroupName(sec.name || "Verse")
             const cacheKey = lines.length ? JSON.stringify(lines.map((p) => [p.text, p.chords.map((c) => `${c.pos}:${c.key}`)])) : `empty:${group}`
 
@@ -225,6 +311,7 @@ export function convertSongToFreeShow(song: Song, transposedKey?: string): { sho
                 slideId = getId("slide")
                 slideCache.set(cacheKey, slideId)
                 slides[slideId] = {
+                    globalGroup: getGlobalGroup(group),
                     group,
                     color: getGroupColor(group),
                     settings: {},
@@ -246,11 +333,16 @@ export function convertSongToFreeShow(song: Song, transposedKey?: string): { sho
                         : []
                 }
             }
-            layoutSlides.push({ id: slideId })
+
+            const hasLyrics = lines.some((l) => /\p{L}/u.test(l.text))
+            const effectiveRepeat = hasLyrics ? repeatCount : 1
+            for (let r = 0; r < effectiveRepeat; r++) {
+                layoutSlides.push({ id: slideId })
+            }
         }
     } else {
         const slideId = getId("slide")
-        slides[slideId] = { group: "Verse", color: "#5825f5", settings: {}, children: [], notes: "", items: [] }
+        slides[slideId] = { globalGroup: "verse", group: "Verse", color: "#5825f5", settings: {}, children: [], notes: "", items: [] }
         layoutSlides.push({ id: slideId })
     }
 
@@ -258,7 +350,7 @@ export function convertSongToFreeShow(song: Song, transposedKey?: string): { sho
         showId,
         show: {
             name: song.name || "Untitled",
-            category: "songs",
+            category: "chordo",
             settings: { activeLayout: layoutId, template: null },
             timestamps: { created: song.createdAt || Date.now(), modified: Date.now(), used: null },
             meta: {
@@ -307,13 +399,17 @@ export function generateFreeShowProject(list: List, allSongs: Song[]): FreeShowP
 
     return {
         project: {
+            id: list.id,
             name: list.name || "Setlist",
             created: list.createdAt || Date.now(),
             modified: Date.now(),
             parent: "/",
             shows: projectShows
         },
-        shows
+        shows,
+        categories: {
+            chordo: { name: "Chordo", icon: "song" }
+        }
     }
 }
 

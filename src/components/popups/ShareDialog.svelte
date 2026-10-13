@@ -20,10 +20,7 @@
 
     const song = $derived.by(() => {
         if (!isSong) return null
-        if (menuState.contentId) {
-            return storage.getSongById(menuState.contentId) ?? getCurrentSong()?.song ?? null
-        }
-        return getCurrentSong()?.song ?? null
+        return getCurrentSong()?.song ?? (menuState.contentId ? storage.getSongById(menuState.contentId) : null)
     })
 
     const list = $derived.by(() => {

@@ -7,13 +7,15 @@ const DEFAULT_DETAILS: ShareDetails = {
 }
 
 export async function fetchShareMetadata(id: string, env?: any): Promise<ShareDetails> {
-    const cleanId = encodeURIComponent(id.trim().replace(/\.json$/, ""))
+    const cleanId = getCleanId(id)
     if (!cleanId) return DEFAULT_DETAILS
 
     try {
         const bucket = env?.S3_BUCKET || "chordo-content"
         const region = env?.AWS_REGION || "us-east-2"
-        const res = await fetch(`https://${bucket}.s3.${region}.amazonaws.com/${cleanId}.json`)
+        const res = await fetch(`https://${bucket}.s3.${region}.amazonaws.com/${cleanId}.json`, {
+            cf: { cacheTtl: 3600, cacheEverything: true }
+        } as any)
         if (!res.ok) return DEFAULT_DETAILS
 
         const data = (await res.json()) as any
@@ -43,13 +45,14 @@ export async function fetchShareMetadata(id: string, env?: any): Promise<ShareDe
 }
 
 export async function handleSharePage(req: Request, env?: any): Promise<Response> {
-    const id = new URL(req.url).searchParams.get("id") || ""
+    const url = new URL(req.url)
+    const id = url.searchParams.get("id") || url.pathname.split("/")[2] || ""
     const details = await fetchShareMetadata(id, env)
 
-    const origin = await fetch(new URL("/index.html", req.url).toString(), { headers: req.headers })
-    if (!origin.ok) return origin
+    const origin = await fetch(new URL("/index.html", req.url))
+    if (!origin.ok) return fetch(req)
 
-    const rewriter = new HTMLRewriter()
+    const transformed = new HTMLRewriter()
         .on("title", { element: (e: any) => e.setInnerContent(details.title) })
         .on('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]', {
             element: (e: any) => e.setAttribute("content", details.description)
@@ -57,11 +60,21 @@ export async function handleSharePage(req: Request, env?: any): Promise<Response
         .on('meta[property="og:title"], meta[name="twitter:title"]', {
             element: (e: any) => e.setAttribute("content", details.title)
         })
+        .transform(origin)
 
-    const transformed = rewriter.transform(origin)
-    const headers = new Headers(transformed.headers)
-    headers.set("Content-Type", "text/html; charset=utf-8")
-    headers.set("Cache-Control", "public, max-age=0, must-revalidate")
+    const headers = {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "public, max-age=0, must-revalidate"
+    }
 
-    return new Response(transformed.body, { status: origin.status, headers })
+    return new Response(req.method === "HEAD" ? null : transformed.body, { status: 200, headers })
+}
+
+function getCleanId(rawId: string): string {
+    return encodeURIComponent(
+        rawId
+            .trim()
+            .replace(/\.json$/, "")
+            .replace(/\/+$/, "")
+    )
 }

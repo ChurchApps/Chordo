@@ -130,20 +130,26 @@ export function internalGoBack(): void {
     }
 }
 
-export function goBack(): void {
-    if (popupState.popupId !== null) {
-        setActivePopup(null)
-        return
-    }
+export function goBack(forcePage = false): void {
+    if (!forcePage) {
+        if (popupState.popupId !== null) {
+            setActivePopup(null)
+            return
+        }
 
-    if (searchState.isOpen) {
-        closeSearch()
-        return
-    }
+        if (searchState.isOpen) {
+            closeSearch()
+            return
+        }
 
-    if (listEditingState.isEditing) {
-        listEditingState.isEditing = false
-        return
+        if (listEditingState.isEditing) {
+            listEditingState.isEditing = false
+            return
+        }
+    } else {
+        if (popupState.popupId !== null) setActivePopup(null)
+        if (searchState.isOpen) closeSearch()
+        if (listEditingState.isEditing) listEditingState.isEditing = false
     }
 
     if (menuState.previousPages.length > 0) {
@@ -202,6 +208,9 @@ export function getCurrentSong() {
     let listItem = undefined
     if (list && list.songs.length > 0) {
         listItem = list.songs[currentSongIndex] ?? list.songs[0]
+        if (listItem?.type === "section") {
+            return { song: null, listItem, list, currentSongIndex }
+        }
         songId = listItem?.id ?? null
     }
     const song = storage.getSongById(songId, storage.songs)

@@ -36,9 +36,20 @@
     </head>
     <body>
         <div id="app"></div>
+        <div id="app-fallback" style="display: none; text-align: center; padding: 48px 24px; font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #3e2723">
+            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 12px">Unable to start Chordo</h2>
+            <p style="font-size: 15px; line-height: 1.5; color: #5d4037; max-width: 400px; margin: 0 auto 16px">This browser or OS version is missing required modern web features. Please try updating your system or using an updated browser.</p>
+        </div>
 
         <script>
             window.addEventListener("vite:preloadError", () => window.location.reload())
+            window.addEventListener("error", function () {
+                var app = document.getElementById("app")
+                if (app && !app.hasChildNodes()) {
+                    var fallback = document.getElementById("app-fallback")
+                    if (fallback) fallback.style.display = "block"
+                }
+            })
         </script>
         <script type="module" src="/src/main.ts"></script>
     </body>

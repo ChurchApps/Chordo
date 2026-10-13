@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, tick } from "svelte"
-    import { menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "$lib/state/menu.svelte"
+    import { fullscreenState, menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "$lib/state/menu.svelte"
     import { enterFullscreen } from "$lib/utils/fullscreen"
     import storage from "$lib/storage/StorageManager.svelte"
     import Song from "../song/Song.svelte"
@@ -18,6 +18,16 @@
     onMount(() => {
         const targetIndex = savedFullscreenPosition.index
         if (targetIndex != null && targetIndex >= 0) {
+            const currentItem = songs[targetIndex]
+            if (currentItem?.type === "section") {
+                menuState.contentId = null
+                updatePageTitle(currentItem.name || "Section")
+            } else if (currentItem?.id) {
+                menuState.contentId = currentItem.id
+                const song = storage.getSongById(currentItem.id, storage.songs)
+                if (song?.name) updatePageTitle(song.name)
+            }
+
             tick().then(() => {
                 if (mainElement) {
                     const songItems = Array.from(mainElement.querySelectorAll(".song-item-element")) as HTMLElement[]
@@ -30,6 +40,25 @@
 
         return () => {
             isNavigating = true
+        }
+    })
+
+    let previousLyricsOnly = fullscreenState.lyricsOnly
+    $effect(() => {
+        const currentLyricsOnly = fullscreenState.lyricsOnly
+        if (currentLyricsOnly !== previousLyricsOnly) {
+            previousLyricsOnly = currentLyricsOnly
+            const targetIdx = previousIndex ?? savedFullscreenPosition.index
+            if (targetIdx !== null && targetIdx >= 0) {
+                tick().then(() => {
+                    if (mainElement) {
+                        const songItems = Array.from(mainElement.querySelectorAll(".song-item-element")) as HTMLElement[]
+                        if (songItems[targetIdx]) {
+                            songItems[targetIdx].scrollIntoView({ behavior: "instant", block: "start" })
+                        }
+                    }
+                })
+            }
         }
     })
 
@@ -84,14 +113,16 @@
                 const currentItem = songs[i]
                 const itemId = currentItem?.id
 
+                savedFullscreenPosition.index = i
+
                 if (currentItem?.type === "section") {
-                    if (currentItem.name) updatePageTitle(currentItem.name)
+                    menuState.contentId = null
+                    updatePageTitle(currentItem.name || "Section")
                 } else if (itemId) {
+                    menuState.contentId = itemId
                     const song = storage.getSongById(itemId, storage.songs)
                     if (song?.name) updatePageTitle(song.name)
                 }
-
-                savedFullscreenPosition.index = i
                 break
             }
         }
@@ -167,7 +198,7 @@
     .section-divider-title {
         font-weight: 600;
         font-size: 1.1rem;
-        color: black;
+        color: var(--md-sys-color-on-surface, #1b1b1f);
         letter-spacing: 0.5px;
     }
 

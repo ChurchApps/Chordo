@@ -154,7 +154,7 @@
                             {/if}
                         </div>
                     {:else if line.type === "lyrics"}
-                        {@const hasLyrics = line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "")}
+                        {@const hasLyrics = line.tokens?.some((t) => t.lyric && t.lyric.trim() !== "" && !t.isRepeat)}
                         {#if !hideChords || hasLyrics}
                             <div class="line lyrics-line" class:chords-only={hasChords && !hasLyrics}>
                                 {#each line.words ?? [{ tokens: line.tokens ?? [] }] as word}

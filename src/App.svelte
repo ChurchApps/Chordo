@@ -2,6 +2,7 @@
     import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
     import { setSharePayload } from "$lib/share/share.svelte"
     import { menuState, setActivePage } from "$lib/state/menu.svelte"
+    import { initDocumentTitle } from "$lib/state/title.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { initDialogKeyboardCentering } from "$lib/utils/viewport"
@@ -27,6 +28,8 @@
     import PlaybackBar from "./components/playback/PlaybackBar.svelte"
     import Popup from "./components/popups/Popup.svelte"
 
+    initDocumentTitle()
+
     async function handleIncomingShare() {
         if (typeof window === "undefined") return
         const rawPayload = extractSharePayloadFromUrl()
@@ -35,8 +38,6 @@
             if (decoded) {
                 setSharePayload(decoded, rawPayload)
                 const title = decoded.type === "list" ? decoded.list.name : decoded.song.name
-                const artist = decoded.type === "list" ? "" : decoded.song.metadata?.artist || decoded.song.artist
-                document.title = `${title}${artist ? ` - ${artist}` : ""} • Chordo${decoded.type === "list" ? " Setlist" : ""}`
                 setActivePage("share_preview", null, title, "replace")
             } else {
                 showToast("Could not load shared content! The link might have expired.", "error", 5000)
