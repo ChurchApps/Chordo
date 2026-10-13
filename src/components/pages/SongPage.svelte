@@ -18,6 +18,16 @@
     onMount(() => {
         const targetIndex = savedFullscreenPosition.index
         if (targetIndex != null && targetIndex >= 0) {
+            const currentItem = songs[targetIndex]
+            if (currentItem?.type === "section") {
+                menuState.contentId = null
+                updatePageTitle(currentItem.name || "Section")
+            } else if (currentItem?.id) {
+                menuState.contentId = currentItem.id
+                const song = storage.getSongById(currentItem.id, storage.songs)
+                if (song?.name) updatePageTitle(song.name)
+            }
+
             tick().then(() => {
                 if (mainElement) {
                     const songItems = Array.from(mainElement.querySelectorAll(".song-item-element")) as HTMLElement[]
@@ -84,14 +94,16 @@
                 const currentItem = songs[i]
                 const itemId = currentItem?.id
 
+                savedFullscreenPosition.index = i
+
                 if (currentItem?.type === "section") {
-                    if (currentItem.name) updatePageTitle(currentItem.name)
+                    menuState.contentId = null
+                    updatePageTitle(currentItem.name || "Section")
                 } else if (itemId) {
+                    menuState.contentId = itemId
                     const song = storage.getSongById(itemId, storage.songs)
                     if (song?.name) updatePageTitle(song.name)
                 }
-
-                savedFullscreenPosition.index = i
                 break
             }
         }

@@ -4,9 +4,9 @@
     import { t } from "$lib/state/i18n.svelte"
     import { goBack, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
-    import { songSortState } from "$lib/state/songSort.svelte"
+    import { resetSetlistAddSort, songSortState } from "$lib/state/songSort.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { onMount } from "svelte"
+    import { onDestroy, onMount } from "svelte"
 
     let songs = $derived(Songs.get(storage.songs, null, songSortState.sortBy))
     let isArtistSort = $derived(songSortState.sortBy === "artist_asc" || songSortState.sortBy === "artist_desc")
@@ -21,7 +21,16 @@
     })
 
     onMount(() => {
+        if (listOpened) {
+            resetSetlistAddSort()
+        }
         if (!songs.length) setActivePopup("create_song")
+    })
+
+    onDestroy(() => {
+        if (listOpened) {
+            resetSetlistAddSort()
+        }
     })
 
     function openSong(songId: string, songName: string) {
@@ -45,7 +54,7 @@
         if (!list) return
 
         // go back first so we get the slide in animation in the list
-        goBack()
+        goBack(true)
 
         // wait for page navigation animation
         setTimeout(() => {

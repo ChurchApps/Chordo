@@ -62,6 +62,11 @@
         }
     })
 
+    function clearSearch() {
+        searchState.query = ""
+        searchInputElement?.focus()
+    }
+
     // Active song context
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let currentSong = $derived(activeSongContext?.song ?? null)
@@ -125,9 +130,17 @@
                 placeholder={searchPlaceholder}
                 bind:value={searchState.query}
                 onkeydown={(e) => {
-                    if (e.key === "Escape") closeSearch()
+                    if (e.key === "Escape") {
+                        if (searchState.query) clearSearch()
+                        else closeSearch()
+                    }
                 }}
             />
+            {#if searchState.query}
+                <md-icon-button aria-label="Clear search" onclick={clearSearch}>
+                    <span class="material-symbols-outlined">close</span>
+                </md-icon-button>
+            {/if}
         </div>
     </header>
 {:else}
@@ -206,7 +219,14 @@
                     <MetronomeButton />
                     <TransposeButton />
 
-                    <md-icon-button aria-label="Edit" onclick={() => setActivePage("song_edit", currentSong?.id ?? menuState.contentId, currentSong?.name ?? "Edit Song")}>
+                    <md-icon-button
+                        aria-label="Edit"
+                        disabled={!currentSong}
+                        onclick={() => {
+                            if (!currentSong) return
+                            setActivePage("song_edit", currentSong.id, currentSong.name)
+                        }}
+                    >
                         <span class="material-symbols-outlined">edit</span>
                     </md-icon-button>
                 {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
@@ -340,24 +360,26 @@
                                     <div slot="headline">{t("menu", "about")}</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song"}
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        setActivePopup("share_song")
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">share</span>
-                                    <div slot="headline">{t("menu", "share_song")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        window.print()
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">print</span>
-                                    <div slot="headline">{t("menu", "print")}</div>
-                                </md-menu-item>
+                                {#if currentSong}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            setActivePopup("share_song")
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">share</span>
+                                        <div slot="headline">{t("menu", "share_song")}</div>
+                                    </md-menu-item>
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            window.print()
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">print</span>
+                                        <div slot="headline">{t("menu", "print")}</div>
+                                    </md-menu-item>
+                                {/if}
 
                                 <md-menu-item
                                     onclick={() => {
@@ -592,9 +614,12 @@
         flex: 1;
         display: flex;
         align-items: center;
+        min-width: 0;
     }
 
     .search-input {
+        flex: 1;
+        min-width: 0;
         width: 100%;
         height: 40px;
         background: transparent;

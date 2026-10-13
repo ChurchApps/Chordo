@@ -1,4 +1,5 @@
 import type { Song } from "../models/Song"
+import { menuState } from "./menu.svelte"
 
 export type SongSortOption = "title_asc" | "title_desc" | "artist_asc" | "artist_desc" | "date_desc" | "date_asc"
 
@@ -18,14 +19,29 @@ function getInitialSort(): SongSortOption {
     return "artist_asc"
 }
 
-export const songSortState = $state<{
-    sortBy: SongSortOption
-}>({
-    sortBy: getInitialSort()
-})
+let savedSort = $state<SongSortOption>(getInitialSort())
+let setlistAddSort = $state<SongSortOption>("title_asc")
+
+export function resetSetlistAddSort(): void {
+    setlistAddSort = "title_asc"
+}
+
+export const songSortState = {
+    get sortBy(): SongSortOption {
+        if (menuState.activePage === "all_songs" && menuState.contentId) {
+            return setlistAddSort
+        }
+        return savedSort
+    }
+}
 
 export function setSongSort(option: SongSortOption): void {
-    songSortState.sortBy = option
+    if (menuState.activePage === "all_songs" && menuState.contentId) {
+        setlistAddSort = option
+        return
+    }
+
+    savedSort = option
     try {
         if (typeof localStorage !== "undefined") {
             localStorage.setItem(STORAGE_KEY, option)
