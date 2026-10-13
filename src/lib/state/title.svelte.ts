@@ -2,7 +2,15 @@ import { sharePreviewState } from "$lib/share/share.svelte"
 import { getCurrentSong, menuState } from "$lib/state/menu.svelte"
 import storage from "$lib/storage/StorageManager.svelte"
 
-const DEFAULT_TITLE = "Chordo: Free Chord Sheet Manager"
+export const FULL_DEFAULT_TITLE = "Chordo: Free Chord Sheet Manager"
+export const SHORT_DEFAULT_TITLE = "Chordo"
+
+export function getDefaultTitle(): string {
+    if (storage.hasContent() && menuState.activePage !== "landing") {
+        return SHORT_DEFAULT_TITLE
+    }
+    return FULL_DEFAULT_TITLE
+}
 
 export function getDocumentTitle(): string {
     const page = menuState.activePage
@@ -17,7 +25,7 @@ export function getDocumentTitle(): string {
 
     const title = menuState.customPageTitle
     if (!title || page === "home" || page === "landing") {
-        return DEFAULT_TITLE
+        return getDefaultTitle()
     }
 
     if (page === "song" || page === "song_live" || page === "song_edit") {
