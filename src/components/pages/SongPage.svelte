@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, tick } from "svelte"
-    import { menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "$lib/state/menu.svelte"
+    import { fullscreenState, menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "$lib/state/menu.svelte"
     import { enterFullscreen } from "$lib/utils/fullscreen"
     import storage from "$lib/storage/StorageManager.svelte"
     import Song from "../song/Song.svelte"
@@ -40,6 +40,25 @@
 
         return () => {
             isNavigating = true
+        }
+    })
+
+    let previousLyricsOnly = fullscreenState.lyricsOnly
+    $effect(() => {
+        const currentLyricsOnly = fullscreenState.lyricsOnly
+        if (currentLyricsOnly !== previousLyricsOnly) {
+            previousLyricsOnly = currentLyricsOnly
+            const targetIdx = previousIndex ?? savedFullscreenPosition.index
+            if (targetIdx !== null && targetIdx >= 0) {
+                tick().then(() => {
+                    if (mainElement) {
+                        const songItems = Array.from(mainElement.querySelectorAll(".song-item-element")) as HTMLElement[]
+                        if (songItems[targetIdx]) {
+                            songItems[targetIdx].scrollIntoView({ behavior: "instant", block: "start" })
+                        }
+                    }
+                })
+            }
         }
     })
 

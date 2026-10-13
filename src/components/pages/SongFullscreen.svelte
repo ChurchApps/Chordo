@@ -128,6 +128,26 @@
     let lastActivePageInSong = 0
     let lastActiveSongId: string | null = null
 
+    let previousLyricsOnly = fullscreenState.lyricsOnly
+    $effect(() => {
+        const currentLyricsOnly = fullscreenState.lyricsOnly
+        if (currentLyricsOnly !== previousLyricsOnly) {
+            previousLyricsOnly = currentLyricsOnly
+            const origIdx = pageSongIndexMap[currentPageIndex]
+            if (origIdx !== undefined && origIdx !== null) {
+                lastActiveOriginalIndex = origIdx
+            }
+            const songId = pageSongMap[currentPageIndex]
+            if (songId) {
+                lastActiveSongId = songId
+            }
+            const pageInSong = pageIndexMap[currentPageIndex]
+            if (pageInSong !== undefined && pageInSong !== null) {
+                lastActivePageInSong = pageInSong
+            }
+        }
+    })
+
     function toggleActions() {
         actionsVisible = !actionsVisible
         clearTimeout(hideTimeout)
@@ -256,40 +276,43 @@
             }
         })
 
+        // Capture the active song and page before applying new pagination mappings
+        const currentSongIndexInList = lastActiveOriginalIndex ?? (pageSongIndexMap[currentPageIndex] ?? null)
+        const currentSongId = lastActiveSongId ?? (pageSongMap[currentPageIndex] ?? null)
+        const currentPageInSong = lastActivePageInSong ?? (pageIndexMap[currentPageIndex] ?? 0)
+
         pageSongMap = newPageSongMap
         pageIndexMap = newPageIndexMap
         pageSongIndexMap = newPageSongIndexMap
         totalPages = pageSongMap.length || slides.length || 1
-
-        detectSongAndPage(currentPageIndex)
 
         if (!initialPositionConsumed) {
             restoreInitialPosition(hasAnyPaperPage)
         } else {
             let targetPage = -1
 
-            if (lastActiveOriginalIndex !== null) {
+            if (currentSongIndexInList !== null) {
                 const matchingPages: number[] = []
                 for (let i = 0; i < pageSongIndexMap.length; i++) {
-                    if (pageSongIndexMap[i] === lastActiveOriginalIndex) {
+                    if (pageSongIndexMap[i] === currentSongIndexInList) {
                         matchingPages.push(i)
                     }
                 }
                 if (matchingPages.length > 0) {
-                    const offset = Math.min(lastActivePageInSong, matchingPages.length - 1)
+                    const offset = Math.min(currentPageInSong, matchingPages.length - 1)
                     targetPage = matchingPages[Math.max(0, offset)]
                 }
             }
 
-            if (targetPage === -1 && lastActiveSongId !== null) {
+            if (targetPage === -1 && currentSongId !== null) {
                 const matchingPages: number[] = []
                 for (let i = 0; i < pageSongMap.length; i++) {
-                    if (pageSongMap[i] === lastActiveSongId) {
+                    if (pageSongMap[i] === currentSongId) {
                         matchingPages.push(i)
                     }
                 }
                 if (matchingPages.length > 0) {
-                    const offset = Math.min(lastActivePageInSong, matchingPages.length - 1)
+                    const offset = Math.min(currentPageInSong, matchingPages.length - 1)
                     targetPage = matchingPages[Math.max(0, offset)]
                 }
             }
@@ -480,7 +503,6 @@
             updateRafId = null
             updatePageCount()
             if (immediatePosition) setPositionByIndex(false)
-            else detectSongAndPage(currentPageIndex)
         })
     }
 
