@@ -370,15 +370,6 @@
                                         <span class="material-symbols-outlined" slot="start">share</span>
                                         <div slot="headline">{t("menu", "share_song")}</div>
                                     </md-menu-item>
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            window.print()
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">print</span>
-                                        <div slot="headline">{t("menu", "print")}</div>
-                                    </md-menu-item>
                                 {/if}
 
                                 <md-menu-item

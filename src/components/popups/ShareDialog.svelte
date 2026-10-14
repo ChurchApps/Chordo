@@ -167,6 +167,13 @@
             exportAsFreeShowProject(list, storage.songs)
         }
     }
+
+    function handlePrint() {
+        closeDialog()
+        setTimeout(() => {
+            window.print()
+        }, 150)
+    }
 </script>
 
 <md-dialog open onclosed={closeDialog} class="share-dialog">
@@ -297,6 +304,18 @@
                         <span class="material-symbols-outlined download-icon">download</span>
                     </button>
                 {/if}
+
+                <!-- Print / Save as PDF -->
+                <button type="button" class="export-option-card" onclick={handlePrint}>
+                    <div class="option-icon-container">
+                        <span class="material-symbols-outlined option-icon">print</span>
+                    </div>
+                    <div class="option-text">
+                        <div class="option-title">{t("menu", "print")}</div>
+                        <div class="option-desc">{t("share", "print_desc")}</div>
+                    </div>
+                    <span class="material-symbols-outlined download-icon">print</span>
+                </button>
             </div>
         </div>
     </div>

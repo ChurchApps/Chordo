@@ -7,6 +7,7 @@
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
     import { untrack } from "svelte"
     import { slide } from "svelte/transition"
+    import Song from "../song/Song.svelte"
 
     let listId = $derived(menuState.contentId)
     let list = $derived(storage.getListById(listId, storage.lists))
@@ -264,6 +265,33 @@
             </div>
         </div>
     {/if}
+
+    <!-- Print-only full setlist sheets -->
+    {#if list && list.songs?.length}
+        <div class="print-setlist-container">
+            {#each list.songs as songItem, idx ((songItem?.id ?? "song") + "-" + idx)}
+                {@const isSection = songItem?.type === "section"}
+                {@const songId = isSection ? null : (songItem?.id ?? null)}
+                {@const currentSong = songId ? storage.getSongById(songId, storage.songs) : null}
+                {@const targetKey = songItem?.transposed || currentSong?.lastTransposed}
+
+                {#if isSection}
+                    <div class="print-section-divider">
+                        <div class="print-section-line"></div>
+                        <div class="print-section-content">
+                            <span class="material-symbols-outlined print-section-icon">bookmark</span>
+                            <span class="print-section-title">{songItem.name}</span>
+                        </div>
+                        <div class="print-section-line"></div>
+                    </div>
+                {:else if currentSong}
+                    <div class="print-song-item">
+                        <Song {songId} {targetKey} />
+                    </div>
+                {/if}
+            {/each}
+        </div>
+    {/if}
 </main>
 
 <div class="fab-container">
@@ -381,5 +409,68 @@
         background: rgba(0, 0, 0, 0.08);
         color: var(--md-sys-color-error, #ba1a1a);
         font-weight: 500;
+    }
+
+    .print-setlist-container {
+        display: none;
+    }
+
+    @media print {
+        .song-list,
+        .center,
+        .fab-container {
+            display: none !important;
+        }
+
+        .print-setlist-container {
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 24px !important;
+        }
+
+        .print-song-item {
+            width: 100% !important;
+            break-before: page !important;
+            page-break-before: always !important;
+        }
+
+        .print-setlist-container > .print-song-item:first-child {
+            break-before: auto !important;
+            page-break-before: auto !important;
+        }
+
+        .print-section-divider {
+            display: flex !important;
+            align-items: center !important;
+            gap: 16px !important;
+            padding-top: 50px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        .print-section-line {
+            flex: 1 !important;
+            height: 1px !important;
+            background: rgba(0, 0, 0, 0.25) !important;
+        }
+
+        .print-section-content {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+        }
+
+        .print-section-icon {
+            font-size: 40px !important;
+            color: #000000 !important;
+        }
+
+        .print-section-title {
+            font-weight: 700 !important;
+            font-size: 2rem !important;
+            color: #000000 !important;
+            letter-spacing: 0.5px !important;
+        }
     }
 </style>
