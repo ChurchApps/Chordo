@@ -188,6 +188,31 @@
     }
 
     let moreMenuOpen = $state(false)
+    let songListMenuOpen = $state(false)
+
+    function goToSong(targetOriginalIndex: number) {
+        songListMenuOpen = false
+        clearTimeout(hideTimeout)
+
+        // Find page index matching the originalIndex
+        let targetPage = pageSongIndexMap.indexOf(targetOriginalIndex)
+        if (targetPage === -1) {
+            const slideIdx = slides.findIndex((s) => {
+                if (s.originalIndex === targetOriginalIndex) return true
+                if (s.type === "section" && s.sections.some((sec) => sec.originalIndex === targetOriginalIndex)) return true
+                return false
+            })
+            if (slideIdx !== -1) {
+                targetPage = Math.min(slideIdx, totalPages - 1)
+            }
+        }
+
+        if (targetPage !== -1 && targetPage !== currentPageIndex) {
+            currentPageIndex = targetPage
+            setPositionByIndex(true)
+        }
+    }
+
     const mountTime = typeof performance !== "undefined" ? performance.now() : Date.now()
 
     // --- Actions Header Toggle & Click Navigation ---
@@ -605,6 +630,45 @@
                 <md-icon>arrow_back</md-icon>
             </md-icon-button>
 
+            {#if slides.length > 0}
+                <div class="more-menu-wrapper">
+                    <md-icon-button
+                        id="fullscreen-song-list-btn"
+                        aria-label={t("pages", "list")}
+                        title={t("pages", "list")}
+                        onclick={() => {
+                            songListMenuOpen = !songListMenuOpen
+                            clearTimeout(hideTimeout)
+                        }}
+                    >
+                        <md-icon>queue_music</md-icon>
+                    </md-icon-button>
+
+                    <md-menu id="fullscreen-song-list-menu" anchor="fullscreen-song-list-btn" open={songListMenuOpen} onclosed={() => (songListMenuOpen = false)} class="song-list-menu" quick>
+                        {#each slides as item, idx}
+                            {#if item.type === "song"}
+                                {@const song = storage.getSongById(item.songItem.id ?? null, storage.songs)}
+                                {@const isCurrent = currentSlideIndex === idx}
+                                <md-menu-item selected={isCurrent} class:selected={isCurrent} onclick={() => goToSong(item.originalIndex)}>
+                                    <span class="material-symbols-outlined" slot="start" style="font-size: 20px; opacity: 0.7;">music_note</span>
+                                    <div slot="headline" class="song-menu-headline" class:selected-headline={isCurrent}>
+                                        {song?.name || item.songItem.name || "Untitled"}
+                                    </div>
+                                    {#if isCurrent}
+                                        <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary); font-size: 18px;">check</span>
+                                    {/if}
+                                </md-menu-item>
+                            {:else if item.type === "section"}
+                                <div class="menu-section-header">
+                                    <span class="material-symbols-outlined menu-section-icon">bookmark</span>
+                                    <span class="menu-section-text">{item.sections.map((s) => s.name).join(" / ")}</span>
+                                </div>
+                            {/if}
+                        {/each}
+                    </md-menu>
+                </div>
+            {/if}
+
             <div style="flex:1"></div>
 
             <MetronomeButton />
@@ -684,11 +748,29 @@
     </header>
 
     <footer transition:slide={{ duration: 200, axis: "y" }}>
-        <div class="progress">
-            {#each Array(totalPages) as _, i}
-                <span class="dot" class:active={i === currentPageIndex}></span>
-            {/each}
-        </div>
+        {#if totalPages > 30}
+            <div class="progress-number">
+                {currentPageIndex + 1}/{totalPages}
+            </div>
+        {:else}
+            <div class="progress">
+                {#each Array(totalPages) as _, i}
+                    <button
+                        type="button"
+                        class="dot"
+                        class:active={i === currentPageIndex}
+                        aria-label={`Page ${i + 1}`}
+                        onclick={(e) => {
+                            e.stopPropagation()
+                            if (i !== currentPageIndex) {
+                                currentPageIndex = i
+                                setPositionByIndex(true)
+                            }
+                        }}
+                    ></button>
+                {/each}
+            </div>
+        {/if}
     </footer>
 {/if}
 
@@ -1096,23 +1178,64 @@
         position: fixed;
         left: 50%;
         transform: translateX(-50%);
-        bottom: 18px;
+        bottom: 14px;
         display: flex;
-        gap: 8px;
+        gap: 6px;
+        z-index: 1001;
+        pointer-events: auto;
+        padding: 4px;
+    }
+
+    .progress-number {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 16px;
         z-index: 1001;
         pointer-events: none;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        padding: 4px 12px;
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        user-select: none;
     }
 
     .dot {
+        position: relative;
         width: 8px;
         height: 8px;
+        padding: 0;
+        margin: 0;
+        border: none;
         border-radius: 50%;
         background: rgba(255, 255, 255, 0.35);
+        cursor: pointer;
+        outline: none;
         transition:
             transform 160ms ease,
             background 160ms ease,
             opacity 160ms ease;
         opacity: 0.95;
+    }
+
+    .dot::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        bottom: -8px;
+        left: -4px;
+        right: -4px;
+    }
+
+    .dot:hover {
+        background: rgba(255, 255, 255, 0.7);
+        transform: scale(1.2);
     }
 
     .dot.active {
@@ -1132,7 +1255,74 @@
         min-width: 180px;
     }
 
+    md-menu.song-list-menu {
+        min-width: 220px;
+        max-width: 320px;
+        max-height: 70vh;
+        overflow-x: hidden !important;
+        --md-menu-item-one-line-container-height: 38px;
+        --md-menu-item-top-space: 4px;
+        --md-menu-item-bottom-space: 4px;
+    }
+
     md-menu-item {
+        white-space: nowrap;
+    }
+
+    md-menu.song-list-menu md-menu-item {
+        min-height: 38px;
+        max-width: 100%;
+        overflow: hidden;
+        --md-menu-item-one-line-container-height: 38px;
+        --md-menu-item-top-space: 4px;
+        --md-menu-item-bottom-space: 4px;
+    }
+
+    .song-menu-headline {
+        display: block;
+        max-width: 100%;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    md-menu-item.selected {
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
+    }
+
+    .selected-headline {
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
+    }
+
+    .menu-section-header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 6px 12px 3px 18px;
+        margin-top: 2px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--md-sys-color-on-surface-variant, #49454f);
+        opacity: 0.8;
+        user-select: none;
+        pointer-events: none;
+    }
+
+    .menu-section-header:first-child {
+        margin-top: 0;
+    }
+
+    .menu-section-icon {
+        font-size: 15px;
+        opacity: 0.7;
+    }
+
+    .menu-section-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
     }
 </style>
