@@ -307,6 +307,7 @@
             resizeObserver.disconnect()
             mutationObserver.disconnect()
             sourceEl?.removeEventListener("load", handleImageLoad, true)
+            if (pagesContainerEl) pagesContainerEl.innerHTML = ""
         }
     })
 

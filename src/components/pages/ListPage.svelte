@@ -5,9 +5,16 @@
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
-    import { untrack } from "svelte"
+    import { onDestroy, untrack } from "svelte"
     import { slide } from "svelte/transition"
     import Song from "../song/Song.svelte"
+
+    onDestroy(() => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer)
+            longPressTimer = null
+        }
+    })
 
     let listId = $derived(menuState.contentId)
     let list = $derived(storage.getListById(listId, storage.lists))

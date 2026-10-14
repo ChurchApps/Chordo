@@ -12,6 +12,7 @@
     import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "$lib/utils/mediaManager"
     import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
+    import { onDestroy } from "svelte"
     import HighlightedTextarea from "../common/HighlightedTextarea.svelte"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
     import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
@@ -39,6 +40,10 @@
             storage.updateSong(song)
             storage.persist()
         }
+    })
+
+    onDestroy(() => {
+        contentHistory.destroy()
     })
 
     // URL Pull State
@@ -460,7 +465,7 @@
                                 <span class="page-badge">{t("song_edit", "page")} {idx + 1}</span>
                                 <div class="card-actions">
                                     <md-icon-button type="button" onclick={() => rotateSongImage(song, idx)}>
-                                         <md-icon>rotate_right</md-icon>
+                                        <md-icon>rotate_right</md-icon>
                                     </md-icon-button>
                                     <md-icon-button type="button" disabled={idx === 0} onclick={() => moveSongImage(song, idx, idx - 1)}>
                                         <md-icon>arrow_upward</md-icon>

@@ -10,6 +10,7 @@
     import "@material/web/select/outlined-select.js"
     import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
+    import { onDestroy } from "svelte"
 
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let song = $derived(activeSongContext?.song ?? null)
@@ -18,6 +19,10 @@
 
     let tapTimes: number[] = []
     let tapTimeout: ReturnType<typeof setTimeout> | undefined
+
+    onDestroy(() => {
+        if (tapTimeout) clearTimeout(tapTimeout)
+    })
 
     function handleTap() {
         const now = performance.now()

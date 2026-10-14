@@ -35,68 +35,94 @@ export async function processPdfFile(
     }
 
     try {
-        const arrayBuffer = await file.arrayBuffer()
-        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) })
-        const pdf = await loadingTask.promise
+        let loadingTask: any
+        try {
+            const arrayBuffer = await file.arrayBuffer()
+            loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) })
+            const pdf = await loadingTask.promise
 
-    const imageUrls: string[] = []
-    const textPages: string[] = []
+            const imageUrls: string[] = []
+            const textPages: string[] = []
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        if (onProgress) {
-            onProgress(pageNum, pdf.numPages)
-        }
-
-        const page = await pdf.getPage(pageNum)
-
-        // 1. Render page as PNG image
-        const viewport = page.getViewport({ scale: 2.0 })
-        const canvas = document.createElement("canvas")
-        const context = canvas.getContext("2d")
-        canvas.width = viewport.width
-        canvas.height = viewport.height
-
-        if (context) {
-            await page.render({ canvasContext: context, viewport, canvas } as any).promise
-            imageUrls.push(canvas.toDataURL("image/png"))
-        }
-
-        // 2. Extract text content
-        const textContent = await page.getTextContent()
-        let pageText = ""
-        let lastY: number | null = null
-
-        for (const item of textContent.items) {
-            if ("str" in item) {
-                const strItem = item as { str: string; transform?: number[]; hasEOL?: boolean }
-                const currentY = strItem.transform ? strItem.transform[5] : null
-
-                // Add line break if y-coordinate changes or hasEOL is true
-                if (lastY !== null && currentY !== null && Math.abs(currentY - lastY) > 5) {
-                    pageText += "\n"
-                } else if (pageText.length > 0 && !pageText.endsWith("\n") && !pageText.endsWith(" ")) {
-                    pageText += " "
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                if (onProgress) {
+                    onProgress(pageNum, pdf.numPages)
                 }
 
-                pageText += strItem.str
-                if (strItem.hasEOL) {
-                    pageText += "\n"
+                const page = await pdf.getPage(pageNum)
+
+                // 1. Render page as PNG image
+                const viewport = page.getViewport({ scale: 2.0 })
+                const canvas = document.createElement("canvas")
+                const context = canvas.getContext("2d")
+                canvas.width = viewport.width
+                canvas.height = viewport.height
+
+                if (context) {
+                    await page.render({ canvasContext: context, viewport, canvas } as any).promise
+                    imageUrls.push(canvas.toDataURL("image/png"))
                 }
 
-                if (currentY !== null) {
-                    lastY = currentY
+                // Explicitly zero out canvas dimensions to free GPU/backing buffer memory
+                canvas.width = 0
+                canvas.height = 0
+
+                // 2. Extract text content
+                const textContent = await page.getTextContent()
+                let pageText = ""
+                let lastY: number | null = null
+
+                for (const item of textContent.items) {
+                    if ("str" in item) {
+                        const strItem = item as { str: string; transform?: number[]; hasEOL?: boolean }
+                        const currentY = strItem.transform ? strItem.transform[5] : null
+
+                        // Add line break if y-coordinate changes or hasEOL is true
+                        if (lastY !== null && currentY !== null && Math.abs(currentY - lastY) > 5) {
+                            pageText += "\n"
+                        } else if (pageText.length > 0 && !pageText.endsWith("\n") && !pageText.endsWith(" ")) {
+                            pageText += " "
+                        }
+
+                        pageText += strItem.str
+                        if (strItem.hasEOL) {
+                            pageText += "\n"
+                        }
+
+                        if (currentY !== null) {
+                            lastY = currentY
+                        }
+                    }
+                }
+
+                if (pageText.trim()) {
+                    textPages.push(pageText.trim())
+                }
+
+                // Release page resources if supported
+                if (typeof page.cleanup === "function") {
+                    page.cleanup()
                 }
             }
-        }
 
-        if (pageText.trim()) {
-            textPages.push(pageText.trim())
-        }
-    }
+            // Cleanup document resources
+            if (typeof pdf.cleanup === "function") {
+                pdf.cleanup()
+            }
+            if (typeof pdf.destroy === "function") {
+                await pdf.destroy()
+            }
 
-        return {
-            imageUrls,
-            extractedText: textPages.join("\n\n")
+            return {
+                imageUrls,
+                extractedText: textPages.join("\n\n")
+            }
+        } finally {
+            if (loadingTask && typeof loadingTask.destroy === "function") {
+                try {
+                    await loadingTask.destroy()
+                } catch {}
+            }
         }
     } catch (err: any) {
         if (err instanceof PdfUnsupportedBrowserError) throw err

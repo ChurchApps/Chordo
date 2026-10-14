@@ -1,19 +1,28 @@
 <script lang="ts">
     import { exportSetlistAsJson, exportSongAsJson } from "$lib/export/exportHelper"
     import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
-    import { buildListSharePayload, buildSongSharePayload } from "$lib/share/shareCodec"
     import { copyUrlToClipboard, createShare, getCachedShareUrl } from "$lib/share/share"
+    import { buildListSharePayload, buildSongSharePayload } from "$lib/share/shareCodec"
     import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, menuState, popupState, setActivePopup } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { onDestroy } from "svelte"
 
     import "@material/web/button/filled-button.js"
     import "@material/web/button/outlined-button.js"
     import "@material/web/button/text-button.js"
     import "@material/web/dialog/dialog.js"
+    import "@material/web/iconbutton/outlined-icon-button.js"
     import "@material/web/progress/linear-progress.js"
     import "@material/web/switch/switch.js"
+
+    let copyTimeout: ReturnType<typeof setTimeout> | undefined
+    let printTimeout: ReturnType<typeof setTimeout> | undefined
+    onDestroy(() => {
+        if (copyTimeout) clearTimeout(copyTimeout)
+        if (printTimeout) clearTimeout(printTimeout)
+    })
 
     const isSong = $derived(popupState.popupId === "share_song")
     const isList = $derived(popupState.popupId === "share_list")
@@ -28,14 +37,12 @@
         return menuState.contentId ? storage.getListById(menuState.contentId) : null
     })
 
-    const title = $derived(isSong ? song?.name ?? "" : list?.name ?? "")
+    const title = $derived(isSong ? (song?.name ?? "") : (list?.name ?? ""))
 
     let includeMedia = $state(false)
     let includeDrawings = $state(false)
 
-    const hasDrawings = $derived(
-        Boolean(isSong && song?.drawings && song.drawings.some((d) => Boolean(d && d.trim())))
-    )
+    const hasDrawings = $derived(Boolean(isSong && song?.drawings && song.drawings.some((d) => Boolean(d && d.trim()))))
 
     const hasMedia = $derived.by(() => {
         if (isSong && song) {
@@ -131,7 +138,8 @@
         if (success) {
             copied = true
             showToast(t("share", "link_copied"), "success")
-            setTimeout(() => {
+            clearTimeout(copyTimeout)
+            copyTimeout = setTimeout(() => {
                 copied = false
             }, 2500)
         }
@@ -170,7 +178,8 @@
 
     function handlePrint() {
         closeDialog()
-        setTimeout(() => {
+        clearTimeout(printTimeout)
+        printTimeout = setTimeout(() => {
             window.print()
         }, 150)
     }
@@ -230,13 +239,7 @@
 
             {#if shareUrl}
                 <div class="url-input-row">
-                    <input
-                        type="text"
-                        readonly
-                        value={shareUrl}
-                        class="share-url-input"
-                        onclick={(e) => (e.currentTarget as HTMLInputElement).select()}
-                    />
+                    <input type="text" readonly value={shareUrl} class="share-url-input" onclick={(e) => (e.currentTarget as HTMLInputElement).select()} />
                 </div>
             {/if}
 
@@ -259,10 +262,9 @@
                 </md-filled-button>
 
                 {#if canNativeShare}
-                    <md-outlined-button onclick={handleNativeShare} disabled={isGenerating}>
-                        <span class="material-symbols-outlined" slot="icon">share</span>
-                        {t("share", "share_via")}
-                    </md-outlined-button>
+                    <md-outlined-icon-button onclick={handleNativeShare} disabled={isGenerating} title={t("share", "share_via")} aria-label={t("share", "share_via")}>
+                        <span class="material-symbols-outlined">share</span>
+                    </md-outlined-icon-button>
                 {/if}
             </div>
 
@@ -308,7 +310,7 @@
                 <!-- Print / Save as PDF -->
                 <button type="button" class="export-option-card" onclick={handlePrint}>
                     <div class="option-icon-container">
-                        <span class="material-symbols-outlined option-icon">print</span>
+                        <span class="material-symbols-outlined option-icon">docs</span>
                     </div>
                     <div class="option-text">
                         <div class="option-title">{t("menu", "print")}</div>
