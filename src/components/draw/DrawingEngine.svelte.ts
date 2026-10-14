@@ -31,11 +31,15 @@ export class DrawingEngine {
     colorInputRef: HTMLInputElement | null = null
 
     // Drawing internals
-    strokes: Stroke[] = []
+    strokes = $state<Stroke[]>([])
     currentStroke: Stroke | null = null
-    backgroundImage: HTMLImageElement | null = null
+    backgroundImage = $state<HTMLImageElement | null>(null)
     erasedThisStroke = false
     lastPoint: Point | null = null
+
+    get hasContent(): boolean {
+        return this.strokes.length > 0 || this.backgroundImage !== null
+    }
 
     history: HistoryManager<string>
     private options: DrawingEngineOptions

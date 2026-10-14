@@ -113,7 +113,7 @@
     {#if editable}
         <!-- Top Left Toolbar (Clear, Undo, Redo Actions) -->
         <header class="m3-top-left-bar">
-            <md-filled-tonal-button type="button" onclick={handleClearRequest}>
+            <md-filled-tonal-button type="button" disabled={!engine.hasContent} onclick={handleClearRequest}>
                 <md-icon slot="icon">delete</md-icon>
                 {t("draw", "clear")}
             </md-filled-tonal-button>
@@ -247,8 +247,8 @@
     /* Top Left Floating Bar */
     .m3-top-left-bar {
         position: absolute;
-        top: 1rem;
-        left: 1rem;
+        top: calc(1rem + env(safe-area-inset-top, 0px));
+        left: calc(1rem + env(safe-area-inset-left, 0px));
         display: flex;
         gap: 0.5rem;
         z-index: 20;
@@ -264,7 +264,7 @@
     /* Bottom Floating Bar */
     .m3-bottom-app-bar {
         position: absolute;
-        bottom: 1.5rem;
+        bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
         left: 50%;
         transform: translateX(-50%);
         display: flex;

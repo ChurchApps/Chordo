@@ -812,7 +812,7 @@
         z-index: 1000;
 
         display: flex;
-        padding-top: 20px;
+        padding-top: calc(20px + env(safe-area-inset-top, 0px));
         padding-bottom: 50px;
 
         background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
@@ -857,7 +857,7 @@
 
     .metronome-state {
         position: absolute;
-        top: 10px;
+        top: calc(10px + env(safe-area-inset-top, 0px));
         left: 50%;
         transform: translateX(-50%);
 
@@ -1034,7 +1034,7 @@
         align-items: center;
         gap: 12px;
         width: 100%;
-        padding: 0 20px;
+        padding: 0 calc(20px + env(safe-area-inset-right, 0px)) 0 calc(20px + env(safe-area-inset-left, 0px));
     }
 
     .fullscreen-section-container {
