@@ -583,14 +583,52 @@
             hasBeenFullscreen = true
         }
 
-        const removeFullscreenListener = onFullscreenChange((isActive) => {
+        let isAttemptingReentry = false
+        const removeFullscreenListener = onFullscreenChange(async (isActive) => {
             if (isActive) {
                 hasBeenFullscreen = true
+                isAttemptingReentry = false
             } else if (hasBeenFullscreen) {
                 if (isDrawing) {
                     hasBeenFullscreen = false
                     return
                 }
+
+                // If document is currently hidden (e.g. tablet screen turned off / locked / minimized),
+                // wait until document becomes visible again before attempting to re-enter fullscreen.
+                if (document.visibilityState === "hidden") {
+                    const handleVisibilityChange = async () => {
+                        if (document.visibilityState === "visible") {
+                            document.removeEventListener("visibilitychange", handleVisibilityChange)
+                            if (!isFullscreenActive() && !isAttemptingReentry) {
+                                isAttemptingReentry = true
+                                const reentered = await enterFullscreen(document.documentElement, true)
+                                if (reentered) {
+                                    hasBeenFullscreen = true
+                                    isAttemptingReentry = false
+                                    return
+                                }
+                                isAttemptingReentry = false
+                                exitSongFullscreen()
+                            }
+                        }
+                    }
+                    document.addEventListener("visibilitychange", handleVisibilityChange)
+                    return
+                }
+
+                // If the screen wasn't hidden, first try re-entering fullscreen
+                if (!isAttemptingReentry) {
+                    isAttemptingReentry = true
+                    const reentered = await enterFullscreen(document.documentElement, true)
+                    if (reentered) {
+                        hasBeenFullscreen = true
+                        isAttemptingReentry = false
+                        return
+                    }
+                    isAttemptingReentry = false
+                }
+
                 exitSongFullscreen()
             }
         })
@@ -667,10 +705,16 @@
                                     {/if}
                                 </md-menu-item>
                             {:else if item.type === "section"}
-                                <div class="menu-section-header">
-                                    <span class="material-symbols-outlined menu-section-icon">bookmark</span>
-                                    <span class="menu-section-text">{item.sections.map((s) => s.name).join(" / ")}</span>
-                                </div>
+                                {@const isCurrent = currentSlideIndex === idx}
+                                <md-menu-item selected={isCurrent} class="menu-section-item" class:selected={isCurrent} onclick={() => goToSong(item.originalIndex)}>
+                                    <span class="material-symbols-outlined menu-section-icon" slot="start" style="font-size: 20px; opacity: 0.7;">bookmark</span>
+                                    <div slot="headline" class="menu-section-text" class:selected-headline={isCurrent}>
+                                        {item.sections.map((s) => s.name).join(" / ")}
+                                    </div>
+                                    {#if isCurrent}
+                                        <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary); font-size: 18px;">check</span>
+                                    {/if}
+                                </md-menu-item>
                             {/if}
                         {/each}
                     </md-menu>
@@ -1317,34 +1361,29 @@
         color: var(--md-sys-color-primary);
     }
 
-    .menu-section-header {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        padding: 6px 12px 3px 18px;
-        margin-top: 2px;
+    md-menu.song-list-menu md-menu-item.menu-section-item {
+        min-height: 28px;
+        --md-menu-item-one-line-container-height: 28px;
+        --md-menu-item-top-space: 2px;
+        --md-menu-item-bottom-space: 2px;
+        opacity: 0.85;
+    }
+
+    .menu-section-icon {
+        font-size: 20px;
+        opacity: 0.7;
+    }
+
+    .menu-section-text {
+        display: block;
+        max-width: 100%;
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--md-sys-color-on-surface-variant, #49454f);
-        opacity: 0.8;
-        user-select: none;
-        pointer-events: none;
-    }
-
-    .menu-section-header:first-child {
-        margin-top: 0;
-    }
-
-    .menu-section-icon {
-        font-size: 15px;
-        opacity: 0.7;
-    }
-
-    .menu-section-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 </style>

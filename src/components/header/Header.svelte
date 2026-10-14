@@ -400,7 +400,7 @@
                                         setActivePopup("rename_list")
                                     }}
                                 >
-                                    <span class="material-symbols-outlined" slot="start">edit</span>
+                                    <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
                                     <div slot="headline">{t("menu", "rename_list")}</div>
                                 </md-menu-item>
                                 <md-menu-item
@@ -461,7 +461,7 @@
                                             setActivePopup("rename_folder")
                                         }}
                                     >
-                                        <span class="material-symbols-outlined" slot="start">edit</span>
+                                        <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
                                         <div slot="headline">{t("menu", "rename_folder")}</div>
                                     </md-menu-item>
                                     <md-menu-item

@@ -165,6 +165,13 @@
 
             <div class="m3-divider"></div>
 
+            <!-- Eraser Tool Toggle -->
+            <button type="button" class="eraser-btn" class:selected={engine.toolMode === "eraser"} onclick={() => engine.toggleEraser()} title="Eraser — tap a stroke to remove it">
+                <md-icon>ink_eraser</md-icon>
+            </button>
+
+            <div class="m3-divider"></div>
+
             <!-- Brush Size Selector -->
             <div class="brush-size-group">
                 <div class="brush-preview-container">
@@ -173,13 +180,6 @@
 
                 <md-slider min="1" max="40" value={engine.brushSize} step="1" labeled oninput={handleSliderInput} class="m3-slider"></md-slider>
             </div>
-
-            <div class="m3-divider"></div>
-
-            <!-- Eraser Tool Toggle -->
-            <button type="button" class="eraser-btn" class:selected={engine.toolMode === "eraser"} onclick={() => engine.toggleEraser()} title="Eraser — tap a stroke to remove it">
-                <md-icon>ink_eraser</md-icon>
-            </button>
 
             <div class="m3-divider"></div>
 
