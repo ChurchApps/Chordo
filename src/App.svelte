@@ -79,8 +79,10 @@
 
     <Popup />
 
-    <PwaReloadPrompt />
-    <IosInstallPrompt />
+    {#if menuState.activePage !== "landing"}
+        <PwaReloadPrompt />
+        <IosInstallPrompt />
+    {/if}
 
     <Toast />
 </div>
