@@ -4,6 +4,7 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { createHistory } from "$lib/utils/history.svelte"
     import { onDestroy } from "svelte"
+    import FindReplaceDialog from "../popups/FindReplaceDialog.svelte"
     import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
     import HighlightedTextarea from "./HighlightedTextarea.svelte"
 
@@ -27,6 +28,7 @@
 
     let showReorderDialog = $state(false)
     let reorderInitialText = $state("")
+    let showFindReplaceDialog = $state(false)
     let isInitialized = false
 
     const contentHistory = createHistory<string>("", {
@@ -101,6 +103,32 @@
         if (onContentChange) onContentChange(newContent)
     }
 
+    function openFindReplaceDialog() {
+        showFindReplaceDialog = true
+    }
+
+    function applyFindReplace(newContent: string) {
+        if (!song) return
+        contentHistory.push(newContent)
+        song.content = newContent
+        storage.updateSong(song)
+        storage.persist()
+        if (onContentChange) onContentChange(newContent)
+    }
+
+    function handleEditorKeyDown(e: KeyboardEvent) {
+        const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+        const isModifier = isMac ? e.metaKey : e.ctrlKey
+
+        if (isModifier && (e.key === "f" || e.key === "h")) {
+            e.preventDefault()
+            openFindReplaceDialog()
+            return
+        }
+
+        contentHistory.handleKeyDown(e)
+    }
+
     let hasContent = $derived(Boolean(song?.content && song.content.trim().length > 0))
 </script>
 
@@ -114,6 +142,11 @@
         <button type="button" class="content-action-btn" disabled={!contentHistory.canRedo} onclick={() => contentHistory.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
             <span class="material-symbols-outlined" style="font-size: 16px;">redo</span>
             <span>{t("common", "redo")}</span>
+        </button>
+
+        <button type="button" class="content-action-btn" onclick={openFindReplaceDialog} title={`${t("find_replace", "title")} (Ctrl+F / Ctrl+H)`}>
+            <span class="material-symbols-outlined" style="font-size: 16px;">find_replace</span>
+            <span>{t("find_replace", "title")}</span>
         </button>
 
         {#if hasContent}
@@ -132,12 +165,19 @@
         value={song?.content || ""}
         oninput={handleInput}
         onblur={handleBlur}
-        onkeydown={contentHistory.handleKeyDown}
+        onkeydown={handleEditorKeyDown}
         style="width: 100%; height: 100%; min-height: inherit; max-height: inherit; flex: 1;"
     />
 </div>
 
 <ReorderSectionsDialog open={showReorderDialog} initialText={reorderInitialText} onApply={applyReorder} onClose={() => (showReorderDialog = false)} />
+
+<FindReplaceDialog
+    open={showFindReplaceDialog}
+    initialText={song?.content || ""}
+    onApply={applyFindReplace}
+    onClose={() => (showFindReplaceDialog = false)}
+/>
 
 <style>
     .song-content-editor {

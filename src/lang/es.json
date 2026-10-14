@@ -296,5 +296,12 @@
         "date_desc": "Fecha añadida (más recientes)",
         "date_asc": "Fecha añadida (más antiguas)",
         "no_artist": "Sin artista"
+    },
+    "find_replace": {
+        "title": "Buscar y reemplazar",
+        "find": "Buscar",
+        "replace": "Reemplazar",
+        "replace_all": "Reemplazar todo",
+        "match_case": "Coincidir mayúsculas y minúsculas"
     }
 }

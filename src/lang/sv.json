@@ -296,5 +296,12 @@
         "date_desc": "Tillagd (Senaste)",
         "date_asc": "Tillagd (Äldsta)",
         "no_artist": "Ingen artist"
+    },
+    "find_replace": {
+        "title": "Sök och ersätt",
+        "find": "Sök",
+        "replace": "Ersätt",
+        "replace_all": "Ersätt alla",
+        "match_case": "Matcha gemener/versaler"
     }
 }

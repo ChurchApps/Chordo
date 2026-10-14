@@ -296,5 +296,12 @@
         "date_desc": "Hinzugefügt am (Neueste)",
         "date_asc": "Hinzugefügt am (Älteste)",
         "no_artist": "Kein Künstler"
+    },
+    "find_replace": {
+        "title": "Suchen & Ersetzen",
+        "find": "Suchen",
+        "replace": "Ersetzen",
+        "replace_all": "Alle ersetzen",
+        "match_case": "Groß-/Kleinschreibung beachten"
     }
 }

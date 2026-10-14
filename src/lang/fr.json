@@ -296,5 +296,12 @@
         "date_desc": "Date d'ajout (Plus récents)",
         "date_asc": "Date d'ajout (Plus anciens)",
         "no_artist": "Sans artiste"
+    },
+    "find_replace": {
+        "title": "Rechercher et remplacer",
+        "find": "Rechercher",
+        "replace": "Remplacer",
+        "replace_all": "Tout remplacer",
+        "match_case": "Respecter la casse"
     }
 }

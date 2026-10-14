@@ -296,5 +296,12 @@
         "date_desc": "Dato lagt til (Nyeste)",
         "date_asc": "Dato lagt til (Eldste)",
         "no_artist": "Uten artist"
+    },
+    "find_replace": {
+        "title": "Søk og erstatt",
+        "find": "Søk",
+        "replace": "Erstatt",
+        "replace_all": "Erstatt alle",
+        "match_case": "Skill store/små bokstaver"
     }
 }

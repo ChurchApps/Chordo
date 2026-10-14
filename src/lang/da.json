@@ -296,5 +296,12 @@
         "date_desc": "Tilføjet dato (Nyeste)",
         "date_asc": "Tilføjet dato (Ældste)",
         "no_artist": "Ingen kunstner"
+    },
+    "find_replace": {
+        "title": "Søg og erstat",
+        "find": "Søg",
+        "replace": "Erstat",
+        "replace_all": "Erstat alle",
+        "match_case": "Forskel på store/små bogstaver"
     }
 }

@@ -296,5 +296,12 @@
         "date_desc": "Datum toegevoegd (Nieuwste)",
         "date_asc": "Datum toegevoegd (Oudste)",
         "no_artist": "Geen artiest"
+    },
+    "find_replace": {
+        "title": "Zoeken en vervangen",
+        "find": "Zoeken",
+        "replace": "Vervangen",
+        "replace_all": "Alles vervangen",
+        "match_case": "Hoofdlettergevoelig"
     }
 }

@@ -296,5 +296,12 @@
         "date_desc": "Date added (Newest)",
         "date_asc": "Date added (Oldest)",
         "no_artist": "No artist"
+    },
+    "find_replace": {
+        "title": "Find & Replace",
+        "find": "Find",
+        "replace": "Replace",
+        "replace_all": "Replace all",
+        "match_case": "Match case"
     }
 }
