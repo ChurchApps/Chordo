@@ -194,13 +194,10 @@
         closeDialog()
     }
 
-    onMount(() => {
-        const inputField = document.getElementById("text-popup-input") as HTMLInputElement | null
-        if (inputField) {
-            inputField.focus()
-            if (config?.initialValue) {
-                inputField.select?.()
-            }
+    let textFieldEl = $state<any>(null)
+    $effect(() => {
+        if (config && textFieldEl) {
+            setTimeout(() => textFieldEl?.select?.(), 50)
         }
     })
 
@@ -223,6 +220,7 @@
 
         <form slot="content" method="dialog" class="dialog-form">
             <md-outlined-text-field
+                bind:this={textFieldEl}
                 id="text-popup-input"
                 label={config.label}
                 placeholder={config.placeholder}
