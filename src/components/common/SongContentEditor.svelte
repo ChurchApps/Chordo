@@ -122,7 +122,7 @@
 
         if (isModifier && (e.key === "f" || e.key === "h")) {
             e.preventDefault()
-            openFindReplaceDialog()
+            if (hasContent) openFindReplaceDialog()
             return
         }
 
@@ -144,12 +144,12 @@
             <span>{t("common", "redo")}</span>
         </button>
 
-        <button type="button" class="content-action-btn" onclick={openFindReplaceDialog} title={`${t("find_replace", "title")} (Ctrl+F / Ctrl+H)`}>
-            <span class="material-symbols-outlined" style="font-size: 16px;">find_replace</span>
-            <span>{t("find_replace", "title")}</span>
-        </button>
-
         {#if hasContent}
+            <button type="button" class="content-action-btn" onclick={openFindReplaceDialog} title={`${t("find_replace", "title")} (Ctrl+F / Ctrl+H)`}>
+                <span class="material-symbols-outlined" style="font-size: 16px;">find_replace</span>
+                <span>{t("find_replace", "title")}</span>
+            </button>
+
             <button type="button" class="content-action-btn" onclick={openReorderDialog} title={t("song_edit", "reorder_sections")}>
                 <span class="material-symbols-outlined" style="font-size: 16px;">reorder</span>
                 <span>{t("song_edit", "reorder")}</span>
@@ -172,12 +172,7 @@
 
 <ReorderSectionsDialog open={showReorderDialog} initialText={reorderInitialText} onApply={applyReorder} onClose={() => (showReorderDialog = false)} />
 
-<FindReplaceDialog
-    open={showFindReplaceDialog}
-    initialText={song?.content || ""}
-    onApply={applyFindReplace}
-    onClose={() => (showFindReplaceDialog = false)}
-/>
+<FindReplaceDialog open={showFindReplaceDialog} initialText={song?.content || ""} onApply={applyFindReplace} onClose={() => (showFindReplaceDialog = false)} />
 
 <style>
     .song-content-editor {

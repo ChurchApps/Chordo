@@ -80,6 +80,8 @@
             isDestructive: true,
             onConfirm: async () => {
                 await storage.deleteSong(song.id)
+                // If previous history contains the song page for this deleted song, remove it so we return to the page before
+                menuState.previousPages = menuState.previousPages.filter((p) => !(p.activePage === "song" && p.contentId === song.id))
                 goBack()
             }
         })
