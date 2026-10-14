@@ -171,11 +171,11 @@
             }
             return
         }
-        if (item.isDeleted || item.type === "section") return
+        if (item.isDeleted) return
 
         savedFullscreenPosition.pageIndex = null
         savedFullscreenPosition.index = originalIdx
-        setActivePage("song", item.id, item.name)
+        setActivePage("song", item.id ?? null, item.name)
     }
 </script>
 
