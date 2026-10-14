@@ -8,14 +8,11 @@
     import { showToast } from "$lib/state/toast.svelte"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { createHistory } from "$lib/utils/history.svelte"
     import { importMediaFilesToSong, moveSongImage, removeSongImage, rotateSongImage } from "$lib/utils/mediaManager"
     import { cleanPlaybackUrl, openExternalPlayback, parsePlaybackUrl } from "$lib/utils/playback"
     import { pullAndConvertUrl } from "$lib/utils/webPuller"
-    import { onDestroy } from "svelte"
-    import HighlightedTextarea from "../common/HighlightedTextarea.svelte"
+    import SongContentEditor from "../common/SongContentEditor.svelte"
     import ProgressDialog from "../popups/ProgressDialog.svelte"
-    import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
 
     let song = $derived(storage.getSongById(menuState.contentId, storage.songs))
     let playbackUrlValue = $derived(song?.playbackUrl || song?.spotify || song?.getMetadata("playback") || song?.getMetadata("spotify") || "")
@@ -24,27 +21,10 @@
     let hasContent = $derived(Boolean(song?.content && song.content.trim().length > 0))
 
     let showMetadata = $state(false)
-    let showReorderDialog = $state(false)
-    let reorderInitialText = $state("")
     let currentSongName = ""
     let fileInputEl = $state<HTMLInputElement | null>(null)
     let imageWebUrls = $state<string[]>([])
-
-    // Universal History for Song Content
-    let isInitialized = false
-    const contentHistory = createHistory<string>("", {
-        debounceMs: 400,
-        onApply: (newVal) => {
-            if (!song) return
-            song.content = newVal
-            storage.updateSong(song)
-            storage.persist()
-        }
-    })
-
-    onDestroy(() => {
-        contentHistory.destroy()
-    })
+    let contentEditorRef = $state<ReturnType<typeof SongContentEditor> | null>(null)
 
     // URL Pull State
     let urlInput = $state("")
@@ -68,19 +48,13 @@
         }
     })
 
-    $effect(() => {
-        if (!isInitialized && song) {
-            contentHistory.reset(song.content || "")
-            isInitialized = true
-        }
-    })
-
     function syncMetadataFromText(rawText: string) {
         if (!song || !rawText.trim()) return
         const { cleanContent, metadata } = extractAndCleanSongMetadata(rawText)
 
         if (cleanContent && cleanContent !== song.content) {
             song.content = cleanContent
+            contentEditorRef?.setContent(cleanContent, true)
         }
 
         if (metadata.title && (!song.name || song.name === "Untitled")) {
@@ -116,11 +90,6 @@
 
         if (key === "name" && !value.trim()) return
         if (key === "createdAt" || key === "drawings" || key === "images" || key === "metadata" || key === "lastTransposed") return
-
-        if (key === "content") {
-            contentHistory.set(value)
-        }
-
         ;(song as any)[key] = value
 
         storage.updateSong(song)
@@ -134,35 +103,14 @@
 
     function handleContentBlur() {
         if (!song || !song.content) return
-        const originalContent = song.content
         syncMetadataFromText(song.content)
-        if (song.content !== originalContent) {
-            contentHistory.set(song.content, true)
-            storage.updateSong(song)
-            storage.persist()
-        }
+        storage.updateSong(song)
+        storage.persist()
     }
 
     function handleDone() {
         handleContentBlur()
         goBack()
-    }
-
-    function openReorderDialog() {
-        reorderInitialText = song?.content || ""
-        showReorderDialog = true
-    }
-
-    function applyReorderedContent(newContent: string) {
-        if (!song) return
-        contentHistory.push(newContent)
-        song.content = newContent
-        reorderInitialText = newContent
-        if (newContent.trim()) {
-            syncMetadataFromText(newContent)
-        }
-        storage.updateSong(song)
-        storage.persist()
     }
 
     function updateMetadataValue(e: Event, metaKey: string) {
@@ -201,7 +149,7 @@
 
         try {
             const result = await pullAndConvertUrl(targetUrl)
-            contentHistory.push(result.content)
+            contentEditorRef?.pushContent(result.content)
             song.content = result.content
             song.url = targetUrl
 
@@ -384,38 +332,15 @@
                 {/if}
             {/if}
 
-            <div class="textarea-wrapper" style={hasContent && !hasMedia ? "flex: 1; display: flex; flex-direction: column;" : ""}>
-                <div class="content-actions-container">
-                    <button type="button" class="content-action-btn" disabled={!contentHistory.canUndo} onclick={() => contentHistory.undo()} title={`${t("common", "undo")} (Ctrl+Z)`}>
-                        <span class="material-symbols-outlined" style="font-size: 16px;">undo</span>
-                        <span>{t("common", "undo")}</span>
-                    </button>
-
-                    <button type="button" class="content-action-btn" disabled={!contentHistory.canRedo} onclick={() => contentHistory.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
-                        <span class="material-symbols-outlined" style="font-size: 16px;">redo</span>
-                        <span>{t("common", "redo")}</span>
-                    </button>
-
-                    {#if hasContent}
-                        <button type="button" class="content-action-btn" onclick={openReorderDialog} title={t("song_edit", "reorder_sections")}>
-                            <span class="material-symbols-outlined" style="font-size: 16px;">reorder</span>
-                            <span>{t("song_edit", "reorder")}</span>
-                        </button>
-                    {/if}
-                </div>
-
-                <HighlightedTextarea
-                    id="song-content-input"
-                    label={t("song_edit", "content")}
-                    placeholder={t("song_edit", "content_placeholder")}
-                    rows={8}
-                    value={song.content}
-                    oninput={(e: Event) => updateValue(e, "content")}
-                    onblur={handleContentBlur}
-                    onkeydown={contentHistory.handleKeyDown}
-                    style="width: 100%; min-height: 220px; {hasContent && !hasMedia ? 'flex: 1;' : ''}"
-                />
-            </div>
+            <SongContentEditor
+                bind:this={contentEditorRef}
+                id="song-content-input"
+                {song}
+                rows={8}
+                class="song-editor-content-area"
+                style={hasContent && !hasMedia ? "flex: 1; display: flex; flex-direction: column;" : ""}
+                onBlur={handleContentBlur}
+            />
 
             <input type="file" accept="image/*,application/pdf,.pdf" multiple bind:this={fileInputEl} onchange={handleAddMedia} style="display: none;" />
 
@@ -495,8 +420,6 @@
         {/if}
     </div>
 </main>
-
-<ReorderSectionsDialog open={showReorderDialog} initialText={reorderInitialText} onApply={applyReorderedContent} onClose={() => (showReorderDialog = false)} />
 
 <ProgressDialog open={isConvertingPdf} title={t("song_edit", "converting_pdf_title")} icon="picture_as_pdf" detail={conversionFileName} message={conversionMessage} progress={conversionProgress} indeterminate={isIndeterminate} />
 
@@ -712,47 +635,8 @@
         object-fit: contain;
     }
 
-    .textarea-wrapper {
-        position: relative;
+    :global(.song-editor-content-area) {
         margin-top: 10px;
-        width: 100%;
-    }
-
-    .content-actions-container {
-        position: absolute;
-        top: 8px;
-        right: 12px;
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .content-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        border-radius: 16px;
-        border: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
-        background: var(--md-sys-color-surface-container-high, #f7f2fa);
-        color: var(--md-sys-color-primary, #6750a4);
-        font-size: 0.75rem;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        transition: all 0.15s ease;
-    }
-
-    .content-action-btn:hover:not(:disabled) {
-        background: var(--md-sys-color-primary-container, #eaddff);
-        color: var(--md-sys-color-on-primary-container, #21005d);
-        border-color: var(--md-sys-color-primary, #6750a4);
-    }
-
-    .content-action-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        box-shadow: none;
+        min-height: 220px;
     }
 </style>

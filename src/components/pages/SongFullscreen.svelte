@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
-    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup } from "$lib/state/menu.svelte"
     import { metronomeState } from "$lib/state/metronome.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -11,6 +11,7 @@
     import { onMount } from "svelte"
     import { slide } from "svelte/transition"
     import Draw from "../draw/Draw.svelte"
+    import QuickEditSongDialog from "../popups/QuickEditSongDialog.svelte"
     import ChordPro from "../song/ChordPro.svelte"
     import MetronomeButton from "../song/MetronomeButton.svelte"
     import Paper from "../song/Paper.svelte"
@@ -189,6 +190,7 @@
 
     let moreMenuOpen = $state(false)
     let songListMenuOpen = $state(false)
+    let quickEditOpen = $state(false)
 
     function goToSong(targetOriginalIndex: number) {
         songListMenuOpen = false
@@ -219,7 +221,7 @@
     function windowClick(e: MouseEvent) {
         if (didDrag) return
         if (isDrawing) return
-        if (popupState.popupId !== null) return
+        if (popupState.popupId !== null || quickEditOpen) return
         // Ignore the opening tap/click that triggered fullscreen entry
         const now = typeof performance !== "undefined" ? performance.now() : Date.now()
         if (now - mountTime < 350) return
@@ -254,6 +256,12 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
+        if (quickEditOpen) {
+            if (e.key === "Escape") {
+                quickEditOpen = false
+            }
+            return
+        }
         if (isDrawing) {
             if (e.key === "Escape") {
                 isDrawing = false
@@ -733,6 +741,18 @@
                         </md-menu-item>
                     {/if}
 
+                    {#if visibleSongId}
+                        <md-menu-item
+                            onclick={() => {
+                                moreMenuOpen = false
+                                quickEditOpen = true
+                            }}
+                        >
+                            <span class="material-symbols-outlined" slot="start">edit_note</span>
+                            <div slot="headline">{t("common", "edit")}</div>
+                        </md-menu-item>
+                    {/if}
+
                     <md-menu-item
                         onclick={() => {
                             moreMenuOpen = false
@@ -884,6 +904,8 @@
         {/if}
     </div>
 </main>
+
+<QuickEditSongDialog open={quickEditOpen} songId={visibleSongId} onClose={() => (quickEditOpen = false)} />
 
 <style>
     header {
