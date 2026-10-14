@@ -256,6 +256,7 @@
         "media_note": "Note: It is recommended to use text content instead of media.",
         "export_json_desc": "JSON file for backup and sharing",
         "export_freeshow_desc": "FreeShow presentation with slides and chords",
+        "print_desc": "Print or save as PDF",
         "paste_no_link": "No shared link found in clipboard",
         "paste_reading_error": "Could not read clipboard. Please grant clipboard permission.",
         "link_copied": "Share link copied to clipboard!",
@@ -295,5 +296,12 @@
         "date_desc": "Date added (Newest)",
         "date_asc": "Date added (Oldest)",
         "no_artist": "No artist"
+    },
+    "find_replace": {
+        "title": "Find & Replace",
+        "find": "Find",
+        "replace": "Replace",
+        "replace_all": "Replace all",
+        "match_case": "Match case"
     }
 }

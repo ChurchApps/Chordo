@@ -80,6 +80,8 @@
             isDestructive: true,
             onConfirm: async () => {
                 await storage.deleteSong(song.id)
+                // If previous history contains the song page for this deleted song, remove it so we return to the page before
+                menuState.previousPages = menuState.previousPages.filter((p) => !(p.activePage === "song" && p.contentId === song.id))
                 goBack()
             }
         })
@@ -370,15 +372,6 @@
                                         <span class="material-symbols-outlined" slot="start">share</span>
                                         <div slot="headline">{t("menu", "share_song")}</div>
                                     </md-menu-item>
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            window.print()
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">print</span>
-                                        <div slot="headline">{t("menu", "print")}</div>
-                                    </md-menu-item>
                                 {/if}
 
                                 <md-menu-item
@@ -409,7 +402,7 @@
                                         setActivePopup("rename_list")
                                     }}
                                 >
-                                    <span class="material-symbols-outlined" slot="start">edit</span>
+                                    <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
                                     <div slot="headline">{t("menu", "rename_list")}</div>
                                 </md-menu-item>
                                 <md-menu-item
@@ -470,7 +463,7 @@
                                             setActivePopup("rename_folder")
                                         }}
                                     >
-                                        <span class="material-symbols-outlined" slot="start">edit</span>
+                                        <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
                                         <div slot="headline">{t("menu", "rename_folder")}</div>
                                     </md-menu-item>
                                     <md-menu-item

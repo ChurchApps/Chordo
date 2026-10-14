@@ -122,6 +122,7 @@
             playbackUrl: source.playbackUrl,
             url: source.url,
             lastTransposed: source.lastTransposed,
+            drawings: Array.isArray(source.drawings) ? source.drawings : [],
             accessDays: shouldImportExpiry ? source.accessDays : (source.accessDays ?? 0),
             expiresAt: shouldImportExpiry ? source.expiresAt : undefined,
             createdAt: source.createdAt || Date.now()

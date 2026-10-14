@@ -98,7 +98,7 @@
                 }
             case "rename_list":
                 return {
-                    icon: "edit",
+                    icon: "drive_file_rename_outline",
                     title: t("rename", "list"),
                     label: t("new", "list_name_label"),
                     placeholder: t("new", "list_name_placeholder"),
@@ -113,7 +113,7 @@
                 }
             case "rename_folder":
                 return {
-                    icon: "edit",
+                    icon: "drive_file_rename_outline",
                     title: t("rename", "folder"),
                     label: t("new", "folder_name_label"),
                     placeholder: t("new", "folder_name_placeholder"),
@@ -131,7 +131,7 @@
                 const idx = listEditingState.selectedIndex ?? 0
                 const sectionItem = list?.songs[idx]
                 return {
-                    icon: "edit",
+                    icon: "drive_file_rename_outline",
                     title: t("rename", "section"),
                     label: t("new", "section_name_label"),
                     placeholder: t("new", "section_name_placeholder"),
@@ -194,13 +194,10 @@
         closeDialog()
     }
 
-    onMount(() => {
-        const inputField = document.getElementById("text-popup-input") as HTMLInputElement | null
-        if (inputField) {
-            inputField.focus()
-            if (config?.initialValue) {
-                inputField.select?.()
-            }
+    let textFieldEl = $state<any>(null)
+    $effect(() => {
+        if (config && textFieldEl) {
+            setTimeout(() => textFieldEl?.select?.(), 50)
         }
     })
 
@@ -223,6 +220,7 @@
 
         <form slot="content" method="dialog" class="dialog-form">
             <md-outlined-text-field
+                bind:this={textFieldEl}
                 id="text-popup-input"
                 label={config.label}
                 placeholder={config.placeholder}

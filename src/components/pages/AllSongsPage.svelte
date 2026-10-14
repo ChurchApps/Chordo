@@ -28,6 +28,10 @@
     })
 
     onDestroy(() => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer)
+            longPressTimer = null
+        }
         if (listOpened) {
             resetSetlistAddSort()
         }

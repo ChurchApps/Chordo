@@ -1,19 +1,28 @@
 <script lang="ts">
     import { exportSetlistAsJson, exportSongAsJson } from "$lib/export/exportHelper"
     import { exportAsFreeShowProject } from "$lib/export/freeshowProject"
-    import { buildListSharePayload, buildSongSharePayload } from "$lib/share/shareCodec"
     import { copyUrlToClipboard, createShare, getCachedShareUrl } from "$lib/share/share"
+    import { buildListSharePayload, buildSongSharePayload } from "$lib/share/shareCodec"
     import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, menuState, popupState, setActivePopup } from "$lib/state/menu.svelte"
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { onDestroy } from "svelte"
 
     import "@material/web/button/filled-button.js"
     import "@material/web/button/outlined-button.js"
     import "@material/web/button/text-button.js"
     import "@material/web/dialog/dialog.js"
+    import "@material/web/iconbutton/outlined-icon-button.js"
     import "@material/web/progress/linear-progress.js"
     import "@material/web/switch/switch.js"
+
+    let copyTimeout: ReturnType<typeof setTimeout> | undefined
+    let printTimeout: ReturnType<typeof setTimeout> | undefined
+    onDestroy(() => {
+        if (copyTimeout) clearTimeout(copyTimeout)
+        if (printTimeout) clearTimeout(printTimeout)
+    })
 
     const isSong = $derived(popupState.popupId === "share_song")
     const isList = $derived(popupState.popupId === "share_list")
@@ -28,14 +37,24 @@
         return menuState.contentId ? storage.getListById(menuState.contentId) : null
     })
 
-    const title = $derived(isSong ? song?.name ?? "" : list?.name ?? "")
+    const title = $derived(isSong ? (song?.name ?? "") : (list?.name ?? ""))
 
     let includeMedia = $state(false)
     let includeDrawings = $state(false)
 
-    const hasDrawings = $derived(
-        Boolean(isSong && song?.drawings && song.drawings.some((d) => Boolean(d && d.trim())))
-    )
+    const hasDrawings = $derived.by(() => {
+        if (isSong && song) {
+            return Boolean(song.drawings && song.drawings.some((d) => Boolean(d && d.trim())))
+        }
+        if (isList && list) {
+            return list.songs.some((item) => {
+                if (!item.id) return false
+                const s = storage.getSongById(item.id)
+                return Boolean(s?.drawings && s.drawings.some((d) => Boolean(d && d.trim())))
+            })
+        }
+        return false
+    })
 
     const hasMedia = $derived.by(() => {
         if (isSong && song) {
@@ -73,7 +92,7 @@
                 const cached = await getCachedShareUrl(payload)
                 if (cached) shareUrl = cached
             } else if (isList && list) {
-                const payload = await buildListSharePayload(list, storage.songs, { includeMedia })
+                const payload = await buildListSharePayload(list, storage.songs, { includeMedia, includeDrawings })
                 const cached = await getCachedShareUrl(payload)
                 if (cached) shareUrl = cached
             }
@@ -93,7 +112,7 @@
                 const payload = await buildSongSharePayload(song, { includeDrawings })
                 url = await createShare(payload)
             } else if (isList && list) {
-                const payload = await buildListSharePayload(list, storage.songs, { includeMedia })
+                const payload = await buildListSharePayload(list, storage.songs, { includeMedia, includeDrawings })
                 url = await createShare(payload)
             }
             shareUrl = url
@@ -131,7 +150,8 @@
         if (success) {
             copied = true
             showToast(t("share", "link_copied"), "success")
-            setTimeout(() => {
+            clearTimeout(copyTimeout)
+            copyTimeout = setTimeout(() => {
                 copied = false
             }, 2500)
         }
@@ -158,7 +178,7 @@
         if (isSong && song) {
             exportSongAsJson(song, { includeDrawings })
         } else if (isList && list) {
-            exportSetlistAsJson(list, storage.songs, { includeMedia })
+            exportSetlistAsJson(list, storage.songs, { includeMedia, includeDrawings })
         }
     }
 
@@ -166,6 +186,14 @@
         if (list) {
             exportAsFreeShowProject(list, storage.songs)
         }
+    }
+
+    function handlePrint() {
+        closeDialog()
+        clearTimeout(printTimeout)
+        printTimeout = setTimeout(() => {
+            window.print()
+        }, 150)
     }
 </script>
 
@@ -177,43 +205,43 @@
 
     <div slot="content" class="share-dialog-content">
         <!-- Options Section -->
-        {#if isList && hasMedia}
+        {#if hasMedia || hasDrawings}
             <div class="section-container">
                 <div class="section-title">{t("share", "options")}</div>
-                <label class="option-toggle-row">
-                    <div class="toggle-text">
-                        <div class="toggle-title">{t("share", "include_media")}</div>
-                        <div class="toggle-desc">{t("share", "include_media_desc")}</div>
-                    </div>
-                    <md-switch
-                        selected={includeMedia}
-                        onchange={(e: Event) => {
-                            includeMedia = (e.target as any).selected ?? (e.target as any).checked
-                            shareUrl = null
-                            copied = false
-                            checkCachedUrl()
-                        }}
-                    ></md-switch>
-                </label>
-            </div>
-        {:else if isSong && hasDrawings}
-            <div class="section-container">
-                <div class="section-title">{t("share", "options")}</div>
-                <label class="option-toggle-row">
-                    <div class="toggle-text">
-                        <div class="toggle-title">{t("share", "include_drawings")}</div>
-                        <div class="toggle-desc">{t("share", "include_drawings_desc")}</div>
-                    </div>
-                    <md-switch
-                        selected={includeDrawings}
-                        onchange={(e: Event) => {
-                            includeDrawings = (e.target as any).selected ?? (e.target as any).checked
-                            shareUrl = null
-                            copied = false
-                            checkCachedUrl()
-                        }}
-                    ></md-switch>
-                </label>
+                {#if hasMedia}
+                    <label class="option-toggle-row">
+                        <div class="toggle-text">
+                            <div class="toggle-title">{t("share", "include_media")}</div>
+                            <div class="toggle-desc">{t("share", "include_media_desc")}</div>
+                        </div>
+                        <md-switch
+                            selected={includeMedia}
+                            onchange={(e: Event) => {
+                                includeMedia = (e.target as any).selected ?? (e.target as any).checked
+                                shareUrl = null
+                                copied = false
+                                checkCachedUrl()
+                            }}
+                        ></md-switch>
+                    </label>
+                {/if}
+                {#if hasDrawings}
+                    <label class="option-toggle-row">
+                        <div class="toggle-text">
+                            <div class="toggle-title">{t("share", "include_drawings")}</div>
+                            <div class="toggle-desc">{t("share", "include_drawings_desc")}</div>
+                        </div>
+                        <md-switch
+                            selected={includeDrawings}
+                            onchange={(e: Event) => {
+                                includeDrawings = (e.target as any).selected ?? (e.target as any).checked
+                                shareUrl = null
+                                copied = false
+                                checkCachedUrl()
+                            }}
+                        ></md-switch>
+                    </label>
+                {/if}
             </div>
         {/if}
 
@@ -223,13 +251,7 @@
 
             {#if shareUrl}
                 <div class="url-input-row">
-                    <input
-                        type="text"
-                        readonly
-                        value={shareUrl}
-                        class="share-url-input"
-                        onclick={(e) => (e.currentTarget as HTMLInputElement).select()}
-                    />
+                    <input type="text" readonly value={shareUrl} class="share-url-input" onclick={(e) => (e.currentTarget as HTMLInputElement).select()} />
                 </div>
             {/if}
 
@@ -252,10 +274,9 @@
                 </md-filled-button>
 
                 {#if canNativeShare}
-                    <md-outlined-button onclick={handleNativeShare} disabled={isGenerating}>
-                        <span class="material-symbols-outlined" slot="icon">share</span>
-                        {t("share", "share_via")}
-                    </md-outlined-button>
+                    <md-outlined-icon-button onclick={handleNativeShare} disabled={isGenerating} title={t("share", "share_via")} aria-label={t("share", "share_via")}>
+                        <span class="material-symbols-outlined">share</span>
+                    </md-outlined-icon-button>
                 {/if}
             </div>
 
@@ -297,6 +318,18 @@
                         <span class="material-symbols-outlined download-icon">download</span>
                     </button>
                 {/if}
+
+                <!-- Print / Save as PDF -->
+                <button type="button" class="export-option-card" onclick={handlePrint}>
+                    <div class="option-icon-container">
+                        <span class="material-symbols-outlined option-icon">docs</span>
+                    </div>
+                    <div class="option-text">
+                        <div class="option-title">{t("menu", "print")}</div>
+                        <div class="option-desc">{t("share", "print_desc")}</div>
+                    </div>
+                    <span class="material-symbols-outlined download-icon">print</span>
+                </button>
             </div>
         </div>
     </div>

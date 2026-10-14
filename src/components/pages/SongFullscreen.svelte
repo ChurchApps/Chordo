@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
-    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
+    import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup } from "$lib/state/menu.svelte"
     import { metronomeState } from "$lib/state/metronome.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -11,6 +11,7 @@
     import { onMount } from "svelte"
     import { slide } from "svelte/transition"
     import Draw from "../draw/Draw.svelte"
+    import QuickEditSongDialog from "../popups/QuickEditSongDialog.svelte"
     import ChordPro from "../song/ChordPro.svelte"
     import MetronomeButton from "../song/MetronomeButton.svelte"
     import Paper from "../song/Paper.svelte"
@@ -188,13 +189,39 @@
     }
 
     let moreMenuOpen = $state(false)
+    let songListMenuOpen = $state(false)
+    let quickEditOpen = $state(false)
+
+    function goToSong(targetOriginalIndex: number) {
+        songListMenuOpen = false
+        clearTimeout(hideTimeout)
+
+        // Find page index matching the originalIndex
+        let targetPage = pageSongIndexMap.indexOf(targetOriginalIndex)
+        if (targetPage === -1) {
+            const slideIdx = slides.findIndex((s) => {
+                if (s.originalIndex === targetOriginalIndex) return true
+                if (s.type === "section" && s.sections.some((sec) => sec.originalIndex === targetOriginalIndex)) return true
+                return false
+            })
+            if (slideIdx !== -1) {
+                targetPage = Math.min(slideIdx, totalPages - 1)
+            }
+        }
+
+        if (targetPage !== -1 && targetPage !== currentPageIndex) {
+            currentPageIndex = targetPage
+            setPositionByIndex(true)
+        }
+    }
+
     const mountTime = typeof performance !== "undefined" ? performance.now() : Date.now()
 
     // --- Actions Header Toggle & Click Navigation ---
     function windowClick(e: MouseEvent) {
         if (didDrag) return
         if (isDrawing) return
-        if (popupState.popupId !== null) return
+        if (popupState.popupId !== null || quickEditOpen) return
         // Ignore the opening tap/click that triggered fullscreen entry
         const now = typeof performance !== "undefined" ? performance.now() : Date.now()
         if (now - mountTime < 350) return
@@ -229,6 +256,12 @@
     }
 
     function handleKeydown(e: KeyboardEvent) {
+        if (quickEditOpen) {
+            if (e.key === "Escape") {
+                quickEditOpen = false
+            }
+            return
+        }
         if (isDrawing) {
             if (e.key === "Escape") {
                 isDrawing = false
@@ -550,14 +583,52 @@
             hasBeenFullscreen = true
         }
 
-        const removeFullscreenListener = onFullscreenChange((isActive) => {
+        let isAttemptingReentry = false
+        const removeFullscreenListener = onFullscreenChange(async (isActive) => {
             if (isActive) {
                 hasBeenFullscreen = true
+                isAttemptingReentry = false
             } else if (hasBeenFullscreen) {
                 if (isDrawing) {
                     hasBeenFullscreen = false
                     return
                 }
+
+                // If document is currently hidden (e.g. tablet screen turned off / locked / minimized),
+                // wait until document becomes visible again before attempting to re-enter fullscreen.
+                if (document.visibilityState === "hidden") {
+                    const handleVisibilityChange = async () => {
+                        if (document.visibilityState === "visible") {
+                            document.removeEventListener("visibilitychange", handleVisibilityChange)
+                            if (!isFullscreenActive() && !isAttemptingReentry) {
+                                isAttemptingReentry = true
+                                const reentered = await enterFullscreen(document.documentElement, true)
+                                if (reentered) {
+                                    hasBeenFullscreen = true
+                                    isAttemptingReentry = false
+                                    return
+                                }
+                                isAttemptingReentry = false
+                                exitSongFullscreen()
+                            }
+                        }
+                    }
+                    document.addEventListener("visibilitychange", handleVisibilityChange)
+                    return
+                }
+
+                // If the screen wasn't hidden, first try re-entering fullscreen
+                if (!isAttemptingReentry) {
+                    isAttemptingReentry = true
+                    const reentered = await enterFullscreen(document.documentElement, true)
+                    if (reentered) {
+                        hasBeenFullscreen = true
+                        isAttemptingReentry = false
+                        return
+                    }
+                    isAttemptingReentry = false
+                }
+
                 exitSongFullscreen()
             }
         })
@@ -604,6 +675,51 @@
             <md-icon-button onclick={exitSongFullscreen} aria-label="Back">
                 <md-icon>arrow_back</md-icon>
             </md-icon-button>
+
+            {#if slides.length > 0}
+                <div class="more-menu-wrapper">
+                    <md-icon-button
+                        id="fullscreen-song-list-btn"
+                        aria-label={t("pages", "list")}
+                        title={t("pages", "list")}
+                        onclick={() => {
+                            songListMenuOpen = !songListMenuOpen
+                            clearTimeout(hideTimeout)
+                        }}
+                    >
+                        <md-icon>queue_music</md-icon>
+                    </md-icon-button>
+
+                    <md-menu id="fullscreen-song-list-menu" anchor="fullscreen-song-list-btn" open={songListMenuOpen} onclosed={() => (songListMenuOpen = false)} class="song-list-menu" quick>
+                        {#each slides as item, idx}
+                            {#if item.type === "song"}
+                                {@const song = storage.getSongById(item.songItem.id ?? null, storage.songs)}
+                                {@const isCurrent = currentSlideIndex === idx}
+                                <md-menu-item selected={isCurrent} class:selected={isCurrent} onclick={() => goToSong(item.originalIndex)}>
+                                    <span class="material-symbols-outlined" slot="start" style="font-size: 20px; opacity: 0.7;">music_note</span>
+                                    <div slot="headline" class="song-menu-headline" class:selected-headline={isCurrent}>
+                                        {song?.name || item.songItem.name || "Untitled"}
+                                    </div>
+                                    {#if isCurrent}
+                                        <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary); font-size: 18px;">check</span>
+                                    {/if}
+                                </md-menu-item>
+                            {:else if item.type === "section"}
+                                {@const isCurrent = currentSlideIndex === idx}
+                                <md-menu-item selected={isCurrent} class="menu-section-item" class:selected={isCurrent} onclick={() => goToSong(item.originalIndex)}>
+                                    <span class="material-symbols-outlined menu-section-icon" slot="start" style="font-size: 20px; opacity: 0.7;">bookmark</span>
+                                    <div slot="headline" class="menu-section-text" class:selected-headline={isCurrent}>
+                                        {item.sections.map((s) => s.name).join(" / ")}
+                                    </div>
+                                    {#if isCurrent}
+                                        <span class="material-symbols-outlined" slot="end" style="color: var(--md-sys-color-primary); font-size: 18px;">check</span>
+                                    {/if}
+                                </md-menu-item>
+                            {/if}
+                        {/each}
+                    </md-menu>
+                </div>
+            {/if}
 
             <div style="flex:1"></div>
 
@@ -669,6 +785,18 @@
                         </md-menu-item>
                     {/if}
 
+                    {#if visibleSongId}
+                        <md-menu-item
+                            onclick={() => {
+                                moreMenuOpen = false
+                                quickEditOpen = true
+                            }}
+                        >
+                            <span class="material-symbols-outlined" slot="start">edit_note</span>
+                            <div slot="headline">{t("common", "edit")}</div>
+                        </md-menu-item>
+                    {/if}
+
                     <md-menu-item
                         onclick={() => {
                             moreMenuOpen = false
@@ -684,11 +812,29 @@
     </header>
 
     <footer transition:slide={{ duration: 200, axis: "y" }}>
-        <div class="progress">
-            {#each Array(totalPages) as _, i}
-                <span class="dot" class:active={i === currentPageIndex}></span>
-            {/each}
-        </div>
+        {#if totalPages > 30}
+            <div class="progress-number">
+                {currentPageIndex + 1}/{totalPages}
+            </div>
+        {:else}
+            <div class="progress">
+                {#each Array(totalPages) as _, i}
+                    <button
+                        type="button"
+                        class="dot"
+                        class:active={i === currentPageIndex}
+                        aria-label={`Page ${i + 1}`}
+                        onclick={(e) => {
+                            e.stopPropagation()
+                            if (i !== currentPageIndex) {
+                                currentPageIndex = i
+                                setPositionByIndex(true)
+                            }
+                        }}
+                    ></button>
+                {/each}
+            </div>
+        {/if}
     </footer>
 {/if}
 
@@ -803,6 +949,8 @@
     </div>
 </main>
 
+<QuickEditSongDialog open={quickEditOpen} songId={visibleSongId} onClose={() => (quickEditOpen = false)} />
+
 <style>
     header {
         position: fixed;
@@ -812,7 +960,7 @@
         z-index: 1000;
 
         display: flex;
-        padding-top: 20px;
+        padding-top: calc(20px + env(safe-area-inset-top, 0px));
         padding-bottom: 50px;
 
         background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
@@ -857,7 +1005,7 @@
 
     .metronome-state {
         position: absolute;
-        top: 10px;
+        top: calc(10px + env(safe-area-inset-top, 0px));
         left: 50%;
         transform: translateX(-50%);
 
@@ -1034,7 +1182,7 @@
         align-items: center;
         gap: 12px;
         width: 100%;
-        padding: 0 20px;
+        padding: 0 calc(20px + env(safe-area-inset-right, 0px)) 0 calc(20px + env(safe-area-inset-left, 0px));
     }
 
     .fullscreen-section-container {
@@ -1096,23 +1244,64 @@
         position: fixed;
         left: 50%;
         transform: translateX(-50%);
-        bottom: 18px;
+        bottom: 14px;
         display: flex;
-        gap: 8px;
+        gap: 6px;
+        z-index: 1001;
+        pointer-events: auto;
+        padding: 4px;
+    }
+
+    .progress-number {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 16px;
         z-index: 1001;
         pointer-events: none;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        padding: 4px 12px;
+        border-radius: 9999px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        user-select: none;
     }
 
     .dot {
+        position: relative;
         width: 8px;
         height: 8px;
+        padding: 0;
+        margin: 0;
+        border: none;
         border-radius: 50%;
         background: rgba(255, 255, 255, 0.35);
+        cursor: pointer;
+        outline: none;
         transition:
             transform 160ms ease,
             background 160ms ease,
             opacity 160ms ease;
         opacity: 0.95;
+    }
+
+    .dot::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        bottom: -8px;
+        left: -4px;
+        right: -4px;
+    }
+
+    .dot:hover {
+        background: rgba(255, 255, 255, 0.7);
+        transform: scale(1.2);
     }
 
     .dot.active {
@@ -1132,7 +1321,69 @@
         min-width: 180px;
     }
 
+    md-menu.song-list-menu {
+        min-width: 220px;
+        max-width: 320px;
+        max-height: 70vh;
+        overflow-x: hidden !important;
+        --md-menu-item-one-line-container-height: 38px;
+        --md-menu-item-top-space: 4px;
+        --md-menu-item-bottom-space: 4px;
+    }
+
     md-menu-item {
         white-space: nowrap;
+    }
+
+    md-menu.song-list-menu md-menu-item {
+        min-height: 38px;
+        max-width: 100%;
+        overflow: hidden;
+        --md-menu-item-one-line-container-height: 38px;
+        --md-menu-item-top-space: 4px;
+        --md-menu-item-bottom-space: 4px;
+    }
+
+    .song-menu-headline {
+        display: block;
+        max-width: 100%;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    md-menu-item.selected {
+        background-color: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.08));
+    }
+
+    .selected-headline {
+        font-weight: 600;
+        color: var(--md-sys-color-primary);
+    }
+
+    md-menu.song-list-menu md-menu-item.menu-section-item {
+        min-height: 28px;
+        --md-menu-item-one-line-container-height: 28px;
+        --md-menu-item-top-space: 2px;
+        --md-menu-item-bottom-space: 2px;
+        opacity: 0.85;
+    }
+
+    .menu-section-icon {
+        font-size: 20px;
+        opacity: 0.7;
+    }
+
+    .menu-section-text {
+        display: block;
+        max-width: 100%;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--md-sys-color-on-surface-variant, #49454f);
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 </style>

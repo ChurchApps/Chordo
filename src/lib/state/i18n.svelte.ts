@@ -10,7 +10,15 @@ export type ItemKey<S extends SectionKey> = S extends SectionKey ? (Translations
 
 export const SUPPORTED_LANGUAGES = [
     { code: "en", label: "English", prefixes: ["en"] },
-    { code: "no", label: "Norsk", prefixes: ["no", "nb", "nn"] }
+    { code: "no", label: "Norsk", prefixes: ["no", "nb", "nn"] },
+    { code: "sv", label: "Svenska", prefixes: ["sv"] },
+    { code: "da", label: "Dansk", prefixes: ["da"] },
+    { code: "es", label: "Español", prefixes: ["es"] },
+    { code: "de", label: "Deutsch", prefixes: ["de"] },
+    { code: "fr", label: "Français", prefixes: ["fr"] },
+    { code: "pt", label: "Português", prefixes: ["pt"] },
+    { code: "it", label: "Italiano", prefixes: ["it"] },
+    { code: "nl", label: "Nederlands", prefixes: ["nl"] }
 ] as const
 
 export type SupportedLocale = (typeof SUPPORTED_LANGUAGES)[number]["code"]

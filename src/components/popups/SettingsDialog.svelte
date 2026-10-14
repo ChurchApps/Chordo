@@ -14,6 +14,7 @@
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
     let currentTheme = $derived<SupportedTheme>(getTheme())
+    const sortedLanguages = [...SUPPORTED_LANGUAGES].sort((a, b) => a.label.localeCompare(b.label))
     let fileInputRef = $state<HTMLInputElement | null>(null)
     let importStatus = $state<string | null>(null)
 
@@ -343,7 +344,7 @@
                     }}
                     class="language-select"
                 >
-                    {#each SUPPORTED_LANGUAGES as lang}
+                    {#each sortedLanguages as lang}
                         <md-select-option value={lang.code} selected={currentLanguage === lang.code}>
                             <div slot="headline">{lang.label}</div>
                         </md-select-option>

@@ -136,6 +136,7 @@
             {@const songId = isSection ? null : (songItem?.id ?? null)}
             {@const currentSong = songId ? storage.getSongById(songId, allSongs) : null}
             {@const targetKey = songItem?.transposed || currentSong?.lastTransposed}
+            {@const isActiveSong = !isSection && songId === menuState.contentId}
 
             {#if isSection}
                 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
@@ -145,7 +146,7 @@
                     <div class="section-divider-line"></div>
                 </div>
             {:else}
-                <div class="song-item-element song-wrapper" role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); openFullscreen(idx); }} onkeydown={(e) => { if (e.key === "Enter") { e.stopPropagation(); openFullscreen(idx); } }}>
+                <div class="song-item-element song-wrapper" class:active-print-song={isActiveSong} role="button" tabindex="0" onclick={(e) => { e.stopPropagation(); openFullscreen(idx); }} onkeydown={(e) => { if (e.key === "Enter") { e.stopPropagation(); openFullscreen(idx); } }}>
                     <Song {songId} {targetKey} />
                 </div>
             {/if}
@@ -205,6 +206,11 @@
     @media print {
         .songs {
             gap: 0 !important;
+        }
+
+        /* If an active song is marked for print, hide all other items and sections */
+        .songs:has(.active-print-song) .song-item-element:not(.active-print-song) {
+            display: none !important;
         }
     }
 </style>

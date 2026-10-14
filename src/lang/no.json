@@ -256,6 +256,7 @@
         "media_note": "Merk: Det anbefales å bruke tekstinnhold i stedet for media.",
         "export_json_desc": "JSON-fil for sikkerhetskopi og deling",
         "export_freeshow_desc": "FreeShow-presentasjon med lysbilder og akkorder",
+        "print_desc": "Skriv ut eller lagre som PDF",
         "paste_no_link": "Ingen delt lenke funnet i utklippstavlen",
         "paste_reading_error": "Kunne ikke lese utklippstavlen. Vennligst gi tillatelse.",
         "link_copied": "Delingslenke kopiert til utklippstavlen!",
@@ -295,5 +296,12 @@
         "date_desc": "Dato lagt til (Nyeste)",
         "date_asc": "Dato lagt til (Eldste)",
         "no_artist": "Uten artist"
+    },
+    "find_replace": {
+        "title": "Søk og erstatt",
+        "find": "Søk",
+        "replace": "Erstatt",
+        "replace_all": "Erstatt alle",
+        "match_case": "Skill store/små bokstaver"
     }
 }
