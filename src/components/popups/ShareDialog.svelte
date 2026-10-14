@@ -42,7 +42,19 @@
     let includeMedia = $state(false)
     let includeDrawings = $state(false)
 
-    const hasDrawings = $derived(Boolean(isSong && song?.drawings && song.drawings.some((d) => Boolean(d && d.trim()))))
+    const hasDrawings = $derived.by(() => {
+        if (isSong && song) {
+            return Boolean(song.drawings && song.drawings.some((d) => Boolean(d && d.trim())))
+        }
+        if (isList && list) {
+            return list.songs.some((item) => {
+                if (!item.id) return false
+                const s = storage.getSongById(item.id)
+                return Boolean(s?.drawings && s.drawings.some((d) => Boolean(d && d.trim())))
+            })
+        }
+        return false
+    })
 
     const hasMedia = $derived.by(() => {
         if (isSong && song) {
@@ -80,7 +92,7 @@
                 const cached = await getCachedShareUrl(payload)
                 if (cached) shareUrl = cached
             } else if (isList && list) {
-                const payload = await buildListSharePayload(list, storage.songs, { includeMedia })
+                const payload = await buildListSharePayload(list, storage.songs, { includeMedia, includeDrawings })
                 const cached = await getCachedShareUrl(payload)
                 if (cached) shareUrl = cached
             }
@@ -100,7 +112,7 @@
                 const payload = await buildSongSharePayload(song, { includeDrawings })
                 url = await createShare(payload)
             } else if (isList && list) {
-                const payload = await buildListSharePayload(list, storage.songs, { includeMedia })
+                const payload = await buildListSharePayload(list, storage.songs, { includeMedia, includeDrawings })
                 url = await createShare(payload)
             }
             shareUrl = url
@@ -166,7 +178,7 @@
         if (isSong && song) {
             exportSongAsJson(song, { includeDrawings })
         } else if (isList && list) {
-            exportSetlistAsJson(list, storage.songs, { includeMedia })
+            exportSetlistAsJson(list, storage.songs, { includeMedia, includeDrawings })
         }
     }
 
@@ -193,43 +205,43 @@
 
     <div slot="content" class="share-dialog-content">
         <!-- Options Section -->
-        {#if isList && hasMedia}
+        {#if hasMedia || hasDrawings}
             <div class="section-container">
                 <div class="section-title">{t("share", "options")}</div>
-                <label class="option-toggle-row">
-                    <div class="toggle-text">
-                        <div class="toggle-title">{t("share", "include_media")}</div>
-                        <div class="toggle-desc">{t("share", "include_media_desc")}</div>
-                    </div>
-                    <md-switch
-                        selected={includeMedia}
-                        onchange={(e: Event) => {
-                            includeMedia = (e.target as any).selected ?? (e.target as any).checked
-                            shareUrl = null
-                            copied = false
-                            checkCachedUrl()
-                        }}
-                    ></md-switch>
-                </label>
-            </div>
-        {:else if isSong && hasDrawings}
-            <div class="section-container">
-                <div class="section-title">{t("share", "options")}</div>
-                <label class="option-toggle-row">
-                    <div class="toggle-text">
-                        <div class="toggle-title">{t("share", "include_drawings")}</div>
-                        <div class="toggle-desc">{t("share", "include_drawings_desc")}</div>
-                    </div>
-                    <md-switch
-                        selected={includeDrawings}
-                        onchange={(e: Event) => {
-                            includeDrawings = (e.target as any).selected ?? (e.target as any).checked
-                            shareUrl = null
-                            copied = false
-                            checkCachedUrl()
-                        }}
-                    ></md-switch>
-                </label>
+                {#if hasMedia}
+                    <label class="option-toggle-row">
+                        <div class="toggle-text">
+                            <div class="toggle-title">{t("share", "include_media")}</div>
+                            <div class="toggle-desc">{t("share", "include_media_desc")}</div>
+                        </div>
+                        <md-switch
+                            selected={includeMedia}
+                            onchange={(e: Event) => {
+                                includeMedia = (e.target as any).selected ?? (e.target as any).checked
+                                shareUrl = null
+                                copied = false
+                                checkCachedUrl()
+                            }}
+                        ></md-switch>
+                    </label>
+                {/if}
+                {#if hasDrawings}
+                    <label class="option-toggle-row">
+                        <div class="toggle-text">
+                            <div class="toggle-title">{t("share", "include_drawings")}</div>
+                            <div class="toggle-desc">{t("share", "include_drawings_desc")}</div>
+                        </div>
+                        <md-switch
+                            selected={includeDrawings}
+                            onchange={(e: Event) => {
+                                includeDrawings = (e.target as any).selected ?? (e.target as any).checked
+                                shareUrl = null
+                                copied = false
+                                checkCachedUrl()
+                            }}
+                        ></md-switch>
+                    </label>
+                {/if}
             </div>
         {/if}
 
