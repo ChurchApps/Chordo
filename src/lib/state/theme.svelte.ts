@@ -1,4 +1,4 @@
-export type SupportedTheme = "teal" | "indigo" | "blue" | "green" | "orange" | "rose" | "slate" | "white" | "monochrome" | "gold"
+export type SupportedTheme = "teal" | "indigo" | "blue" | "green" | "orange" | "rose" | "slate" | "white" | "monochrome" | "gold" | "chocolate"
 
 export interface ThemeOption {
     id: SupportedTheme
@@ -16,6 +16,7 @@ export const SUPPORTED_THEMES: ThemeOption[] = [
     { id: "green", labelKey: "Forest Green", color: "#7ec89f", background: "#cbead8" },
     { id: "rose", labelKey: "Rose Pink", color: "#f296b1", background: "#fcd0dc" },
     { id: "slate", labelKey: "Slate Grey", color: "#98aabf", background: "#d4dee8" },
+    // black and white
     { id: "white", labelKey: "Pure White", color: "#ffffff", background: "#ffffff" },
     { id: "monochrome", labelKey: "Monochrome Dark", color: "#1c1c1e", background: "#2c2c2e" },
     // gradient themes
@@ -25,6 +26,13 @@ export const SUPPORTED_THEMES: ThemeOption[] = [
         color: "#ba8c28",
         background: "#e2d2ab",
         gradient: "linear-gradient(135deg, #d8b15d 0%, #ba8c28 35%, #825d10 70%, #c69d3e 100%)"
+    },
+    {
+        id: "chocolate",
+        labelKey: "Chocolate",
+        color: "#b07b32",
+        background: "#3e2415",
+        gradient: "linear-gradient(135deg, #e8be6d 0%, #9e5b22 45%, #422112 100%)"
     }
 ]
 

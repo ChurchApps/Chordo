@@ -10,6 +10,7 @@ export interface SongPaperOptions {
     background?: string
     fontSize?: number
     pageAnimation?: PageSwitchAnimation
+    chordColor?: string
 }
 
 export interface DrawSettings {
@@ -46,6 +47,14 @@ export class Settings {
         }
         if (this.theme) {
             setTheme(this.theme)
+        }
+        if (typeof document !== "undefined") {
+            const chordColor = this.paperOptions?.chordColor
+            if (chordColor) {
+                document.documentElement.style.setProperty("--chord-color", chordColor)
+            } else {
+                document.documentElement.style.removeProperty("--chord-color")
+            }
         }
     }
 

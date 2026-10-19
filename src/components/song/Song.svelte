@@ -21,6 +21,7 @@
     let customBg = $derived(storage.settings.paperOptions?.background || "#ffffff")
     let paperBg = $derived(hasMedia ? "black" : customBg)
     let fontScale = $derived((storage.settings.paperOptions?.fontSize ?? 100) / 100)
+    let chordColor = $derived(storage.settings.paperOptions?.chordColor || "#5498be")
 
     let isDarkBackground = $derived.by(() => {
         if (!paperBg) return false
@@ -41,7 +42,7 @@
     <div
         class="paper"
         class:hasMedia
-        style="background-color: {paperBg}; color: {isDarkBackground ? '#e6e1e5' : '#111111'}; --font-scale: {fontScale};"
+        style="background-color: {paperBg}; color: {isDarkBackground ? '#e6e1e5' : '#111111'}; --font-scale: {fontScale}; --chord-color: {chordColor};"
     >
         <ChordPro {songId} {targetKey} {semitones} hideChords={fullscreenState.lyricsOnly} />
     </div>

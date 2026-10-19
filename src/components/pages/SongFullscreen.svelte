@@ -650,11 +650,12 @@
             const entry = entries[0]
             if (entry) {
                 const { width, height } = entry.contentRect
-                // When on-screen keyboard opens, only height changes while width remains unchanged.
-                // Do not recalculate page counts on vertical keyboard height changes.
-                if (width === lastSliderWidth) return
+                const widthUnchanged = width === lastSliderWidth
                 lastSliderWidth = width
                 lastSliderHeight = height
+                // When on-screen keyboard opens, only height changes while width remains unchanged.
+                // Do not recalculate page counts on vertical keyboard height changes.
+                if (widthUnchanged) return
             }
             scheduleUpdatePageCount(true)
         })
@@ -878,9 +879,10 @@
                     {@const customBg = storage.settings.paperOptions?.background || "white"}
                     {@const paperBg = hasMedia ? "black" : customBg}
                     {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
+                    {@const chordColor = storage.settings.paperOptions?.chordColor || "#5498be"}
 
-                    <div class="slide" style="--font-scale: {fontScale};">
-                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} ignoreResizeHeight onPaginate={() => scheduleUpdatePageCount(false)}>
+                    <div class="slide" style="--font-scale: {fontScale}; --chord-color: {chordColor};">
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} {chordColor} ignoreResizeHeight onPaginate={() => scheduleUpdatePageCount(false)}>
                             <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
                         </Paper>
                     </div>
