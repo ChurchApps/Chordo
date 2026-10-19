@@ -277,14 +277,15 @@
             lastHeight = containerEl.clientHeight
         }
 
-        // Re-paginate when container size changes
         const resizeObserver = new ResizeObserver((entries) => {
             const entry = entries[0]
             if (entry) {
                 const { width, height } = entry.contentRect
-                if (width === lastWidth && (ignoreResizeHeight || height === lastHeight)) return
+                const widthUnchanged = width === lastWidth
+                const heightUnchanged = ignoreResizeHeight || height === lastHeight
                 lastWidth = width
                 lastHeight = height
+                if (widthUnchanged && heightUnchanged) return
             }
             schedulePaginate()
         })

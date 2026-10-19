@@ -650,11 +650,12 @@
             const entry = entries[0]
             if (entry) {
                 const { width, height } = entry.contentRect
-                // When on-screen keyboard opens, only height changes while width remains unchanged.
-                // Do not recalculate page counts on vertical keyboard height changes.
-                if (width === lastSliderWidth) return
+                const widthUnchanged = width === lastSliderWidth
                 lastSliderWidth = width
                 lastSliderHeight = height
+                // When on-screen keyboard opens, only height changes while width remains unchanged.
+                // Do not recalculate page counts on vertical keyboard height changes.
+                if (widthUnchanged) return
             }
             scheduleUpdatePageCount(true)
         })
