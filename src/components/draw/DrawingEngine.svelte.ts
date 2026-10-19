@@ -3,10 +3,12 @@ import storage from "$lib/storage/StorageManager.svelte"
 import {
     type Stroke,
     type Point,
+    type TextItem,
     renderDrawing,
     serializeDrawing,
     parseDrawingData,
     strokeHitsPoint,
+    textHitsPoint,
     ERASER_THRESHOLD
 } from "./drawUtils"
 
@@ -23,22 +25,26 @@ export class DrawingEngine {
     canvasRef = $state<HTMLCanvasElement | null>(null)
     ctx = $state<CanvasRenderingContext2D | null>(null)
     isDrawing = $state(false)
-    currentColor = $state(storage.settings.draw?.color || "#1d1b20")
+    currentColor = $state(storage.settings.draw?.color || "#b3261e")
     customColor = $state("#ff4081")
     brushSize = $state(storage.settings.draw?.brushSize ?? 4)
-    toolMode = $state<"pen" | "eraser">("pen")
+    toolMode = $state<"pen" | "text" | "eraser">("pen")
+
+    // Text insertion state
+    activeTextPrompt = $state<{ x: number; y: number } | null>(null)
 
     colorInputRef: HTMLInputElement | null = null
 
     // Drawing internals
     strokes = $state<Stroke[]>([])
+    texts = $state<TextItem[]>([])
     currentStroke: Stroke | null = null
     backgroundImage = $state<HTMLImageElement | null>(null)
     erasedThisStroke = false
     lastPoint: Point | null = null
 
     get hasContent(): boolean {
-        return this.strokes.length > 0 || this.backgroundImage !== null
+        return this.strokes.length > 0 || this.texts.length > 0 || this.backgroundImage !== null
     }
 
     history: HistoryManager<string>
@@ -186,9 +192,17 @@ export class DrawingEngine {
     startDrawing(e: PointerEvent) {
         if (!this.options.getEditable() || !this.ctx) return
         e.preventDefault()
+
+        const point = this.getPointerCoordinates(e)
+
+        if (this.toolMode === "text") {
+            // Place text at tapped location
+            this.openTextInput(point)
+            return
+        }
+
         this.canvasRef?.setPointerCapture(e.pointerId)
         this.isDrawing = true
-        const point = this.getPointerCoordinates(e)
         this.lastPoint = point
 
         if (this.toolMode === "eraser") {
@@ -211,7 +225,7 @@ export class DrawingEngine {
 
         if (this.toolMode === "eraser") {
             this.eraseAt(currentPoint)
-        } else {
+        } else if (this.toolMode === "pen") {
             if (!this.currentStroke) return
             this.currentStroke.points.push(currentPoint)
             this.ctx.beginPath()
@@ -246,10 +260,45 @@ export class DrawingEngine {
         }
     }
 
+    openTextInput(point: Point) {
+        this.activeTextPrompt = { x: point.x, y: point.y }
+    }
+
+    cancelTextInput() {
+        this.activeTextPrompt = null
+    }
+
+    commitText(text: string) {
+        if (!this.activeTextPrompt) return
+        const trimmed = text.trim()
+        if (trimmed) {
+            // Linear scale from brush size: size 2 -> 16px, size 20 -> 34px
+            const fontSize = 14 + this.brushSize
+            this.texts.push({
+                x: this.activeTextPrompt.x,
+                y: this.activeTextPrompt.y,
+                text: trimmed,
+                color: this.currentColor,
+                fontSize
+            })
+            this.redraw()
+            this.history.push(this.getData())
+            this.notifyChange()
+        }
+        this.activeTextPrompt = null
+    }
+
     eraseAt(point: Point) {
-        const before = this.strokes.length
-        this.strokes = this.strokes.filter((s) => !strokeHitsPoint(s, point.x, point.y, ERASER_THRESHOLD))
-        if (this.strokes.length !== before) {
+        if (!this.ctx) return
+        const threshold = Math.max(8, this.brushSize * 1.5)
+        const strokesBefore = this.strokes.length
+        this.strokes = this.strokes.filter((s) => !strokeHitsPoint(s, point.x, point.y, threshold))
+
+        const canvasWidth = this.canvasRef ? this.canvasRef.width : 1000
+        const textsBefore = this.texts.length
+        this.texts = this.texts.filter((t) => !textHitsPoint(this.ctx!, t, point.x, point.y, threshold, canvasWidth))
+
+        if (this.strokes.length !== strokesBefore || this.texts.length !== textsBefore) {
             this.redraw()
             this.erasedThisStroke = true
         }
@@ -257,7 +306,7 @@ export class DrawingEngine {
 
     redraw() {
         if (!this.ctx || !this.canvasRef) return
-        renderDrawing(this.ctx, this.canvasRef, this.strokes, this.backgroundImage)
+        renderDrawing(this.ctx, this.canvasRef, this.strokes, this.backgroundImage, this.texts)
     }
 
     loadData(data: string) {
@@ -266,16 +315,18 @@ export class DrawingEngine {
             this.redraw()
         })
         this.strokes = parsed.strokes
+        this.texts = parsed.texts
         this.backgroundImage = parsed.backgroundImage
         this.redraw()
     }
 
     getData(): string {
-        return serializeDrawing(this.strokes, this.backgroundImage)
+        return serializeDrawing(this.strokes, this.backgroundImage, this.texts)
     }
 
     clear() {
         this.strokes = []
+        this.texts = []
         this.backgroundImage = null
         this.redraw()
         this.history.push("")
@@ -289,6 +340,7 @@ export class DrawingEngine {
     }
 
     finish() {
+        this.activeTextPrompt = null
         const data = this.getData()
         this.loadedDataProp = data
         if (this.options.onFinish) {
@@ -297,12 +349,12 @@ export class DrawingEngine {
     }
 
     handleCustomColorClick() {
-        const isCustomSelected = !this.options.getColors().includes(this.currentColor) && this.toolMode === "pen"
+        const isCustomSelected = !this.options.getColors().includes(this.currentColor) && this.toolMode !== "eraser"
         if (isCustomSelected) {
             this.colorInputRef?.showPicker ? this.colorInputRef.showPicker() : this.colorInputRef?.click()
         } else {
             this.currentColor = this.customColor
-            this.toolMode = "pen"
+            if (this.toolMode === "eraser") this.toolMode = "pen"
         }
     }
 
@@ -310,16 +362,17 @@ export class DrawingEngine {
         const target = e.target as HTMLInputElement
         this.customColor = target.value
         this.currentColor = target.value
-        this.toolMode = "pen"
+        if (this.toolMode === "eraser") this.toolMode = "pen"
     }
 
     selectPresetColor(color: string) {
         this.currentColor = color
-        this.toolMode = "pen"
+        if (this.toolMode === "eraser") this.toolMode = "pen"
     }
 
-    toggleEraser() {
-        this.toolMode = this.toolMode === "eraser" ? "pen" : "eraser"
+    setToolMode(mode: "pen" | "text" | "eraser") {
+        this.activeTextPrompt = null
+        this.toolMode = mode
     }
 
     setBrushSize(size: number) {

@@ -5,6 +5,7 @@
     import "@material/web/button/text-button.js"
     import "@material/web/dialog/dialog.js"
     import "@material/web/icon/icon.js"
+    import "@material/web/iconbutton/filled-tonal-icon-button.js"
     import "@material/web/slider/slider.js"
 
     import { openConfirm } from "$lib/state/confirm.svelte"
@@ -28,12 +29,12 @@
         editable = false,
         initialData = "",
         colors = [
-            "#1d1b20", // M3 On Surface / Black
             "#b3261e", // M3 Error / Red
+            "#1d1b20", // M3 On Surface / Black
             "#6750a4", // M3 Primary / Purple
             "#00639b", // M3 Blue
             "#2e6a4f", // M3 Green
-            "#8e4900", // M3 Orange
+            "#e65100", // Warm Orange
             "#ffffff" // White
         ],
         onChange,
@@ -89,6 +90,40 @@
             engine.setBrushSize(Number(target.value))
         }
     }
+
+    let textInputValue = $state("")
+    let textInputEl = $state<HTMLInputElement | null>(null)
+
+    $effect(() => {
+        if (engine.activeTextPrompt) {
+            textInputValue = ""
+            setTimeout(() => {
+                textInputEl?.focus()
+            }, 20)
+        }
+    })
+
+    function submitTextInput() {
+        if (textInputValue.trim()) {
+            engine.commitText(textInputValue)
+        } else {
+            engine.cancelTextInput()
+        }
+        textInputValue = ""
+    }
+
+    function handleTextKeydown(e: KeyboardEvent) {
+        if (e.key === "Enter") {
+            e.preventDefault()
+            e.stopPropagation()
+            submitTextInput()
+        } else if (e.key === "Escape") {
+            e.preventDefault()
+            e.stopPropagation()
+            engine.cancelTextInput()
+            textInputValue = ""
+        }
+    }
 </script>
 
 <svelte:window
@@ -103,6 +138,7 @@
         class="drawing-canvas"
         class:interactive={editable}
         class:eraser-mode={editable && engine.toolMode === "eraser"}
+        class:text-mode={editable && engine.toolMode === "text"}
         onpointerdown={(e) => engine.startDrawing(e)}
         onpointermove={(e) => engine.draw(e)}
         onpointerup={(e) => engine.stopDrawing(e)}
@@ -111,22 +147,43 @@
     ></canvas>
 
     {#if editable}
-        <!-- Top Left Toolbar (Clear, Undo, Redo Actions) -->
-        <header class="m3-top-left-bar">
-            <md-filled-tonal-button type="button" disabled={!engine.hasContent} onclick={handleClearRequest}>
-                <md-icon slot="icon">delete</md-icon>
-                {t("draw", "clear")}
-            </md-filled-tonal-button>
+        <!-- Inline Text Input Overlay -->
+        {#if engine.activeTextPrompt}
+            <div class="active-text-wrapper" style="left: min(calc(100% - 160px), {engine.activeTextPrompt.x}px); top: {engine.activeTextPrompt.y}px; max-width: min(300px, calc(100% - min(calc(100% - 160px), {engine.activeTextPrompt.x}px) - 16px));">
+                <input bind:this={textInputEl} bind:value={textInputValue} type="text" class="active-text-input" placeholder="Type text..." style="color: {engine.currentColor}; font-size: {14 + engine.brushSize}px;" onkeydown={handleTextKeydown} />
+                <button
+                    type="button"
+                    class="active-text-submit-btn"
+                    title={t("draw", "done")}
+                    aria-label={t("draw", "done")}
+                    onpointerdown={(e) => {
+                        e.preventDefault()
+                        submitTextInput()
+                    }}
+                >
+                    <md-icon>check</md-icon>
+                </button>
+            </div>
+        {/if}
 
-            <md-filled-tonal-button type="button" disabled={!engine.history.canUndo} onclick={() => engine.history.undo()} title={`${t("common", "undo")} (Ctrl+Z)`}>
-                <md-icon slot="icon">undo</md-icon>
-                {t("common", "undo")}
-            </md-filled-tonal-button>
+        <!-- Top Right Toolbar (Clear, Undo, Redo, Done Actions) -->
+        <header class="m3-top-right-bar">
+            <md-filled-tonal-icon-button type="button" disabled={!engine.hasContent} onclick={handleClearRequest} title={t("draw", "clear")} aria-label={t("draw", "clear")}>
+                <md-icon>delete</md-icon>
+            </md-filled-tonal-icon-button>
 
-            <md-filled-tonal-button type="button" disabled={!engine.history.canRedo} onclick={() => engine.history.redo()} title={`${t("common", "redo")} (Ctrl+Y)`}>
-                <md-icon slot="icon">redo</md-icon>
-                {t("common", "redo")}
-            </md-filled-tonal-button>
+            <md-filled-tonal-icon-button type="button" disabled={!engine.history.canUndo} onclick={() => engine.history.undo()} title={`${t("common", "undo")} (Ctrl+Z)`} aria-label={t("common", "undo")}>
+                <md-icon>undo</md-icon>
+            </md-filled-tonal-icon-button>
+
+            <md-filled-tonal-icon-button type="button" disabled={!engine.history.canRedo} onclick={() => engine.history.redo()} title={`${t("common", "redo")} (Ctrl+Y)`} aria-label={t("common", "redo")}>
+                <md-icon>redo</md-icon>
+            </md-filled-tonal-icon-button>
+
+            <md-filled-button type="button" onclick={() => engine.finish()}>
+                <md-icon slot="icon">check</md-icon>
+                {t("draw", "done")}
+            </md-filled-button>
         </header>
 
         <!-- Bottom Floating Toolbar -->
@@ -137,12 +194,12 @@
                     <button
                         type="button"
                         class="m3-color-chip"
-                        class:selected={engine.currentColor === color && engine.toolMode === "pen"}
+                        class:selected={engine.currentColor === color && engine.toolMode !== "eraser"}
                         style="--chip-color: {color};"
                         aria-label="Select color {color}"
                         onclick={() => engine.selectPresetColor(color)}
                     >
-                        {#if engine.currentColor === color && engine.toolMode === "pen"}
+                        {#if engine.currentColor === color && engine.toolMode !== "eraser"}
                             <md-icon class="check-icon" style="color: {color === '#ffffff' ? '#000000' : '#ffffff'}"> check </md-icon>
                         {/if}
                     </button>
@@ -152,10 +209,10 @@
                 <button
                     type="button"
                     class="m3-color-chip custom-color-chip"
-                    class:selected={!colors.includes(engine.currentColor) && engine.toolMode === "pen"}
+                    class:selected={!colors.includes(engine.currentColor) && engine.toolMode !== "eraser"}
                     style="--chip-color: {engine.customColor};"
                     onclick={() => engine.handleCustomColorClick()}
-                    title={!colors.includes(engine.currentColor) && engine.toolMode === "pen" ? "Choose custom color" : "Select custom color"}
+                    title={!colors.includes(engine.currentColor) && engine.toolMode !== "eraser" ? "Choose custom color" : "Select custom color"}
                     aria-label="Custom color"
                 >
                     <md-icon class="palette-icon">palette</md-icon>
@@ -165,30 +222,57 @@
 
             <div class="m3-divider"></div>
 
-            <!-- Eraser Tool Toggle -->
-            <button type="button" class="eraser-btn" class:selected={engine.toolMode === "eraser"} onclick={() => engine.toggleEraser()} title="Eraser — tap a stroke to remove it">
-                <md-icon>ink_eraser</md-icon>
-            </button>
+            <!-- Tool Mode Group (Pen, Text, Eraser) -->
+            <div class="tool-mode-group">
+                <button
+                    type="button"
+                    class="tool-btn"
+                    class:selected={engine.toolMode === "pen"}
+                    onclick={() => engine.setToolMode("pen")}
+                    title="Pen — draw freehand"
+                    aria-label="Pen tool"
+                >
+                    <md-icon>edit</md-icon>
+                </button>
+
+                <button
+                    type="button"
+                    class="tool-btn"
+                    class:selected={engine.toolMode === "text"}
+                    onclick={() => engine.setToolMode("text")}
+                    title="Text — tap canvas to insert text"
+                    aria-label="Text tool"
+                >
+                    <md-icon>title</md-icon>
+                </button>
+
+                <button
+                    type="button"
+                    class="tool-btn"
+                    class:selected={engine.toolMode === "eraser"}
+                    onclick={() => engine.setToolMode("eraser")}
+                    title="Eraser — tap a stroke or text to remove it"
+                    aria-label="Eraser tool"
+                >
+                    <md-icon>ink_eraser</md-icon>
+                </button>
+            </div>
 
             <div class="m3-divider"></div>
 
             <!-- Brush Size Selector -->
             <div class="brush-size-group">
                 <div class="brush-preview-container">
-                    <span class="brush-preview" style="width: {engine.brushSize}px; height: {engine.brushSize}px; background: {engine.currentColor};"></span>
+                    {#if engine.toolMode === "text"}
+                        <span class="brush-text-preview" style="font-size: {14 + engine.brushSize}px; color: {engine.currentColor};">A</span>
+                    {:else if engine.toolMode === "eraser"}
+                        <span class="eraser-preview" style="width: {engine.brushSize}px; height: {engine.brushSize}px;"></span>
+                    {:else}
+                        <span class="brush-preview" style="width: {engine.brushSize}px; height: {engine.brushSize}px; background: {engine.currentColor};"></span>
+                    {/if}
                 </div>
 
-                <md-slider min="1" max="40" value={engine.brushSize} step="1" labeled oninput={handleSliderInput} class="m3-slider"></md-slider>
-            </div>
-
-            <div class="m3-divider"></div>
-
-            <!-- Finish Action -->
-            <div class="actions-group">
-                <md-filled-button type="button" onclick={() => engine.finish()}>
-                    <md-icon slot="icon">check</md-icon>
-                    {t("draw", "done")}
-                </md-filled-button>
+                <md-slider min="2" max="20" value={engine.brushSize} step="2" labeled oninput={handleSliderInput} class="m3-slider"></md-slider>
             </div>
         </footer>
     {/if}
@@ -244,12 +328,17 @@
             crosshair;
     }
 
-    /* Top Left Floating Bar */
-    .m3-top-left-bar {
+    .drawing-canvas.text-mode {
+        cursor: text;
+    }
+
+    /* Top Right Floating Bar */
+    .m3-top-right-bar {
         position: absolute;
         top: calc(1rem + env(safe-area-inset-top, 0px));
-        left: calc(1rem + env(safe-area-inset-left, 0px));
+        right: calc(1rem + env(safe-area-inset-right, 0px));
         display: flex;
+        align-items: center;
         gap: 0.5rem;
         z-index: 20;
         pointer-events: auto;
@@ -280,7 +369,7 @@
         z-index: 20;
         pointer-events: auto;
         max-width: 95vw;
-        overflow-x: auto;
+        overflow: visible;
     }
 
     .color-picker-group {
@@ -376,18 +465,19 @@
     .brush-size-group {
         display: flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0;
         flex-shrink: 1;
         min-width: 0;
     }
 
     .brush-preview-container {
-        width: 2rem;
-        height: 2rem;
+        width: 1.75rem;
+        height: 1.75rem;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin-right: -2px;
     }
 
     .brush-preview {
@@ -401,6 +491,31 @@
             background-color 0.2s ease;
     }
 
+    .eraser-preview {
+        border-radius: 50%;
+        display: inline-block;
+        background-color: #ffffff;
+        border: 1.5px solid #000000;
+        box-sizing: border-box;
+        max-width: 1.75rem;
+        max-height: 1.75rem;
+        transition:
+            width 0.15s ease,
+            height 0.15s ease;
+    }
+
+    .brush-text-preview {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        line-height: 1;
+        user-select: none;
+        transition:
+            font-size 0.15s ease,
+            color 0.2s ease;
+    }
+
     .m3-slider {
         width: 5.5rem;
         flex-shrink: 1;
@@ -409,8 +524,65 @@
         --md-slider-handle-color: var(--md-sys-color-primary, #6750a4);
     }
 
-    /* Eraser toggle button */
-    .eraser-btn {
+    /* Inline text editor input overlay */
+    .active-text-wrapper {
+        position: absolute;
+        z-index: 30;
+        pointer-events: auto;
+        transform: translate(0, -2px);
+        display: flex;
+        align-items: center;
+        background: var(--md-sys-color-surface-container-high, #ece6f0);
+        border: 1.5px solid var(--md-sys-color-primary, #6750a4);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        padding: 2px 4px 2px 8px;
+        gap: 4px;
+    }
+
+    .active-text-input {
+        background: transparent;
+        border: none;
+        padding: 4px 0;
+        font-family: inherit;
+        font-weight: bold;
+        outline: none;
+        flex: 1 1 auto;
+        min-width: 60px;
+    }
+
+    .active-text-submit-btn {
+        width: 1.875rem;
+        height: 1.875rem;
+        border-radius: 50%;
+        border: none;
+        background: var(--md-sys-color-primary, #6750a4);
+        color: var(--md-sys-color-on-primary, #ffffff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+        transition: opacity 0.15s ease;
+        --md-icon-size: 1.125rem;
+        font-size: 1.125rem;
+    }
+
+    .active-text-submit-btn:hover {
+        opacity: 0.88;
+    }
+
+    /* Tool Mode Group (Pen, Text, Eraser) */
+    .tool-mode-group {
+        display: flex;
+        align-items: center;
+        gap: 0.125rem;
+        flex-shrink: 0;
+    }
+
+    /* Tool button (Pen, Text, Eraser) */
+    .tool-btn {
         width: 2.25rem;
         height: 2.25rem;
         flex-shrink: 0;
@@ -428,19 +600,13 @@
         padding: 0;
     }
 
-    .eraser-btn:hover {
+    .tool-btn:hover {
         background-color: rgba(0, 0, 0, 0.08);
     }
 
-    .eraser-btn.selected {
+    .tool-btn.selected {
         background-color: var(--md-sys-color-secondary-container, #e8def8);
         color: var(--md-sys-color-on-secondary-container, #1d192b);
-    }
-
-    .actions-group {
-        display: flex;
-        align-items: center;
-        flex-shrink: 0;
     }
 
     /* Responsive adjustments for narrow screens */

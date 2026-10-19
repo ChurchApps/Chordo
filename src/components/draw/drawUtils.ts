@@ -1,6 +1,7 @@
 export type Point = { x: number; y: number }
 export type Stroke = { points: Point[]; color: string; lineWidth: number }
-export type DrawingData = { v: number; strokes: Stroke[]; background?: string }
+export type TextItem = { x: number; y: number; text: string; color: string; fontSize: number }
+export type DrawingData = { v: number; strokes: Stroke[]; texts?: TextItem[]; background?: string }
 
 export const ERASER_THRESHOLD = 12 // CSS pixels
 
@@ -31,11 +32,81 @@ export function strokeHitsPoint(stroke: Stroke, x: number, y: number, threshold 
     return false
 }
 
+export function wrapText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    maxWidth: number,
+    fontSize: number
+): { lines: string[]; width: number; height: number; lineHeight: number } {
+    ctx.save()
+    ctx.font = `bold ${fontSize}px sans-serif`
+    const lineHeight = fontSize * 1.25
+
+    const rawParagraphs = text.split("\n")
+    const lines: string[] = []
+    let maxLineWidth = 0
+
+    for (const paragraph of rawParagraphs) {
+        if (!paragraph) {
+            lines.push("")
+            continue
+        }
+        const words = paragraph.split(" ")
+        let currentLine = ""
+
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word
+            const testWidth = ctx.measureText(testLine).width
+
+            if (testWidth > maxWidth && currentLine) {
+                lines.push(currentLine)
+                maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width)
+                currentLine = word
+            } else {
+                currentLine = testLine
+            }
+        }
+        if (currentLine) {
+            lines.push(currentLine)
+            maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width)
+        }
+    }
+    ctx.restore()
+
+    const totalHeight = Math.max(lineHeight, lines.length * lineHeight)
+    return {
+        lines,
+        width: Math.max(1, maxLineWidth),
+        height: totalHeight,
+        lineHeight
+    }
+}
+
+export function textHitsPoint(
+    ctx: CanvasRenderingContext2D,
+    textItem: TextItem,
+    x: number,
+    y: number,
+    threshold = ERASER_THRESHOLD,
+    canvasWidth = 1000
+): boolean {
+    const maxWidth = Math.min(300, Math.max(80, canvasWidth - textItem.x - 16))
+    const { width, height } = wrapText(ctx, textItem.text, maxWidth, textItem.fontSize)
+
+    const minX = textItem.x - threshold
+    const maxX = textItem.x + width + threshold
+    const minY = textItem.y - threshold
+    const maxY = textItem.y + height + threshold
+
+    return x >= minX && x <= maxX && y >= minY && y <= maxY
+}
+
 export function renderDrawing(
     ctx: CanvasRenderingContext2D,
     canvas: HTMLCanvasElement,
     strokes: Stroke[],
-    backgroundImage: HTMLImageElement | null
+    backgroundImage: HTMLImageElement | null,
+    texts: TextItem[] = []
 ) {
     ctx.save()
     ctx.setTransform(1, 0, 0, 1, 0, 0)
@@ -69,11 +140,31 @@ export function renderDrawing(
             ctx.stroke()
         }
     }
+
+    if (texts && texts.length > 0) {
+        ctx.save()
+        ctx.textBaseline = "top"
+        for (const t of texts) {
+            ctx.font = `bold ${t.fontSize}px sans-serif`
+            ctx.fillStyle = t.color
+            const maxWidth = Math.min(300, Math.max(80, canvas.width - t.x - 16))
+            const { lines, lineHeight } = wrapText(ctx, t.text, maxWidth, t.fontSize)
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], t.x, t.y + i * lineHeight)
+            }
+        }
+        ctx.restore()
+    }
 }
 
-export function serializeDrawing(strokes: Stroke[], backgroundImage: HTMLImageElement | null): string {
-    if (strokes.length === 0 && !backgroundImage) return ""
+export function serializeDrawing(
+    strokes: Stroke[],
+    backgroundImage: HTMLImageElement | null,
+    texts: TextItem[] = []
+): string {
+    if (strokes.length === 0 && !backgroundImage && texts.length === 0) return ""
     const data: DrawingData = { v: 2, strokes }
+    if (texts.length > 0) data.texts = texts
     if (backgroundImage?.src) data.background = backgroundImage.src
     return JSON.stringify(data)
 }
@@ -81,9 +172,9 @@ export function serializeDrawing(strokes: Stroke[], backgroundImage: HTMLImageEl
 export function parseDrawingData(
     data: string,
     onBackgroundLoaded?: (img: HTMLImageElement) => void
-): { strokes: Stroke[]; backgroundImage: HTMLImageElement | null } {
+): { strokes: Stroke[]; texts: TextItem[]; backgroundImage: HTMLImageElement | null } {
     if (!data) {
-        return { strokes: [], backgroundImage: null }
+        return { strokes: [], texts: [], backgroundImage: null }
     }
 
     if (data.startsWith("{")) {
@@ -102,6 +193,7 @@ export function parseDrawingData(
                 }
                 return {
                     strokes: parsed.strokes ?? [],
+                    texts: parsed.texts ?? [],
                     backgroundImage
                 }
             }
@@ -120,6 +212,7 @@ export function parseDrawingData(
 
     return {
         strokes: [],
+        texts: [],
         backgroundImage: img
     }
 }
