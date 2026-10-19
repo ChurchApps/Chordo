@@ -30,9 +30,33 @@
         { id: "black", color: "#000000", border: "#333333", label: "Black" }
     ]
 
+    export const DEFAULT_CHORD_COLOR = "#5498be"
+
     let currentBg = $state(storage.settings.paperOptions?.background || "#ffffff")
+    let currentChordColor = $state(storage.settings.paperOptions?.chordColor || DEFAULT_CHORD_COLOR)
     let currentFontSize = $state(storage.settings.paperOptions?.fontSize ?? 100)
     let currentPageAnimation = $state<PageSwitchAnimation>(storage.settings.paperOptions?.pageAnimation || "fast")
+    let chordColorInputRef = $state<HTMLInputElement | null>(null)
+
+    let isDarkBg = $derived.by(() => {
+        if (!currentBg) return false
+        const bg = currentBg.toLowerCase().trim()
+        if (bg === "black" || bg === "#000000" || bg === "#000" || bg === "#222222" || bg === "#1e1e1e" || bg === "#242424") return true
+        return !isLightColor(bg)
+    })
+
+    let chordColorPresets = $derived([
+        { id: "default", color: "#5498be", label: "Blue (Default)" },
+        { id: "green", color: "#16a34a", label: "Green" },
+        { id: "orange", color: "#ea580c", label: "Orange" },
+        { id: "red", color: "#dc2626", label: "Red" },
+        { id: "purple", color: "#9333ea", label: "Purple" },
+        { id: "pink", color: "#db2777", label: "Pink" },
+        isDarkBg ? { id: "white", color: "#f5f5f5", label: "Light" } : { id: "charcoal", color: "#212121", label: "Charcoal" }
+    ])
+
+    let isCustomChordColor = $derived(!chordColorPresets.some((p) => p.color.toLowerCase() === currentChordColor.toLowerCase()))
+    let isCustomChordColorLight = $derived(isLightColor(currentChordColor))
 
     function selectBackground(color: string) {
         currentBg = color
@@ -44,6 +68,44 @@
             }
         })
         storage.persist()
+    }
+
+    function selectChordColor(color: string) {
+        currentChordColor = color
+        storage.settings = new Settings({
+            ...storage.settings,
+            paperOptions: {
+                ...storage.settings.paperOptions,
+                chordColor: color
+            }
+        })
+        storage.settings.apply()
+        storage.persist()
+    }
+
+    function handleCustomChordColorInput(e: Event) {
+        const val = (e.target as HTMLInputElement).value
+        if (val) {
+            selectChordColor(val)
+        }
+    }
+
+    function isLightColor(color: string): boolean {
+        if (!color) return true
+        const hex = color.replace("#", "")
+        if (hex.length === 3) {
+            const r = parseInt(hex[0] + hex[0], 16)
+            const g = parseInt(hex[1] + hex[1], 16)
+            const b = parseInt(hex[2] + hex[2], 16)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b > 160
+        }
+        if (hex.length === 6) {
+            const r = parseInt(hex.substring(0, 2), 16)
+            const g = parseInt(hex.substring(2, 4), 16)
+            const b = parseInt(hex.substring(4, 6), 16)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b > 160
+        }
+        return true
     }
 
     function handleFontSizeInput(e: Event) {
@@ -84,8 +146,10 @@
 
     function resetPaperDefaults() {
         selectBackground("#ffffff")
+        selectChordColor(DEFAULT_CHORD_COLOR)
         setFontSize(100)
         selectPageAnimation("fast")
+        setFullscreenLyricsOnly(false)
     }
 
     function closeDialog() {
@@ -210,6 +274,53 @@
                             {/if}
                         </button>
                     {/each}
+                </div>
+            </div>
+
+            <hr class="section-divider" />
+
+            <!-- Chord Highlight Color Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">format_color_text</span>
+                    {t("song_fullscreen", "chord_color")}
+                </div>
+                <div class="color-options">
+                    {#each chordColorPresets as preset}
+                        {@const isSelected = currentChordColor.toLowerCase() === preset.color.toLowerCase()}
+                        {@const isLightPreset = preset.color === "#ffffff" || preset.color === "#f5f5f5"}
+                        <button
+                            type="button"
+                            class="color-circle"
+                            class:active={isSelected}
+                            style="background-color: {preset.color}; border-color: {isLightPreset ? '#cac4d0' : 'rgba(0,0,0,0.12)'};"
+                            aria-label={preset.label}
+                            title={preset.label}
+                            onclick={() => selectChordColor(preset.color)}
+                        >
+                            {#if isSelected}
+                                <span class="material-symbols-outlined check-icon" class:dark-check={isLightPreset} class:light-check={!isLightPreset}> check </span>
+                            {/if}
+                        </button>
+                    {/each}
+
+                    <!-- Custom Color Picker -->
+                    <button
+                        type="button"
+                        class="color-circle"
+                        class:active={isCustomChordColor}
+                        style="background: {isCustomChordColor ? currentChordColor : 'transparent'};"
+                        onclick={() => chordColorInputRef?.click()}
+                        aria-label="Custom chord color"
+                        title="Custom chord color"
+                    >
+                        {#if isCustomChordColor}
+                            <span class="material-symbols-outlined check-icon" class:dark-check={isCustomChordColorLight} class:light-check={!isCustomChordColorLight}> check </span>
+                        {:else}
+                            <span class="material-symbols-outlined check-icon palette-icon"> palette </span>
+                        {/if}
+                        <input bind:this={chordColorInputRef} type="color" value={currentChordColor} class="custom-color-input-hidden" oninput={handleCustomChordColorInput} tabindex="-1" aria-hidden="true" />
+                    </button>
                 </div>
             </div>
 
@@ -404,8 +515,6 @@
         gap: 16px;
         color: var(--md-sys-color-on-surface, #1d1b20);
         min-width: 280px;
-        max-height: 70vh;
-        overflow-y: auto;
     }
 
     .settings-section {
@@ -531,6 +640,17 @@
 
     .check-icon.light-check {
         color: #ffffff;
+    }
+
+    .custom-color-input-hidden {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        margin: 0;
+        padding: 0;
+        border: none;
     }
 
     .font-size-row {

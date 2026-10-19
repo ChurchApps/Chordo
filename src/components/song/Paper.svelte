@@ -4,6 +4,7 @@
     interface Props {
         pageIndex?: number | null
         background?: string
+        chordColor?: string
         padding?: number
         fontScale?: number
         headerText?: string
@@ -15,6 +16,7 @@
     let {
         pageIndex = null,
         background = "white",
+        chordColor = undefined,
         padding = 20, // mm
         fontScale = undefined,
         headerText = "",
@@ -331,7 +333,7 @@
     })
 </script>
 
-<div class="paper-viewer" class:dark-paper={isDarkBackground} bind:this={containerEl} style="--background: {background}; --paper-text-color: {isDarkBackground ? '#e6e1e5' : '#111111'};">
+<div class="paper-viewer" class:dark-paper={isDarkBackground} bind:this={containerEl} style="--background: {background}; --paper-text-color: {isDarkBackground ? '#e6e1e5' : '#111111'};{chordColor ? ` --chord-color: ${chordColor};` : ''}">
     <!-- Offscreen Slot Container (used for layout reference & reading DOM nodes) -->
     <div class="source-container" bind:this={sourceEl}>
         {@render children()}
