@@ -366,3 +366,118 @@
     --md-sys-color-error-container: #93000a;
     --md-sys-color-on-error-container: #ffdad6;
 }
+
+[data-theme="gold"] {
+    --md-ref-typeface-brand: "Open Sans", system-ui, sans-serif;
+    --md-ref-typeface-plain: "Open Sans", system-ui, sans-serif;
+    --md-icon-font: "Material Symbols Outlined";
+
+    /* Core Palette */
+    --md-sys-color-primary-background: #e2d2ab;
+    --md-sys-color-primary: #b8860b;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #faf6ec;
+    --md-sys-color-on-primary-container: #3d2b05;
+
+    --md-sys-color-secondary: #a67c1e;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #ebd8ab;
+    --md-sys-color-on-secondary-container: #362502;
+
+    --md-sys-color-surface: #ffffff;
+    --md-sys-color-on-surface: #2b1e04;
+    --md-sys-color-surface-variant: #ebd8ab;
+    --md-sys-color-on-surface-variant: #423007;
+    --md-sys-color-surface-container-low: #fbf8f0;
+    --md-sys-color-surface-container: #f7f2e4;
+    --md-sys-color-surface-container-high: #efe7d2;
+    --md-sys-color-surface-container-highest: #e4d8bc;
+
+    --md-sys-color-outline: #8c6819;
+    --md-sys-color-outline-variant: rgba(89, 62, 4, 0.22);
+
+    --md-sys-color-tertiary: #6b4e12;
+    --md-sys-color-on-tertiary: #ffffff;
+    --md-sys-color-tertiary-container: #f3e2ba;
+    --md-sys-color-on-tertiary-container: #261600;
+
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #ffdad6;
+    --md-sys-color-on-error-container: #410002;
+
+    /* Reusable metallic button gradient */
+    --gold-button-gradient: linear-gradient(135deg, #d8b15d 0%, #ba8c28 35%, #825d10 70%, #c69d3e 100%);
+
+    /* Transparent M3 button tokens with black typography */
+    --md-fab-container-color: transparent;
+    --md-fab-icon-color: #111111;
+    --md-fab-hover-icon-color: #000000;
+    --md-fab-pressed-icon-color: #000000;
+
+    --md-filled-button-container-color: transparent;
+    --md-filled-button-label-text-color: #111111;
+    --md-filled-button-icon-color: #111111;
+
+    --md-filled-tonal-button-container-color: transparent;
+    --md-filled-tonal-button-label-text-color: #111111;
+    --md-filled-tonal-button-icon-color: #111111;
+    --md-filled-tonal-icon-button-container-color: transparent;
+    --md-filled-tonal-icon-button-icon-color: #111111;
+}
+
+/* Metallic gradient on buttons */
+[data-theme="gold"] md-fab {
+    --md-fab-container-color: transparent !important;
+    --md-fab-icon-color: #111111 !important;
+    --md-fab-hover-icon-color: #000000 !important;
+    --md-fab-pressed-icon-color: #000000 !important;
+    color: #111111 !important;
+    background: linear-gradient(135deg, #d8b15d 0%, #ba8c28 35%, #825d10 70%, #c69d3e 100%) !important;
+    box-shadow:
+        0 4px 14px rgba(130, 93, 16, 0.45),
+        0 1px 3px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+[data-theme="gold"] md-filled-button,
+[data-theme="gold"] md-filled-tonal-button,
+[data-theme="gold"] md-filled-tonal-icon-button {
+    --md-filled-button-container-color: transparent !important;
+    --md-filled-button-label-text-color: #111111 !important;
+    --md-filled-button-icon-color: #111111 !important;
+    --md-filled-tonal-button-container-color: transparent !important;
+    --md-filled-tonal-button-label-text-color: #111111 !important;
+    --md-filled-tonal-button-icon-color: #111111 !important;
+    --md-filled-tonal-icon-button-container-color: transparent !important;
+    --md-filled-tonal-icon-button-icon-color: #111111 !important;
+    color: #111111 !important;
+    background: linear-gradient(135deg, #d8b15d 0%, #ba8c28 35%, #825d10 70%, #c69d3e 100%) !important;
+
+    box-shadow: 0 2px 8px rgba(130, 93, 16, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 9999px;
+    overflow: hidden;
+    font-weight: 600;
+}
+
+/* Header & layout framing */
+[data-theme="gold"] .top-app-bar {
+    background: linear-gradient(90deg, #cfb57c 0%, #e8d7aa 25%, #fff1c7 50%, #e2cc98 75%, #cfb57c 100%) !important;
+    box-shadow: 0 1px 4px rgba(140, 104, 25, 0.2);
+}
+
+[data-theme="gold"] .app-layout {
+    background: linear-gradient(180deg, #e6d6b0 0%, #d8c290 60px, #cbb27a 100%) !important;
+}
+
+[data-theme="gold"] main {
+    box-shadow:
+        0 0 0 1px rgba(184, 134, 11, 0.2),
+        0 8px 24px rgba(140, 104, 25, 0.12);
+}

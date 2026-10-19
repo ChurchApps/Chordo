@@ -301,7 +301,7 @@
                             type="button"
                             class="color-circle"
                             class:active={currentTheme === themeOption.id}
-                            style="background-color: {themeOption.color};"
+                            style="background: {themeOption.gradient ?? themeOption.color};"
                             aria-label={themeOption.labelKey}
                             title={themeOption.labelKey}
                             onclick={() => selectTheme(themeOption.id)}
