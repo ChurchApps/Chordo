@@ -3,15 +3,17 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import ChordPro from "./ChordPro.svelte"
 
-    let {
-        songId,
-        targetKey,
-        semitones
-    } = $props<{
+    interface Props {
         songId: string | null
         targetKey?: string
         semitones?: number
-    }>()
+    }
+
+    let {
+        songId,
+        targetKey = undefined,
+        semitones = undefined
+    }: Props = $props()
 
     let song = $derived(storage.getSongById(songId, storage.songs))
     let hasMedia = $derived(!!song?.images.length)

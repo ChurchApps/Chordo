@@ -8,15 +8,7 @@
     import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
     import HighlightedTextarea from "./HighlightedTextarea.svelte"
 
-    let {
-        song,
-        id = "song-content-editor",
-        rows = 8,
-        style = "",
-        class: className = "",
-        onContentChange,
-        onBlur
-    } = $props<{
+    interface Props {
         song: Song | null
         id?: string
         rows?: number
@@ -24,7 +16,17 @@
         class?: string
         onContentChange?: (newVal: string) => void
         onBlur?: () => void
-    }>()
+    }
+
+    let {
+        song,
+        id = "song-content-editor",
+        rows = 8,
+        style = "",
+        class: className = "",
+        onContentChange = undefined,
+        onBlur = undefined
+    }: Props = $props()
 
     let showReorderDialog = $state(false)
     let reorderInitialText = $state("")

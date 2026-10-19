@@ -6,17 +6,7 @@
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
 
-    let {
-        songId,
-        song: customSong,
-        targetKey,
-        semitones,
-        showMeta = false,
-        numColumns = 1,
-        lightMode = false, // do some optimization to the rendering if light mode
-        fitParent = true,
-        hideChords = false
-    } = $props<{
+    interface Props {
         songId?: string | null
         song?: any
         targetKey?: string
@@ -26,7 +16,19 @@
         lightMode?: boolean
         fitParent?: boolean
         hideChords?: boolean
-    }>()
+    }
+
+    let {
+        songId = null,
+        song: customSong = undefined,
+        targetKey = undefined,
+        semitones = undefined,
+        showMeta = false,
+        numColumns = 1,
+        lightMode = false, // do some optimization to the rendering if light mode
+        fitParent = true,
+        hideChords = false
+    }: Props = $props()
 
     import { Song } from "$lib/models/Song"
     import { t } from "$lib/state/i18n.svelte"

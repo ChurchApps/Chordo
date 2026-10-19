@@ -1,23 +1,25 @@
 <script lang="ts">
     import { onMount, tick } from "svelte"
 
-    let {
-        pageIndex,
-        background = "white",
-        padding = 20, // mm
-        fontScale,
-        headerText = "",
-        onPaginate,
-        children
-    } = $props<{
+    interface Props {
         pageIndex?: number | null
         background?: string
         padding?: number
         fontScale?: number
         headerText?: string
         onPaginate?: () => void
-        children: any
-    }>()
+        children?: any
+    }
+
+    let {
+        pageIndex = null,
+        background = "white",
+        padding = 20, // mm
+        fontScale = undefined,
+        headerText = "",
+        onPaginate = undefined,
+        children
+    }: Props = $props()
 
     // A4 aspect ratio is 210mm / 297mm
     const ASPECT_RATIO = 210 / 297

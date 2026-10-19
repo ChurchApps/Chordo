@@ -3,15 +3,17 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import SongContentEditor from "../common/SongContentEditor.svelte"
 
+    interface Props {
+        open?: boolean
+        songId: string | null
+        onClose: () => void
+    }
+
     let {
         open = false,
         songId,
         onClose
-    } = $props<{
-        open: boolean
-        songId: string | null
-        onClose: () => void
-    }>()
+    }: Props = $props()
 
     let song = $derived(songId ? storage.getSongById(songId, storage.songs) : null)
 </script>
