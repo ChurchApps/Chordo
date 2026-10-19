@@ -3,19 +3,13 @@ export function isIos(): boolean {
         return false
     }
     const userAgent = window.navigator.userAgent.toLowerCase()
-    return (
-        /iphone|ipad|ipod/.test(userAgent) ||
-        (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1)
-    )
+    return /iphone|ipad|ipod/.test(userAgent) || (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1)
 }
 
 export function isIosStandalone(): boolean {
     if (!isIos()) return false
     try {
-        return (
-            ("standalone" in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone)) ||
-            (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches)
-        )
+        return ("standalone" in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone)) || (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches)
     } catch {
         return false
     }
@@ -33,9 +27,7 @@ export function isIosSafariNonStandalone(): boolean {
     if (!isIos()) return false
 
     // Check if already launched as standalone PWA
-    const isStandalone =
-        ("standalone" in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone)) ||
-        window.matchMedia("(display-mode: standalone)").matches
+    const isStandalone = ("standalone" in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone)) || window.matchMedia("(display-mode: standalone)").matches
 
     if (isStandalone) return false
 
@@ -76,4 +68,16 @@ export function dismissIosPrompt(): void {
     } catch {
         // ignore localStorage errors
     }
+}
+
+let onOpenPromptCallback: (() => void) | null = null
+export function registerIosPromptHandler(callback: () => void): () => void {
+    onOpenPromptCallback = callback
+    return () => {
+        if (onOpenPromptCallback === callback) onOpenPromptCallback = null
+    }
+}
+
+export function openIosPrompt(): void {
+    onOpenPromptCallback?.()
 }

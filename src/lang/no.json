@@ -235,7 +235,8 @@
         "install_ios_title": "Installer app",
         "install_ios_step1": "Trykk på Del-knappen",
         "install_ios_step2": "Rull ned og velg «Legg til på Hjem-skjerm»",
-        "install_ios_action": "Installer"
+        "install_ios_action": "Installer",
+        "draw_pwa_recommendation": "Tips: Legg til på Hjem-skjerm for å tegne uten at Safari-bevegelser lukker fullskjerm"
     },
     "list": {
         "deleted": "Slettet",

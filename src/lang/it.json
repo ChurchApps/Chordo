@@ -235,7 +235,8 @@
         "install_ios_title": "Installa app",
         "install_ios_step1": "Tocca il pulsante Condividi",
         "install_ios_step2": "Scorri verso il basso e tocca \"Aggiungi alla schermata Home\"",
-        "install_ios_action": "Installa"
+        "install_ios_action": "Installa",
+        "draw_pwa_recommendation": "Suggerimento: Aggiungi alla schermata Home per disegnare senza che i gesti di Safari chiudano lo schermo intero"
     },
     "list": {
         "deleted": "Eliminato",

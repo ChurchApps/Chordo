@@ -235,7 +235,8 @@
         "install_ios_title": "App installeren",
         "install_ios_step1": "Tik op de Deel-knop",
         "install_ios_step2": "Scroll naar beneden en tik op \"Zet op beginscherm\"",
-        "install_ios_action": "Installeren"
+        "install_ios_action": "Installeren",
+        "draw_pwa_recommendation": "Tip: Zet op beginscherm om te tekenen zonder dat Safari-gebaren het scherm sluiten"
     },
     "list": {
         "deleted": "Verwijderd",

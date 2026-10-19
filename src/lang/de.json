@@ -235,7 +235,8 @@
         "install_ios_title": "App installieren",
         "install_ios_step1": "Tippe auf das Teilen-Symbol",
         "install_ios_step2": "Scrolle nach unten und tippe auf \"Zum Home-Bildschirm\"",
-        "install_ios_action": "Installieren"
+        "install_ios_action": "Installieren",
+        "draw_pwa_recommendation": "Tipp: Zum Home-Bildschirm hinzufügen, um zu zeichnen, ohne dass Safari-Gesten den Vollbildmodus beenden"
     },
     "list": {
         "deleted": "Gelöscht",

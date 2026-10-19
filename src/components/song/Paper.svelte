@@ -7,6 +7,7 @@
         padding?: number
         fontScale?: number
         headerText?: string
+        ignoreResizeHeight?: boolean
         onPaginate?: () => void
         children?: any
     }
@@ -17,6 +18,7 @@
         padding = 20, // mm
         fontScale = undefined,
         headerText = "",
+        ignoreResizeHeight = false,
         onPaginate = undefined,
         children
     }: Props = $props()
@@ -280,7 +282,7 @@
             const entry = entries[0]
             if (entry) {
                 const { width, height } = entry.contentRect
-                if (width === lastWidth && height === lastHeight) return
+                if (width === lastWidth && (ignoreResizeHeight || height === lastHeight)) return
                 lastWidth = width
                 lastHeight = height
             }

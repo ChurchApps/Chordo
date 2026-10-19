@@ -235,7 +235,8 @@
         "install_ios_title": "Instalar aplicativo",
         "install_ios_step1": "Toque no botão Compartilhar",
         "install_ios_step2": "Role para baixo e toque em \"Adicionar à Tela de Início\"",
-        "install_ios_action": "Instalar"
+        "install_ios_action": "Instalar",
+        "draw_pwa_recommendation": "Dica: Adicione à Tela de Início para desenhar sem que os gestos do Safari saiam do ecrã inteiro"
     },
     "list": {
         "deleted": "Excluído",

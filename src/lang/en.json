@@ -235,7 +235,8 @@
         "install_ios_title": "Install App",
         "install_ios_step1": "Tap the Share button",
         "install_ios_step2": "Scroll down and tap \"Add to Home Screen\"",
-        "install_ios_action": "Install"
+        "install_ios_action": "Install",
+        "draw_pwa_recommendation": "Tip: Add to Home Screen to draw without Safari gestures exiting fullscreen"
     },
     "list": {
         "deleted": "Deleted",

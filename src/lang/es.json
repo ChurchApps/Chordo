@@ -235,7 +235,8 @@
         "install_ios_title": "Instalar aplicación",
         "install_ios_step1": "Toca el botón Compartir",
         "install_ios_step2": "Desplázate hacia abajo y toca \"Añadir a pantalla de inicio\"",
-        "install_ios_action": "Instalar"
+        "install_ios_action": "Instalar",
+        "draw_pwa_recommendation": "Consejo: Añade a la pantalla de inicio para dibujar sin que los gestos de Safari salgan de pantalla completa"
     },
     "list": {
         "deleted": "Eliminado",
