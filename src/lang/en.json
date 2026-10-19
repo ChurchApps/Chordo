@@ -118,7 +118,8 @@
         "export_as": "Export as",
         "delete_list": "Delete setlist",
         "rename_folder": "Rename folder",
-        "delete_folder": "Delete folder"
+        "delete_folder": "Delete folder",
+        "auto_scroll": "Auto scroll"
     },
     "confirm": {
         "delete_song_title": "Delete song?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Reorder Sections",
         "add_section": "Add section",
         "add_existing_section": "Add existing section",
+        "add_chord": "Add chord",
+        "type": "Type",
+        "tension": "Tension",
+        "bass": "Bass",
         "no_sections": "No lyrics sections detected.",
         "delete_section": "Delete section",
         "cant_delete_last_section": "Keep at least one instance of this section",
@@ -235,7 +240,8 @@
         "install_ios_title": "Install App",
         "install_ios_step1": "Tap the Share button",
         "install_ios_step2": "Scroll down and tap \"Add to Home Screen\"",
-        "install_ios_action": "Install"
+        "install_ios_action": "Install",
+        "draw_pwa_recommendation": "Tip: Add to Home Screen to draw without Safari gestures exiting fullscreen"
     },
     "list": {
         "deleted": "Deleted",

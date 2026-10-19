@@ -118,7 +118,8 @@
         "export_as": "Eksporter som",
         "delete_list": "Slett setliste",
         "rename_folder": "Endre navn på mappe",
-        "delete_folder": "Slett mappe"
+        "delete_folder": "Slett mappe",
+        "auto_scroll": "Autorull"
     },
     "confirm": {
         "delete_song_title": "Slette sang?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Endre rekkefølge på seksjoner",
         "add_section": "Legg til seksjon",
         "add_existing_section": "Legg til eksisterende seksjon",
+        "add_chord": "Legg til akkord",
+        "type": "Type",
+        "tension": "Farging",
+        "bass": "Bass",
         "no_sections": "Ingen sangseksjoner funnet.",
         "delete_section": "Slett seksjon",
         "cant_delete_last_section": "Må beholde minst én av denne seksjonen",
@@ -235,7 +240,8 @@
         "install_ios_title": "Installer app",
         "install_ios_step1": "Trykk på Del-knappen",
         "install_ios_step2": "Rull ned og velg «Legg til på Hjem-skjerm»",
-        "install_ios_action": "Installer"
+        "install_ios_action": "Installer",
+        "draw_pwa_recommendation": "Tips: Legg til på Hjem-skjerm for å tegne uten at Safari-bevegelser lukker fullskjerm"
     },
     "list": {
         "deleted": "Slettet",

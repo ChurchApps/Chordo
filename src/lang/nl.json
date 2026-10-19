@@ -118,7 +118,8 @@
         "export_as": "Exporteren als",
         "delete_list": "Setlist verwijderen",
         "rename_folder": "Map hernoemen",
-        "delete_folder": "Map verwijderen"
+        "delete_folder": "Map verwijderen",
+        "auto_scroll": "Automatisch scrollen"
     },
     "confirm": {
         "delete_song_title": "Nummer verwijderen?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Secties herschikken",
         "add_section": "Sectie toevoegen",
         "add_existing_section": "Bestaande sectie toevoegen",
+        "add_chord": "Akkoord toevoegen",
+        "type": "Type",
+        "tension": "Kleur",
+        "bass": "Bas",
         "no_sections": "Geen tekstsecties gedetecteerd.",
         "delete_section": "Sectie verwijderen",
         "cant_delete_last_section": "Behoud ten minste één exemplaar van deze sectie",
@@ -235,7 +240,8 @@
         "install_ios_title": "App installeren",
         "install_ios_step1": "Tik op de Deel-knop",
         "install_ios_step2": "Scroll naar beneden en tik op \"Zet op beginscherm\"",
-        "install_ios_action": "Installeren"
+        "install_ios_action": "Installeren",
+        "draw_pwa_recommendation": "Tip: Zet op beginscherm om te tekenen zonder dat Safari-gebaren het scherm sluiten"
     },
     "list": {
         "deleted": "Verwijderd",

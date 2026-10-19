@@ -118,7 +118,8 @@
         "export_as": "Exportieren als",
         "delete_list": "Setliste löschen",
         "rename_folder": "Ordner umbenennen",
-        "delete_folder": "Ordner löschen"
+        "delete_folder": "Ordner löschen",
+        "auto_scroll": "Automatischer Bildlauf"
     },
     "confirm": {
         "delete_song_title": "Song löschen?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Abschnitte umsortieren",
         "add_section": "Abschnitt hinzufügen",
         "add_existing_section": "Bestehenden Abschnitt hinzufügen",
+        "add_chord": "Akkord hinzufügen",
+        "type": "Typ",
+        "tension": "Erweiterung",
+        "bass": "Bass",
         "no_sections": "Keine Textabschnitte erkannt.",
         "delete_section": "Abschnitt löschen",
         "cant_delete_last_section": "Mindestens eine Instanz dieses Abschnitts behalten",
@@ -235,7 +240,8 @@
         "install_ios_title": "App installieren",
         "install_ios_step1": "Tippe auf das Teilen-Symbol",
         "install_ios_step2": "Scrolle nach unten und tippe auf \"Zum Home-Bildschirm\"",
-        "install_ios_action": "Installieren"
+        "install_ios_action": "Installieren",
+        "draw_pwa_recommendation": "Tipp: Zum Home-Bildschirm hinzufügen, um zu zeichnen, ohne dass Safari-Gesten den Vollbildmodus beenden"
     },
     "list": {
         "deleted": "Gelöscht",

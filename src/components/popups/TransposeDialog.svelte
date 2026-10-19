@@ -4,12 +4,19 @@
     import { getCurrentSong, setActivePopup } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
 
-    let { customOriginalKey, currentKey, onSelectKey, onClose } = $props<{
+    interface Props {
         customOriginalKey?: string
         currentKey?: string
         onSelectKey?: (key: string) => void
         onClose?: () => void
-    }>()
+    }
+
+    let {
+        customOriginalKey = undefined,
+        currentKey = undefined,
+        onSelectKey = undefined,
+        onClose = undefined
+    }: Props = $props()
 
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let song = $derived(activeSongContext?.song ?? null)

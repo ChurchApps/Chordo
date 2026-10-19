@@ -4,6 +4,7 @@
     import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
     import { clearSharePayload } from "$lib/share/share.svelte"
+    import { autoScrollState, startAutoScroll } from "$lib/state/autoScroll.svelte"
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { listSortState, setListSort } from "$lib/state/listSort.svelte"
@@ -116,7 +117,7 @@
     }
 </script>
 
-{#if isFullscreenPage(menuState.activePage) || menuState.activePage === "landing"}
+{#if isFullscreenPage(menuState.activePage) || menuState.activePage === "landing" || autoScrollState.isActive}
     <!-- don't show any headers -->
 {:else if searchState.isOpen}
     <header class="top-app-bar search-mode">
@@ -362,6 +363,18 @@
                                     <div slot="headline">{t("menu", "about")}</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song"}
+                                {#if activeSongContext?.list}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            startAutoScroll()
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">south</span>
+                                        <div slot="headline">{t("menu", "auto_scroll")}</div>
+                                    </md-menu-item>
+                                {/if}
+
                                 {#if currentSong}
                                     <md-menu-item
                                         onclick={() => {
@@ -381,7 +394,7 @@
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">tune</span>
-                                    <div slot="headline">{t("menu", "settings")}</div>
+                                    <div slot="headline">{t("song_fullscreen", "settings_title")}</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song_edit"}
                                 {@const editSong = storage.getSongById(menuState.contentId)}

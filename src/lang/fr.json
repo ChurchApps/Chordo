@@ -118,7 +118,8 @@
         "export_as": "Exporter sous",
         "delete_list": "Supprimer la setlist",
         "rename_folder": "Renommer le dossier",
-        "delete_folder": "Supprimer le dossier"
+        "delete_folder": "Supprimer le dossier",
+        "auto_scroll": "Défilement automatique"
     },
     "confirm": {
         "delete_song_title": "Supprimer le morceau ?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Réorganiser les sections",
         "add_section": "Ajouter une section",
         "add_existing_section": "Ajouter une section existante",
+        "add_chord": "Ajouter un accord",
+        "type": "Type",
+        "tension": "Tension",
+        "bass": "Basse",
         "no_sections": "Aucune section de paroles détectée.",
         "delete_section": "Supprimer la section",
         "cant_delete_last_section": "Conservez au moins une occurrence de cette section",
@@ -235,7 +240,8 @@
         "install_ios_title": "Installer l'application",
         "install_ios_step1": "Appuyez sur le bouton Partager",
         "install_ios_step2": "Faites défiler vers le bas et touchez \"Sur l'écran d'accueil\"",
-        "install_ios_action": "Installer"
+        "install_ios_action": "Installer",
+        "draw_pwa_recommendation": "Astuce : Ajoutez à l'écran d'accueil pour dessiner sans que les gestes Safari ne quittent le plein écran"
     },
     "list": {
         "deleted": "Supprimé",

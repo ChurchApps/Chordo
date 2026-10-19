@@ -118,7 +118,8 @@
         "export_as": "Esporta come",
         "delete_list": "Elimina scaletta",
         "rename_folder": "Rinomina cartella",
-        "delete_folder": "Elimina cartella"
+        "delete_folder": "Elimina cartella",
+        "auto_scroll": "Scorrimento automatico"
     },
     "confirm": {
         "delete_song_title": "Eliminare brano?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Riordina sezioni",
         "add_section": "Aggiungi sezione",
         "add_existing_section": "Aggiungi sezione esistente",
+        "add_chord": "Aggiungi accordo",
+        "type": "Tipo",
+        "tension": "Tensione",
+        "bass": "Basso",
         "no_sections": "Nessuna sezione di testo rilevata.",
         "delete_section": "Elimina sezione",
         "cant_delete_last_section": "Mantieni almeno un'istanza di questa sezione",
@@ -235,7 +240,8 @@
         "install_ios_title": "Installa app",
         "install_ios_step1": "Tocca il pulsante Condividi",
         "install_ios_step2": "Scorri verso il basso e tocca \"Aggiungi alla schermata Home\"",
-        "install_ios_action": "Installa"
+        "install_ios_action": "Installa",
+        "draw_pwa_recommendation": "Suggerimento: Aggiungi alla schermata Home per disegnare senza che i gesti di Safari chiudano lo schermo intero"
     },
     "list": {
         "deleted": "Eliminato",

@@ -118,7 +118,8 @@
         "export_as": "Exportar como",
         "delete_list": "Excluir repertório",
         "rename_folder": "Renomear pasta",
-        "delete_folder": "Excluir pasta"
+        "delete_folder": "Excluir pasta",
+        "auto_scroll": "Rolagem automática"
     },
     "confirm": {
         "delete_song_title": "Excluir música?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Reordenar seções",
         "add_section": "Adicionar seção",
         "add_existing_section": "Adicionar seção existente",
+        "add_chord": "Adicionar acorde",
+        "type": "Tipo",
+        "tension": "Tensão",
+        "bass": "Baixo",
         "no_sections": "Nenhuma seção de letra detectada.",
         "delete_section": "Excluir seção",
         "cant_delete_last_section": "Mantenha ao menos uma ocorrência desta seção",
@@ -235,7 +240,8 @@
         "install_ios_title": "Instalar aplicativo",
         "install_ios_step1": "Toque no botão Compartilhar",
         "install_ios_step2": "Role para baixo e toque em \"Adicionar à Tela de Início\"",
-        "install_ios_action": "Instalar"
+        "install_ios_action": "Instalar",
+        "draw_pwa_recommendation": "Dica: Adicione à Tela de Início para desenhar sem que os gestos do Safari saiam do ecrã inteiro"
     },
     "list": {
         "deleted": "Excluído",

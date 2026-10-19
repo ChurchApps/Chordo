@@ -6,7 +6,9 @@
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { enterFullscreen, exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
+    import { isIos, isIosSafariNonStandalone, openIosPrompt } from "$lib/utils/iosPwa"
     import { parsePlaybackUrl } from "$lib/utils/playback"
+    import { showToast } from "$lib/state/toast.svelte"
     import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
     import { onMount } from "svelte"
     import { slide } from "svelte/transition"
@@ -105,12 +107,6 @@
     function initSlider(node: HTMLElement) {
         node.style.transform = `translate3d(-${initialSlideIndex * 100}vw, 0, 0)`
     }
-
-    $effect(() => {
-        // When drawing mode opens or closes, ensure slider position stays locked to current page
-        isDrawing
-        if (sliderEl && initialPositionConsumed) setPositionByIndex(false)
-    })
 
     // Gesture tracking state
     let isDragging = false
@@ -266,6 +262,7 @@
             if (e.key === "Escape") {
                 isDrawing = false
                 setPositionByIndex(false)
+                if (!isFullscreenActive()) enterFullscreen()
             }
             return
         }
@@ -489,6 +486,37 @@
         }
     }
 
+    // --- Trackpad Two-Finger Swipe (Wheel) Handler ---
+    let wheelDeltaXAccumulator = 0
+    let lastWheelPageTurnTime = 0
+    const WHEEL_SWIPE_THRESHOLD = 180 // Requires a clear, deliberate swipe distance
+    const WHEEL_COOLDOWN = 450 // ms before the next swipe can turn a page
+
+    function handleWheel(e: WheelEvent) {
+        if (isDrawing || popupState.popupId !== null || quickEditOpen) return
+
+        const isHorizontal = Math.abs(e.deltaX) >= Math.abs(e.deltaY)
+        if (isHorizontal || e.shiftKey) {
+            e.preventDefault()
+        }
+
+        const now = Date.now()
+        if (now - lastWheelPageTurnTime < WHEEL_COOLDOWN) return
+
+        const deltaX = isHorizontal ? e.deltaX : e.shiftKey ? e.deltaY : 0
+        wheelDeltaXAccumulator += deltaX
+
+        if (wheelDeltaXAccumulator > WHEEL_SWIPE_THRESHOLD) {
+            lastWheelPageTurnTime = now
+            wheelDeltaXAccumulator = 0
+            goToNextPage()
+        } else if (wheelDeltaXAccumulator < -WHEEL_SWIPE_THRESHOLD) {
+            lastWheelPageTurnTime = now
+            wheelDeltaXAccumulator = 0
+            goToPrevPage()
+        }
+    }
+
     function getTransitionDuration(): number {
         const speed = storage.settings.paperOptions?.pageAnimation ?? "fast"
         if (speed === "none") return 0
@@ -507,7 +535,6 @@
         prevTranslate = currentTranslate
 
         const duration = animate ? getTransitionDuration() : 0
-
         sliderEl.style.transition = duration > 0 ? `transform ${duration}ms cubic-bezier(0.25, 1, 0.5, 1)` : "none"
         sliderEl.style.transform = `translate3d(${currentTranslate}px, 0, 0)`
 
@@ -575,6 +602,7 @@
 
     // --- Lifecycle & DOM Observation ---
     let hasBeenFullscreen = false
+    let hasShownPwaDrawHint = false
 
     onMount(() => {
         requestWakeLock()
@@ -583,53 +611,35 @@
             hasBeenFullscreen = true
         }
 
-        let isAttemptingReentry = false
-        const removeFullscreenListener = onFullscreenChange(async (isActive) => {
+        let isExitingSong = false
+
+        function handleFullscreenExit() {
+            if (isExitingSong) return
+            isExitingSong = true
+            exitSongFullscreen()
+        }
+
+        const removeFullscreenListener = onFullscreenChange((isActive) => {
             if (isActive) {
                 hasBeenFullscreen = true
-                isAttemptingReentry = false
             } else if (hasBeenFullscreen) {
                 if (isDrawing) {
+                    hasBeenFullscreen = false
+                    // in iOS Safari, dragging down with one finger exits fullscreen, nothing to do about it if not in PWA
+                    if (!hasShownPwaDrawHint && isIosSafariNonStandalone()) {
+                        hasShownPwaDrawHint = true
+                        showToast(t("pwa", "draw_pwa_recommendation"), "info", 6000)
+                        openIosPrompt()
+                    }
+                    return
+                }
+                if (isIos()) {
                     hasBeenFullscreen = false
                     return
                 }
 
-                // If document is currently hidden (e.g. tablet screen turned off / locked / minimized),
-                // wait until document becomes visible again before attempting to re-enter fullscreen.
-                if (document.visibilityState === "hidden") {
-                    const handleVisibilityChange = async () => {
-                        if (document.visibilityState === "visible") {
-                            document.removeEventListener("visibilitychange", handleVisibilityChange)
-                            if (!isFullscreenActive() && !isAttemptingReentry) {
-                                isAttemptingReentry = true
-                                const reentered = await enterFullscreen(document.documentElement, true)
-                                if (reentered) {
-                                    hasBeenFullscreen = true
-                                    isAttemptingReentry = false
-                                    return
-                                }
-                                isAttemptingReentry = false
-                                exitSongFullscreen()
-                            }
-                        }
-                    }
-                    document.addEventListener("visibilitychange", handleVisibilityChange)
-                    return
-                }
-
-                // If the screen wasn't hidden, first try re-entering fullscreen
-                if (!isAttemptingReentry) {
-                    isAttemptingReentry = true
-                    const reentered = await enterFullscreen(document.documentElement, true)
-                    if (reentered) {
-                        hasBeenFullscreen = true
-                        isAttemptingReentry = false
-                        return
-                    }
-                    isAttemptingReentry = false
-                }
-
-                exitSongFullscreen()
+                // If user leaves fullscreen (e.g. via browser UI, Esc key, swipe), exit song fullscreen cleanly
+                handleFullscreenExit()
             }
         })
 
@@ -640,7 +650,9 @@
             const entry = entries[0]
             if (entry) {
                 const { width, height } = entry.contentRect
-                if (width === lastSliderWidth && height === lastSliderHeight) return
+                // When on-screen keyboard opens, only height changes while width remains unchanged.
+                // Do not recalculate page counts on vertical keyboard height changes.
+                if (width === lastSliderWidth) return
                 lastSliderWidth = width
                 lastSliderHeight = height
             }
@@ -654,11 +666,14 @@
         updatePageCount()
         setPositionByIndex(false)
 
+        window.addEventListener("wheel", handleWheel, { passive: false })
+
         return () => {
             clearTimeout(hideTimeout)
             if (transitionTimer !== null) clearTimeout(transitionTimer)
             if (moveRafId !== null) cancelAnimationFrame(moveRafId)
             if (updateRafId !== null) cancelAnimationFrame(updateRafId)
+            window.removeEventListener("wheel", handleWheel)
             removeFullscreenListener()
             resizeObserver.disconnect()
             releaseWakeLock()
@@ -804,7 +819,7 @@
                         }}
                     >
                         <span class="material-symbols-outlined" slot="start">tune</span>
-                        <div slot="headline">{t("menu", "settings")}</div>
+                        <div slot="headline">{t("song_fullscreen", "settings_title")}</div>
                     </md-menu-item>
                 </md-menu>
             </div>
@@ -851,7 +866,7 @@
             onpointerup={pointerUp}
             onpointercancel={pointerUp}
             onlostpointercapture={pointerUp}
-            style:touch-action={isDrawing ? "none" : "pan-y"}
+            style:touch-action="none"
         >
             {#each slides as slideItem, i}
                 {#if slideItem.type === "song"}
@@ -865,14 +880,14 @@
                     {@const fontScale = (storage.settings.paperOptions?.fontSize ?? 100) / 100}
 
                     <div class="slide" style="--font-scale: {fontScale};">
-                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} onPaginate={() => scheduleUpdatePageCount(false)}>
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} ignoreResizeHeight onPaginate={() => scheduleUpdatePageCount(false)}>
                             <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
                         </Paper>
                     </div>
                 {:else if slideItem.type === "section"}
                     {@const customBg = storage.settings.paperOptions?.background || "white"}
                     <div class="slide">
-                        <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
+                        <Paper padding={16} background={customBg} headerText="" ignoreResizeHeight onPaginate={() => scheduleUpdatePageCount(false)}>
                             <div class="fullscreen-section-container">
                                 <div class="fullscreen-section-badge">
                                     <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>
@@ -999,6 +1014,8 @@
         height: 100vh;
         height: 100dvh;
         overflow: hidden;
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
 
     /* Metronome */

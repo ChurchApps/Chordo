@@ -1,17 +1,28 @@
 <script lang="ts">
     import { t } from "$lib/state/i18n.svelte"
-    import { dismissIosPrompt, isIosPromptDismissed, isIosSafariNonStandalone } from "$lib/utils/iosPwa"
+    import { dismissIosPrompt, isIosPromptDismissed, isIosSafariNonStandalone, registerIosPromptHandler } from "$lib/utils/iosPwa"
     import { onMount } from "svelte"
 
     let showPrompt = $state(false)
 
     onMount(() => {
+        const unregister = registerIosPromptHandler(() => {
+            showPrompt = true
+        })
+
         if (isIosSafariNonStandalone() && !isIosPromptDismissed()) {
             // Slight delay so the UI doesn't pop aggressively immediately on page load
             const timer = setTimeout(() => {
                 showPrompt = true
             }, 1200)
-            return () => clearTimeout(timer)
+            return () => {
+                clearTimeout(timer)
+                unregister()
+            }
+        }
+
+        return () => {
+            unregister()
         }
     })
 

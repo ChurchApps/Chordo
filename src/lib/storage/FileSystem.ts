@@ -13,7 +13,7 @@ function initStore(dbName: string, storeName: string) {
     return null
 }
 
-// Dedicated IndexedDB custom stores for sheet-manager
+// Dedicated IndexedDB custom stores for chordo (sheet-manager)
 const configStore = initStore("sheet-manager-db", "config-store")
 const mediaStore = initStore("sheet-manager-media-db", "media-store")
 

@@ -23,6 +23,8 @@
         content: chordProEditorText
     })
 
+    let canReset = $derived(chordProEditorText !== DEFAULT_CHORDPRO_TEXT || (selectedTargetKey !== null && selectedTargetKey !== (detectedKey || "G")))
+
     function resetDemoEditor() {
         chordProEditorText = DEFAULT_CHORDPRO_TEXT
         selectedTargetKey = null
@@ -39,10 +41,12 @@
             </div>
         </div>
 
-        <button class="reset-editor-btn" onclick={resetDemoEditor} title="Reset example">
-            <span class="material-symbols-outlined">refresh</span>
-            <span>{t("common", "reset")}</span>
-        </button>
+        {#if canReset}
+            <button class="reset-editor-btn" onclick={resetDemoEditor} title="Reset example">
+                <span class="material-symbols-outlined">refresh</span>
+                <span>{t("common", "reset")}</span>
+            </button>
+        {/if}
     </div>
 
     <div class="editor-demo-split">

@@ -4,19 +4,13 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { createHistory } from "$lib/utils/history.svelte"
     import { onDestroy } from "svelte"
+    import { convertToChordPro } from "$lib/chords/chordproConverter"
     import FindReplaceDialog from "../popups/FindReplaceDialog.svelte"
+    import InsertChordDialog from "../popups/InsertChordDialog.svelte"
     import ReorderSectionsDialog from "../popups/ReorderSectionsDialog.svelte"
     import HighlightedTextarea from "./HighlightedTextarea.svelte"
 
-    let {
-        song,
-        id = "song-content-editor",
-        rows = 8,
-        style = "",
-        class: className = "",
-        onContentChange,
-        onBlur
-    } = $props<{
+    interface Props {
         song: Song | null
         id?: string
         rows?: number
@@ -24,8 +18,14 @@
         class?: string
         onContentChange?: (newVal: string) => void
         onBlur?: () => void
-    }>()
+    }
 
+    let { song, id = "song-content-editor", rows = 8, style = "", class: className = "", onContentChange = undefined, onBlur = undefined }: Props = $props()
+
+    let textareaEl = $state<HTMLTextAreaElement | null>(null)
+    let isTextareaFocused = $state(false)
+    let lastSelection = $state<{ start: number; end: number }>({ start: 0, end: 0 })
+    let showChordDialog = $state(false)
     let showReorderDialog = $state(false)
     let reorderInitialText = $state("")
     let showFindReplaceDialog = $state(false)
@@ -81,11 +81,89 @@
         if (onContentChange) onContentChange(val)
     }
 
+    function handleFocus() {
+        isTextareaFocused = true
+    }
+
     function handleBlur() {
+        isTextareaFocused = false
+        if (textareaEl) {
+            lastSelection = {
+                start: textareaEl.selectionStart ?? 0,
+                end: textareaEl.selectionEnd ?? 0
+            }
+        }
         if (!song) return
         storage.updateSong(song)
         storage.persist()
         if (onBlur) onBlur()
+    }
+
+    let lastScrollPos = $state<{ top: number; left: number }>({ top: 0, left: 0 })
+
+    function openAddChordDialog() {
+        if (!isTextareaFocused) return
+        if (textareaEl) {
+            lastSelection = {
+                start: textareaEl.selectionStart ?? (song?.content?.length || 0),
+                end: textareaEl.selectionEnd ?? (song?.content?.length || 0)
+            }
+            lastScrollPos = {
+                top: textareaEl.scrollTop,
+                left: textareaEl.scrollLeft
+            }
+        }
+        showChordDialog = true
+    }
+
+    function insertChord(chord: string) {
+        if (!song) return
+        const currentText = song.content || ""
+        let start = lastSelection.start
+        let end = lastSelection.end
+
+        if (start < 0 || start > currentText.length) {
+            start = currentText.length
+            end = currentText.length
+        }
+
+        const chordToken = `[${chord}]`
+        const textWithChord = currentText.slice(0, start) + chordToken + currentText.slice(end)
+
+        // Run chordpro parsing right after adding the chord
+        const parsedChordProText = convertToChordPro(textWithChord)
+
+        // Calculate where the caret should be in the new parsed text
+        // If the text length changed drastically (e.g. line merged), keep caret near insertion point
+        let newCaretPos = start + chordToken.length
+        if (parsedChordProText !== textWithChord) {
+            // Find the inserted token in the new text at or closest to 'start'
+            const foundIdx = parsedChordProText.indexOf(chordToken, Math.max(0, start - 20))
+            if (foundIdx !== -1) {
+                newCaretPos = foundIdx + chordToken.length
+            } else {
+                newCaretPos = Math.min(newCaretPos, parsedChordProText.length)
+            }
+        }
+
+        contentHistory.push(parsedChordProText)
+        song.content = parsedChordProText
+        storage.updateSong(song)
+        storage.persist()
+        if (onContentChange) onContentChange(parsedChordProText)
+
+        lastSelection = { start: newCaretPos, end: newCaretPos }
+        const savedScroll = { ...lastScrollPos }
+
+        // Restore focus, caret position, and scroll position precisely
+        setTimeout(() => {
+            if (textareaEl) {
+                textareaEl.focus({ preventScroll: true })
+                textareaEl.setSelectionRange(newCaretPos, newCaretPos)
+                textareaEl.scrollTop = savedScroll.top
+                textareaEl.scrollLeft = savedScroll.left
+            }
+        }, 30)
     }
 
     function openReorderDialog() {
@@ -145,6 +223,23 @@
         </button>
 
         {#if hasContent}
+            <button
+                type="button"
+                class="content-action-btn"
+                disabled={!isTextareaFocused}
+                onpointerdown={(e) => {
+                    // Prevent mousedown from blurring the textarea before opening dialog
+                    if (isTextareaFocused) {
+                        e.preventDefault()
+                    }
+                }}
+                onclick={openAddChordDialog}
+                title={t("song_edit", "add_chord")}
+            >
+                <span class="material-symbols-outlined" style="font-size: 16px;">music_note</span>
+                <span>{t("song_edit", "add_chord")}</span>
+            </button>
+
             <button type="button" class="content-action-btn" onclick={openFindReplaceDialog} title={`${t("find_replace", "title")} (Ctrl+F / Ctrl+H)`}>
                 <span class="material-symbols-outlined" style="font-size: 16px;">find_replace</span>
                 <span>{t("find_replace", "title")}</span>
@@ -159,16 +254,20 @@
 
     <HighlightedTextarea
         {id}
+        bind:ref={textareaEl}
         label={t("song_edit", "content")}
         placeholder={t("song_edit", "content_placeholder")}
         {rows}
         value={song?.content || ""}
         oninput={handleInput}
+        onfocus={handleFocus}
         onblur={handleBlur}
         onkeydown={handleEditorKeyDown}
         style="width: 100%; height: 100%; min-height: inherit; max-height: inherit; flex: 1;"
     />
 </div>
+
+<InsertChordDialog open={showChordDialog} text={song?.content || ""} onInsertChord={insertChord} onClose={() => (showChordDialog = false)} />
 
 <ReorderSectionsDialog open={showReorderDialog} initialText={reorderInitialText} onApply={applyReorder} onClose={() => (showReorderDialog = false)} />
 

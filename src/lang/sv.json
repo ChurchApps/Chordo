@@ -118,7 +118,8 @@
         "export_as": "Exportera som",
         "delete_list": "Radera setlista",
         "rename_folder": "Byt namn på mapp",
-        "delete_folder": "Radera mapp"
+        "delete_folder": "Radera mapp",
+        "auto_scroll": "Autorullning"
     },
     "confirm": {
         "delete_song_title": "Radera låt?",
@@ -170,6 +171,10 @@
         "reorder_dialog_title": "Ändra sektionsordning",
         "add_section": "Lägg till sektion",
         "add_existing_section": "Lägg till befintlig sektion",
+        "add_chord": "Lägg till ackord",
+        "type": "Typ",
+        "tension": "Färgning",
+        "bass": "Bas",
         "no_sections": "Inga textsektioner hittades.",
         "delete_section": "Radera sektion",
         "cant_delete_last_section": "Behåll minst en instans av denna sektion",
@@ -235,7 +240,8 @@
         "install_ios_title": "Installera appen",
         "install_ios_step1": "Tryck på Dela-knappen",
         "install_ios_step2": "Scrolla ner och tryck på \"Lägg till på hemskärmen\"",
-        "install_ios_action": "Installera"
+        "install_ios_action": "Installera",
+        "draw_pwa_recommendation": "Tips: Lägg till på hemskärmen för att rita utan att Safari-gester stänger helskärm"
     },
     "list": {
         "deleted": "Raderad",

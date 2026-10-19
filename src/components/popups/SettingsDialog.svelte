@@ -19,9 +19,7 @@
     let importStatus = $state<string | null>(null)
 
     // Paper options state
-    const isSongSettings = $derived(
-        popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song" || menuState.activePage === "all_songs")
-    )
+    const isSongSettings = $derived(popupState.popupId === "settings" && (menuState.activePage === "song_live" || menuState.activePage === "song" || menuState.activePage === "all_songs"))
     const isFullscreen = $derived(menuState.activePage === "song_live")
 
     const BACKGROUND_PRESETS = [
@@ -118,7 +116,7 @@
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = `sheet-manager-backup-${new Date().toISOString().slice(0, 10)}.json`
+        a.download = `chordo-backup-${new Date().toISOString().slice(0, 10)}.json`
         a.click()
         URL.revokeObjectURL(url)
     }
@@ -208,9 +206,7 @@
                             onclick={() => selectBackground(preset.color)}
                         >
                             {#if isSelected}
-                                <span class="material-symbols-outlined check-icon" class:light-check={isDarkPreset} class:dark-check={!isDarkPreset}>
-                                    check
-                                </span>
+                                <span class="material-symbols-outlined check-icon" class:light-check={isDarkPreset} class:dark-check={!isDarkPreset}> check </span>
                             {/if}
                         </button>
                     {/each}
@@ -232,15 +228,7 @@
                     </md-filled-tonal-icon-button>
 
                     <div class="font-size-slider-wrapper">
-                        <md-slider
-                            min="70"
-                            max="150"
-                            value={currentFontSize}
-                            step="5"
-                            labeled
-                            oninput={handleFontSizeInput}
-                            class="font-slider"
-                        ></md-slider>
+                        <md-slider min="70" max="150" value={currentFontSize} step="5" labeled oninput={handleFontSizeInput} class="font-slider"></md-slider>
                         <span class="font-size-label">{currentFontSize}%</span>
                     </div>
 
@@ -313,7 +301,7 @@
                             type="button"
                             class="color-circle"
                             class:active={currentTheme === themeOption.id}
-                            style="background-color: {themeOption.color};"
+                            style="background: {themeOption.gradient ?? themeOption.color};"
                             aria-label={themeOption.labelKey}
                             title={themeOption.labelKey}
                             onclick={() => selectTheme(themeOption.id)}
