@@ -118,7 +118,8 @@
         "export_as": "Exportar como",
         "delete_list": "Eliminar repertorio",
         "rename_folder": "Renombrar carpeta",
-        "delete_folder": "Eliminar carpeta"
+        "delete_folder": "Eliminar carpeta",
+        "auto_scroll": "Desplazamiento automático"
     },
     "confirm": {
         "delete_song_title": "¿Eliminar canción?",

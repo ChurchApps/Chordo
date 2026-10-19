@@ -118,7 +118,8 @@
         "export_as": "Export as",
         "delete_list": "Delete setlist",
         "rename_folder": "Rename folder",
-        "delete_folder": "Delete folder"
+        "delete_folder": "Delete folder",
+        "auto_scroll": "Auto scroll"
     },
     "confirm": {
         "delete_song_title": "Delete song?",

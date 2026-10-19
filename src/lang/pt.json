@@ -118,7 +118,8 @@
         "export_as": "Exportar como",
         "delete_list": "Excluir repertório",
         "rename_folder": "Renomear pasta",
-        "delete_folder": "Excluir pasta"
+        "delete_folder": "Excluir pasta",
+        "auto_scroll": "Rolagem automática"
     },
     "confirm": {
         "delete_song_title": "Excluir música?",

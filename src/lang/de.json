@@ -118,7 +118,8 @@
         "export_as": "Exportieren als",
         "delete_list": "Setliste löschen",
         "rename_folder": "Ordner umbenennen",
-        "delete_folder": "Ordner löschen"
+        "delete_folder": "Ordner löschen",
+        "auto_scroll": "Automatischer Bildlauf"
     },
     "confirm": {
         "delete_song_title": "Song löschen?",

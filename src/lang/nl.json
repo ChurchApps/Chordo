@@ -118,7 +118,8 @@
         "export_as": "Exporteren als",
         "delete_list": "Setlist verwijderen",
         "rename_folder": "Map hernoemen",
-        "delete_folder": "Map verwijderen"
+        "delete_folder": "Map verwijderen",
+        "auto_scroll": "Automatisch scrollen"
     },
     "confirm": {
         "delete_song_title": "Nummer verwijderen?",

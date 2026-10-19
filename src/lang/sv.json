@@ -118,7 +118,8 @@
         "export_as": "Exportera som",
         "delete_list": "Radera setlista",
         "rename_folder": "Byt namn på mapp",
-        "delete_folder": "Radera mapp"
+        "delete_folder": "Radera mapp",
+        "auto_scroll": "Autorullning"
     },
     "confirm": {
         "delete_song_title": "Radera låt?",

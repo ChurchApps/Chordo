@@ -118,7 +118,8 @@
         "export_as": "Esporta come",
         "delete_list": "Elimina scaletta",
         "rename_folder": "Rinomina cartella",
-        "delete_folder": "Elimina cartella"
+        "delete_folder": "Elimina cartella",
+        "auto_scroll": "Scorrimento automatico"
     },
     "confirm": {
         "delete_song_title": "Eliminare brano?",

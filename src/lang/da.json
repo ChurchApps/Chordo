@@ -118,7 +118,8 @@
         "export_as": "Eksporter som",
         "delete_list": "Slet sætliste",
         "rename_folder": "Omdøb mappe",
-        "delete_folder": "Slet mappe"
+        "delete_folder": "Slet mappe",
+        "auto_scroll": "Automatisk rulning"
     },
     "confirm": {
         "delete_song_title": "Slet sang?",

@@ -118,7 +118,8 @@
         "export_as": "Eksporter som",
         "delete_list": "Slett setliste",
         "rename_folder": "Endre navn på mappe",
-        "delete_folder": "Slett mappe"
+        "delete_folder": "Slett mappe",
+        "auto_scroll": "Autorull"
     },
     "confirm": {
         "delete_song_title": "Slette sang?",
