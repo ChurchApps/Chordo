@@ -503,7 +503,7 @@
         const now = Date.now()
         if (now - lastWheelPageTurnTime < WHEEL_COOLDOWN) return
 
-        const deltaX = isHorizontal ? e.deltaX : (e.shiftKey ? e.deltaY : 0)
+        const deltaX = isHorizontal ? e.deltaX : e.shiftKey ? e.deltaY : 0
         wheelDeltaXAccumulator += deltaX
 
         if (wheelDeltaXAccumulator > WHEEL_SWIPE_THRESHOLD) {
@@ -819,7 +819,7 @@
                         }}
                     >
                         <span class="material-symbols-outlined" slot="start">tune</span>
-                        <div slot="headline">{t("menu", "settings")}</div>
+                        <div slot="headline">{t("song_fullscreen", "settings_title")}</div>
                     </md-menu-item>
                 </md-menu>
             </div>

@@ -381,7 +381,7 @@
                                     }}
                                 >
                                     <span class="material-symbols-outlined" slot="start">tune</span>
-                                    <div slot="headline">{t("menu", "settings")}</div>
+                                    <div slot="headline">{t("song_fullscreen", "settings_title")}</div>
                                 </md-menu-item>
                             {:else if menuState.activePage === "song_edit"}
                                 {@const editSong = storage.getSongById(menuState.contentId)}
