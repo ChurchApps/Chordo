@@ -436,8 +436,8 @@
     }
 
     .theme-circles {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(7, min-content);
         gap: 12px;
         align-items: center;
         padding: 4px 0;

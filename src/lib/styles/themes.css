@@ -481,3 +481,122 @@
         0 0 0 1px rgba(184, 134, 11, 0.2),
         0 8px 24px rgba(140, 104, 25, 0.12);
 }
+
+/* Chocolate Theme (Dark warm espresso-brown & radiant gold from og-image) */
+[data-theme="chocolate"] {
+    --md-ref-typeface-brand: "Open Sans", system-ui, sans-serif;
+    --md-ref-typeface-plain: "Open Sans", system-ui, sans-serif;
+    --md-icon-font: "Material Symbols Outlined";
+
+    /* Core Palette: Deep warm chocolate/espresso background with radiant warm gold accents */
+    --md-sys-color-primary-background: #25160e;
+
+    --md-sys-color-primary: #e5b364;
+    --md-sys-color-on-primary: #281507;
+    --md-sys-color-primary-container: #472b1a;
+    --md-sys-color-on-primary-container: #fcebd2;
+
+    --md-icon-button-icon-color: #f7dfb9;
+
+    --md-sys-color-secondary: #c98c3e;
+    --md-sys-color-on-secondary: #241306;
+    --md-sys-color-secondary-container: #3d2416;
+    --md-sys-color-on-secondary-container: #feddc0;
+
+    --md-sys-color-surface: #2b1b12;
+    --md-sys-color-on-surface: #f7ece2;
+    --md-sys-color-surface-variant: #3b2518;
+    --md-sys-color-on-surface-variant: #e0caa8;
+    --md-sys-color-surface-container-low: #20130b;
+    --md-sys-color-surface-container: #2c1a10;
+    --md-sys-color-surface-container-high: #382317;
+    --md-sys-color-surface-container-highest: #442a1c;
+
+    --md-sys-color-outline: #8c5b2c;
+    --md-sys-color-outline-variant: rgba(229, 179, 100, 0.18);
+
+    --md-sys-color-tertiary: #dfa856;
+    --md-sys-color-on-tertiary: #271406;
+    --md-sys-color-tertiary-container: #4f301b;
+    --md-sys-color-on-tertiary-container: #fbeacf;
+
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffdad6;
+
+    /* Chocolate button styling */
+    --warm-gold-gradient: linear-gradient(135deg, #f7d286 0%, #c88939 50%, #6f3b14 100%);
+
+    --md-fab-container-color: transparent;
+    --md-fab-icon-color: #241306;
+    --md-fab-hover-icon-color: #000000;
+    --md-fab-pressed-icon-color: #000000;
+
+    --md-filled-button-container-color: transparent;
+    --md-filled-button-label-text-color: #241306;
+    --md-filled-button-icon-color: #241306;
+
+    --md-filled-tonal-button-container-color: transparent;
+    --md-filled-tonal-button-label-text-color: #241306;
+    --md-filled-tonal-button-icon-color: #241306;
+    --md-filled-tonal-icon-button-container-color: transparent;
+    --md-filled-tonal-icon-button-icon-color: #241306;
+}
+
+/* Chocolate buttons */
+[data-theme="chocolate"] md-fab {
+    --md-fab-container-color: transparent !important;
+    --md-fab-icon-color: #241306 !important;
+    --md-fab-hover-icon-color: #000000 !important;
+    --md-fab-pressed-icon-color: #000000 !important;
+    color: #241306 !important;
+    background: linear-gradient(135deg, #f7d286 0%, #c88939 50%, #7d4418 100%) !important;
+    box-shadow:
+        0 4px 16px rgba(111, 59, 20, 0.6),
+        0 1px 3px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(247, 210, 134, 0.45);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+[data-theme="chocolate"] md-filled-button,
+[data-theme="chocolate"] md-filled-tonal-button,
+[data-theme="chocolate"] md-filled-tonal-icon-button {
+    --md-filled-button-container-color: transparent !important;
+    --md-filled-button-label-text-color: #241306 !important;
+    --md-filled-button-icon-color: #241306 !important;
+    --md-filled-tonal-button-container-color: transparent !important;
+    --md-filled-tonal-button-label-text-color: #241306 !important;
+    --md-filled-tonal-button-icon-color: #241306 !important;
+    --md-filled-tonal-icon-button-container-color: transparent !important;
+    --md-filled-tonal-icon-button-icon-color: #241306 !important;
+    color: #241306 !important;
+    background: linear-gradient(135deg, #f7d286 0%, #c88939 50%, #7d4418 100%) !important;
+
+    box-shadow: 0 2px 10px rgba(111, 59, 20, 0.5);
+    border: 1px solid rgba(247, 210, 134, 0.35);
+    border-radius: 9999px;
+    overflow: hidden;
+    font-weight: 600;
+}
+
+/* Chocolate Top Bar & Layout framing */
+[data-theme="chocolate"] .top-app-bar {
+    background: linear-gradient(90deg, #362014 0%, #5d351c 30%, #875126 50%, #5d351c 70%, #362014 100%) !important;
+    border-bottom: 1px solid rgba(229, 179, 100, 0.18);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="chocolate"] .app-layout {
+    background: radial-gradient(ellipse at 50% 15%, #4a2b19 0%, #29170e 55%, #1d1009 100%) !important;
+}
+
+[data-theme="chocolate"] main {
+    box-shadow:
+        0 0 0 1px rgba(229, 179, 100, 0.15),
+        0 8px 30px rgba(0, 0, 0, 0.5);
+}
