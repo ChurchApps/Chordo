@@ -18,10 +18,8 @@
     import "@material/web/switch/switch.js"
 
     let copyTimeout: ReturnType<typeof setTimeout> | undefined
-    let printTimeout: ReturnType<typeof setTimeout> | undefined
     onDestroy(() => {
         if (copyTimeout) clearTimeout(copyTimeout)
-        if (printTimeout) clearTimeout(printTimeout)
     })
 
     const isSong = $derived(popupState.popupId === "share_song")
@@ -190,8 +188,7 @@
 
     function handlePrint() {
         closeDialog()
-        clearTimeout(printTimeout)
-        printTimeout = setTimeout(() => {
+        setTimeout(() => {
             window.print()
         }, 150)
     }
@@ -293,6 +290,18 @@
             <div class="section-title">{t("menu", "export_as")}</div>
 
             <div class="export-options-list">
+                <!-- Print / Save as PDF -->
+                <button type="button" class="export-option-card" onclick={handlePrint}>
+                    <div class="option-icon-container">
+                        <span class="material-symbols-outlined option-icon">docs</span>
+                    </div>
+                    <div class="option-text">
+                        <div class="option-title">{t("menu", "print")}</div>
+                        <div class="option-desc">{t("share", "print_desc")}</div>
+                    </div>
+                    <span class="material-symbols-outlined download-icon">print</span>
+                </button>
+
                 <!-- Export as JSON -->
                 <button type="button" class="export-option-card" onclick={handleExportJson}>
                     <div class="option-icon-container">
@@ -318,18 +327,6 @@
                         <span class="material-symbols-outlined download-icon">download</span>
                     </button>
                 {/if}
-
-                <!-- Print / Save as PDF -->
-                <button type="button" class="export-option-card" onclick={handlePrint}>
-                    <div class="option-icon-container">
-                        <span class="material-symbols-outlined option-icon">docs</span>
-                    </div>
-                    <div class="option-text">
-                        <div class="option-title">{t("menu", "print")}</div>
-                        <div class="option-desc">{t("share", "print_desc")}</div>
-                    </div>
-                    <span class="material-symbols-outlined download-icon">print</span>
-                </button>
             </div>
         </div>
     </div>
