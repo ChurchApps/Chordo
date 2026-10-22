@@ -1,12 +1,24 @@
 <script lang="ts">
+    import { getCachedPlansAsLists, integrationState } from "$lib/integrations/integrationState.svelte"
     import { Lists } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
-    import { listSortState } from "$lib/state/listSort.svelte"
+    import { listSortState, sortLists } from "$lib/state/listSort.svelte"
     import { menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { formatDate } from "$lib/utils/common"
+    import "@material/web/progress/linear-progress.js"
+    import { onMount } from "svelte"
 
-    let lists = $derived(Lists.get(storage.lists, menuState.contentId, listSortState.sortBy))
+    let folderId = $derived(menuState.contentId)
+    let activeProvider = $derived(integrationState.getActiveProvider())
+    let isExternalFolder = $derived(!!activeProvider && folderId === activeProvider.id)
+
+    onMount(() => {
+        if (isExternalFolder) integrationState.syncPlans(false)
+    })
+
+    let lists = $derived(isExternalFolder ? sortLists(getCachedPlansAsLists(), listSortState.sortBy) : Lists.get(storage.lists, folderId, listSortState.sortBy))
     let isDateSort = $derived(listSortState.sortBy.startsWith("date"))
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
@@ -23,15 +35,22 @@
 </script>
 
 <main>
+    {#if isExternalFolder && integrationState.isLoading}
+        <div class="loader-bar">
+            <md-linear-progress indeterminate></md-linear-progress>
+        </div>
+    {/if}
+
     {#if filteredLists.length}
         <md-list class="list scroll-list">
             {#each filteredLists as list, idx}
                 {@const count = list.songs?.filter((s) => s.type !== "section").length ?? 0}
-                {@const dateStr = list.createdAt ? new Date(list.createdAt).toLocaleDateString() : "—"}
-                {@const prevDateStr = idx > 0 ? (filteredLists[idx - 1].createdAt ? new Date(filteredLists[idx - 1].createdAt).toLocaleDateString() : "—") : null}
+                {@const dateStr = list.createdAt ? formatDate(list.createdAt) : ""}
+                {@const prevList = idx > 0 ? filteredLists[idx - 1] : null}
+                {@const prevDateStr = prevList && prevList.createdAt ? formatDate(prevList.createdAt) : null}
                 {@const showDateHeader = isDateSort && (idx === 0 || dateStr !== prevDateStr)}
 
-                {#if showDateHeader}
+                {#if showDateHeader && dateStr}
                     <div class="group-header">
                         <span>{dateStr}</span>
                     </div>
@@ -39,6 +58,9 @@
 
                 <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
                     <div slot="headline">{list.name}</div>
+                    {#if isExternalFolder && dateStr && !showDateHeader}
+                        <div slot="supporting-text">{dateStr}</div>
+                    {/if}
                     <md-icon slot="start">list</md-icon>
                     <span slot="trailing-supporting-text" class="item-count">{count}</span>
                     <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
@@ -53,6 +75,18 @@
                 <p>{searchState.query}</p>
             </div>
         </div>
+    {:else if isExternalFolder}
+        <div class="center">
+            <div class="empty-state">
+                <span class="material-symbols-outlined empty-icon">event_busy</span>
+                <h2>{t("empty_state", "no_plans_title")}</h2>
+                <p>{t("empty_state", "no_plans_desc")}</p>
+                <md-outlined-button onclick={() => integrationState.syncPlans()} style="margin-top: 16px;">
+                    <span class="material-symbols-outlined" slot="icon">refresh</span>
+                    {t("common", "refresh")}
+                </md-outlined-button>
+            </div>
+        </div>
     {:else}
         <div class="center">
             <div class="empty-state">
@@ -64,13 +98,29 @@
     {/if}
 </main>
 
-<div class="fab-container">
-    <md-fab aria-label="Add" onclick={() => setActivePopup("create_list")}>
-        <span class="material-symbols-outlined" slot="icon">add</span>
-    </md-fab>
-</div>
+{#if !isExternalFolder}
+    <div class="fab-container">
+        <md-fab aria-label="Add" onclick={() => setActivePopup("create_list")}>
+            <span class="material-symbols-outlined" slot="icon">add</span>
+        </md-fab>
+    </div>
+{/if}
 
 <style>
+    .loader-bar {
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 10;
+    }
+
+    .loader-bar md-linear-progress {
+        width: 100%;
+        --md-linear-progress-track-height: 4px;
+    }
+
     .group-header {
         display: flex;
         align-items: center;

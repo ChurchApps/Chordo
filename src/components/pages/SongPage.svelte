@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { getExternalSong, getPlanAsList } from "$lib/integrations/integrationState.svelte"
     import { autoScrollState, registerScrollElement, setAutoScrollSpeed, stopAutoScroll, toggleAutoScrollPlay } from "$lib/state/autoScroll.svelte"
     import { fullscreenState, menuState, savedFullscreenPosition, setActivePage, updatePageTitle } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
@@ -21,7 +22,7 @@
     let listId = $derived(menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null)
     let allLists = $derived(storage.lists)
     let allSongs = $derived(storage.songs)
-    let list = $derived(listId ? storage.getListById(listId, allLists) : null)
+    let list = $derived(listId ? storage.getListById(listId, allLists) || getPlanAsList(listId) : null)
     let songs = $derived(list ? list.songs : menuState.contentId ? [{ id: menuState.contentId }] : [])
 
     let isNavigating = false
@@ -35,7 +36,7 @@
                 updatePageTitle(currentItem.name || "Section")
             } else if (currentItem?.id) {
                 menuState.contentId = currentItem.id
-                const song = storage.getSongById(currentItem.id, storage.songs)
+                const song = storage.getSongById(currentItem.id, storage.songs) || getExternalSong(currentItem.id)
                 if (song?.name) updatePageTitle(song.name)
             }
 
@@ -131,7 +132,7 @@
                     updatePageTitle(currentItem.name || "Section")
                 } else if (itemId) {
                     menuState.contentId = itemId
-                    const song = storage.getSongById(itemId, storage.songs)
+                    const song = storage.getSongById(itemId, storage.songs) || getExternalSong(itemId)
                     if (song?.name) updatePageTitle(song.name)
                 }
                 break
@@ -145,7 +146,7 @@
         {#each songs as songItem, idx ((songItem?.id ?? "song") + "-" + idx)}
             {@const isSection = songItem?.type === "section"}
             {@const songId = isSection ? null : (songItem?.id ?? null)}
-            {@const currentSong = songId ? storage.getSongById(songId, allSongs) : null}
+            {@const currentSong = songId ? storage.getSongById(songId, allSongs) || getExternalSong(songId) : null}
             {@const targetKey = songItem?.transposed || currentSong?.lastTransposed}
             {@const isActiveSong = !isSection && songId === menuState.contentId}
 
@@ -211,24 +212,10 @@
 
             <div class="autoscroll-slider-wrapper">
                 <span class="material-symbols-outlined speed-icon" title="Speed">speed</span>
-                <md-slider
-                    min="1"
-                    max="10"
-                    step="1"
-                    labeled
-                    value={autoScrollState.speed}
-                    oninput={(e: Event) => setAutoScrollSpeed(Number((e.target as HTMLInputElement).value) || autoScrollState.speed)}
-                    class="autoscroll-slider"
-                ></md-slider>
+                <md-slider min="1" max="10" step="1" labeled value={autoScrollState.speed} oninput={(e: Event) => setAutoScrollSpeed(Number((e.target as HTMLInputElement).value) || autoScrollState.speed)} class="autoscroll-slider"></md-slider>
             </div>
 
-            <button
-                type="button"
-                class="autoscroll-btn exit-btn"
-                onclick={stopAutoScroll}
-                title="Exit auto scroll"
-                aria-label="Exit auto scroll"
-            >
+            <button type="button" class="autoscroll-btn exit-btn" onclick={stopAutoScroll} title="Exit auto scroll" aria-label="Exit auto scroll">
                 <span class="material-symbols-outlined exit-icon">close</span>
             </button>
         </div>

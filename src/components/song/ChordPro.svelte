@@ -3,6 +3,9 @@
     import { parseChordPro, splitCommentRepeat } from "$lib/chords/chordproParser"
     import { ALL_METADATA_ALIASES } from "$lib/chords/metadata"
     import { getSongKeyInfo } from "$lib/chords/transpose"
+    import { getExternalSong } from "$lib/integrations/integrationState.svelte"
+    import { Song } from "$lib/models/Song"
+    import { t } from "$lib/state/i18n.svelte"
     import { FileSystem } from "$lib/storage/FileSystem"
     import storage from "$lib/storage/StorageManager.svelte"
 
@@ -30,10 +33,7 @@
         hideChords = false
     }: Props = $props()
 
-    import { Song } from "$lib/models/Song"
-    import { t } from "$lib/state/i18n.svelte"
-
-    let rawSong = $derived(customSong ?? storage.getSongById(songId ?? null, storage.songs))
+    let rawSong = $derived(customSong ?? storage.getSongById(songId ?? null, storage.songs) ?? getExternalSong(songId ?? null))
     let song = $derived(rawSong ? (rawSong instanceof Song ? rawSong : new Song(rawSong)) : null)
     let isExpired = $derived(Boolean(song?.expiresAt && Date.now() > song.expiresAt))
 

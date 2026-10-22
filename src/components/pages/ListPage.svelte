@@ -4,6 +4,7 @@
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
     import { onDestroy, untrack } from "svelte"
     import { slide } from "svelte/transition"
@@ -17,8 +18,9 @@
     })
 
     let listId = $derived(menuState.contentId)
-    let list = $derived(storage.getListById(listId, storage.lists))
-    let listItems = $derived(list ? list.getListItems(storage.songs) : [])
+    let isExternal = $derived(!storage.getListById(listId, storage.lists) && !!getPlanAsList(listId))
+    let list = $derived(storage.getListById(listId, storage.lists) || getPlanAsList(listId))
+    let listItems = $derived(list ? list.getListItems(storage.songs, getExternalSong) : [])
 
     let lastTouchedListId: string | null = null
     $effect(() => {
@@ -115,6 +117,7 @@
     }
 
     function startPress(e: PointerEvent, originalIdx: number) {
+        if (isExternal) return
         if (e.button !== 0) return
         longPressed = false
         longPressTimer = setTimeout(() => {
@@ -158,6 +161,7 @@
     }
 
     function handleContextMenu(e: MouseEvent, originalIdx: number) {
+        if (isExternal) return
         e.preventDefault()
         listEditingState.isEditing = true
         if (!selectedIndices.includes(originalIdx)) {
@@ -301,17 +305,19 @@
     {/if}
 </main>
 
-<div class="fab-container">
-    {#if isEditing}
-        <md-fab aria-label={t("common", "done")} onclick={() => (listEditingState.isEditing = false)}>
-            <span class="material-symbols-outlined" slot="icon">check</span>
-        </md-fab>
-    {:else}
-        <md-fab aria-label={t("common", "add")} onclick={() => setActivePage("all_songs", listId, t("pages", "add_songs"))}>
-            <span class="material-symbols-outlined" slot="icon">add</span>
-        </md-fab>
-    {/if}
-</div>
+{#if !isExternal}
+    <div class="fab-container">
+        {#if isEditing}
+            <md-fab aria-label={t("common", "done")} onclick={() => (listEditingState.isEditing = false)}>
+                <span class="material-symbols-outlined" slot="icon">check</span>
+            </md-fab>
+        {:else}
+            <md-fab aria-label={t("common", "add")} onclick={() => setActivePage("all_songs", listId, t("pages", "add_songs"))}>
+                <span class="material-symbols-outlined" slot="icon">add</span>
+            </md-fab>
+        {/if}
+    </div>
+{/if}
 
 <style>
     main {

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { handleOAuthCallback } from "$lib/integrations/oauthCallback"
     import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
     import { setSharePayload } from "$lib/share/share.svelte"
     import { menuState, setActivePage } from "$lib/state/menu.svelte"
@@ -58,6 +59,7 @@
 
     onMount(() => {
         handleIncomingShare()
+        handleOAuthCallback()
         window.addEventListener("hashchange", handleIncomingShare)
         window.addEventListener("popstate", handleIncomingShare)
         const cleanupKeyboard = initDialogKeyboardCentering()

@@ -6,6 +6,10 @@
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { isIosStandalone } from "$lib/utils/iosPwa"
+    import { integrationState } from "$lib/integrations/integrationState.svelte"
+
+    let activeProvider = $derived(integrationState.getActiveProvider())
+    let externalPlans = $derived(integrationState.cachedPlans)
 
     let folders = $derived(Folders.get(storage.folders))
 
@@ -170,9 +174,17 @@
             <hr />
         {/if}
 
-        {#if folders.length}
+        {#if folders.length || activeProvider}
             <div class="section-title">{t("search", "category_folders")}</div>
             <md-list class="folders-list scroll-list">
+                {#if activeProvider}
+                    <md-list-item type="button" onclick={() => openFolder(activeProvider.id, activeProvider.name)} class="external-folder-item">
+                        <div slot="headline">{activeProvider.name}</div>
+                        <md-icon slot="start">cloud</md-icon>
+                        <span slot="trailing-supporting-text" class="item-count">{externalPlans.length}</span>
+                        <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                    </md-list-item>
+                {/if}
                 {#each folders as folder}
                     {@const count = folder.getLists ? folder.getLists(storage.lists).length : (folder.lists?.length ?? 0)}
                     <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
