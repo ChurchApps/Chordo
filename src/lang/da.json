@@ -47,7 +47,8 @@
         "copy": "Kopier",
         "undo": "Fortryd",
         "redo": "Gentag",
-        "open": "Åbn"
+        "open": "Åbn",
+        "refresh": "Genopfrisk"
     },
     "pages": {
         "folder": "Mappe",
@@ -81,7 +82,9 @@
         "no_lists_title": "Ingen sætlister endnu",
         "no_lists_desc": "Tryk på +-knappen nederst til højre for at oprette din første sætliste.",
         "no_songs_title": "Ingen sange endnu",
-        "no_songs_desc": "Tryk på +-knappen nederst til højre for at tilføje sange."
+        "no_songs_desc": "Tryk på +-knappen nederst til højre for at tilføje sange.",
+        "no_plans_title": "Ingen gudstjenesteplaner",
+        "no_plans_desc": "Ingen nylige eller kommende planer fundet på din konto."
     },
     "new": {
         "folder": "Opret mappe",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Temafarve",
+        "connections": "Forbindelser",
+        "connect": "Forbind",
+        "disconnect": "Afbryd",
         "data_management": "Datastyring",
         "export_data": "Eksporter alle data",
         "import_data": "Importer alle data",

@@ -47,7 +47,8 @@
         "copy": "Copier",
         "undo": "Annuler",
         "redo": "Rétablir",
-        "open": "Ouvrir"
+        "open": "Ouvrir",
+        "refresh": "Actualiser"
     },
     "pages": {
         "folder": "Dossier",
@@ -81,7 +82,9 @@
         "no_lists_title": "Aucune setlist pour l'instant",
         "no_lists_desc": "Touchez le bouton + en bas à droite pour créer votre première setlist.",
         "no_songs_title": "Aucun morceau pour l'instant",
-        "no_songs_desc": "Touchez le bouton + en bas à droite pour ajouter des morceaux."
+        "no_songs_desc": "Touchez le bouton + en bas à droite pour ajouter des morceaux.",
+        "no_plans_title": "Aucun plan de service",
+        "no_plans_desc": "Aucun plan récent ou à venir trouvé dans votre compte."
     },
     "new": {
         "folder": "Créer un dossier",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Thème de couleur",
+        "connections": "Connexions",
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
         "data_management": "Gestion des données",
         "export_data": "Exporter toutes les données",
         "import_data": "Importer toutes les données",

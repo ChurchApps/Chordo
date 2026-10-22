@@ -47,7 +47,8 @@
         "copy": "Copiar",
         "undo": "Desfazer",
         "redo": "Refazer",
-        "open": "Abrir"
+        "open": "Abrir",
+        "refresh": "Atualizar"
     },
     "pages": {
         "folder": "Pasta",
@@ -81,7 +82,9 @@
         "no_lists_title": "Nenhum repertório ainda",
         "no_lists_desc": "Toque no botão + no canto inferior direito para criar seu primeiro repertório.",
         "no_songs_title": "Nenhuma música ainda",
-        "no_songs_desc": "Toque no botão + no canto inferior direito para adicionar músicas."
+        "no_songs_desc": "Toque no botão + no canto inferior direito para adicionar músicas.",
+        "no_plans_title": "Nenhum plano de culto",
+        "no_plans_desc": "Nenhum plano recente ou futuro encontrado na sua conta."
     },
     "new": {
         "folder": "Criar pasta",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Cor do tema",
+        "connections": "Conexões",
+        "connect": "Conectar",
+        "disconnect": "Desconectar",
         "data_management": "Gerenciamento de dados",
         "export_data": "Exportar todos os dados",
         "import_data": "Importar todos os dados",

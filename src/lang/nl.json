@@ -47,7 +47,8 @@
         "copy": "Kopiëren",
         "undo": "Ongedaan maken",
         "redo": "Opnieuw",
-        "open": "Openen"
+        "open": "Openen",
+        "refresh": "Vernieuwen"
     },
     "pages": {
         "folder": "Map",
@@ -81,7 +82,9 @@
         "no_lists_title": "Nog geen setlists",
         "no_lists_desc": "Tik rechtsonder op de + knop om je eerste setlist aan te maken.",
         "no_songs_title": "Nog geen nummers",
-        "no_songs_desc": "Tik rechtsonder op de + knop om nummers toe te voegen."
+        "no_songs_desc": "Tik rechtsonder op de + knop om nummers toe te voegen.",
+        "no_plans_title": "Geen dienstroosters",
+        "no_plans_desc": "Geen recente of aankomende roosters gevonden in je account."
     },
     "new": {
         "folder": "Map maken",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Themakleur",
+        "connections": "Verbindingen",
+        "connect": "Verbinden",
+        "disconnect": "Verbinding verbreken",
         "data_management": "Gegevensbeheer",
         "export_data": "Alle gegevens exporteren",
         "import_data": "Alle gegevens importeren",

@@ -47,7 +47,8 @@
         "copy": "Kopi",
         "undo": "Angre",
         "redo": "Gjør om",
-        "open": "Åpne"
+        "open": "Åpne",
+        "refresh": "Oppdater"
     },
     "pages": {
         "folder": "Mappe",
@@ -81,7 +82,9 @@
         "no_lists_title": "Ingen setlister ennå",
         "no_lists_desc": "Trykk på +-knappen nederst til høyre for å opprette din første setliste for sanger.",
         "no_songs_title": "Ingen sanger ennå",
-        "no_songs_desc": "Trykk på +-knappen nederst til høyre for å legge til sanger."
+        "no_songs_desc": "Trykk på +-knappen nederst til høyre for å legge til sanger.",
+        "no_plans_title": "Ingen gudstjenesteplaner",
+        "no_plans_desc": "Ingen nylige eller kommende planer funnet på kontoen din."
     },
     "new": {
         "folder": "Ny mappe",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Temafarge",
+        "connections": "Tilkoblinger",
+        "connect": "Koble til",
+        "disconnect": "Koble fra",
         "data_management": "Databehandling",
         "export_data": "Eksporter all data",
         "import_data": "Importer data",
