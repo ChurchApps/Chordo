@@ -888,11 +888,14 @@
                         </div>
                     {:else}
                         {@const pageIdx = group.pages[0]}
+                        {@const origIdx = pageSongIndexMap[pageIdx]}
+                        {@const isSection = origIdx != null && slides.some((s) => s.type === "section" && (s.originalIndex === origIdx || s.sections.some((sec) => sec.originalIndex === origIdx)))}
                         <button
                             type="button"
                             class="dot"
+                            class:section-dot={isSection}
                             class:active={pageIdx === currentPageIndex}
-                            aria-label={`Page ${pageIdx + 1}`}
+                            aria-label={isSection ? `Section ${pageIdx + 1}` : `Page ${pageIdx + 1}`}
                             onclick={(e) => {
                                 e.stopPropagation()
                                 if (pageIdx !== currentPageIndex) {
@@ -900,7 +903,11 @@
                                     setPositionByIndex(true)
                                 }
                             }}
-                        ></button>
+                        >
+                            {#if isSection}
+                                <span class="material-symbols-outlined section-dot-icon">bookmark</span>
+                            {/if}
+                        </button>
                     {/if}
                 {/each}
             </div>
@@ -1403,6 +1410,40 @@
     .dot.active {
         background: white;
         transform: scale(1.4);
+        opacity: 1;
+    }
+
+    .dot.section-dot {
+        width: 14px;
+        height: 14px;
+        background: transparent;
+        border-radius: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.55);
+        transition:
+            transform 160ms ease,
+            color 160ms ease,
+            opacity 160ms ease;
+    }
+
+    .dot.section-dot .section-dot-icon {
+        font-size: 13px;
+        line-height: 1;
+        font-variation-settings: 'FILL' 1;
+    }
+
+    .dot.section-dot:hover {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.85);
+        transform: scale(1.2);
+    }
+
+    .dot.section-dot.active {
+        background: transparent;
+        color: white;
+        transform: scale(1.3);
         opacity: 1;
     }
 

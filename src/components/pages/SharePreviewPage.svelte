@@ -177,8 +177,8 @@
         }
 
         storage.persist()
-        clearSharePayload()
         setActivePage("song", songToOpen.id, songToOpen.name)
+        clearSharePayload()
     }
 
     async function importList() {
@@ -329,8 +329,8 @@
         }
 
         storage.persist()
-        clearSharePayload()
         setActivePage("list", listToOpen.id, listToOpen.name)
+        clearSharePayload()
     }
 
     function handleSongItemClick() {
