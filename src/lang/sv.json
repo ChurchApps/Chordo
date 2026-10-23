@@ -48,7 +48,9 @@
         "undo": "Ångra",
         "redo": "Gör om",
         "open": "Öppna",
-        "refresh": "Uppdatera"
+        "refresh": "Uppdatera",
+        "new": "Ny",
+        "changed": "Ändrad"
     },
     "pages": {
         "folder": "Mapp",

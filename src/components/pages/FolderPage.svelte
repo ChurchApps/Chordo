@@ -56,8 +56,19 @@
                     </div>
                 {/if}
 
+                {@const planStatus = isExternalFolder ? integrationState.getPlanStatus(list.id) : null}
+
                 <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
-                    <div slot="headline">{list.name}</div>
+                    <div slot="headline" class="list-headline-row">
+                        <span>{list.name}</span>
+
+                        {#if planStatus === "new"}
+                            <span class="plan-badge new">{t("common", "new")}</span>
+                        {:else if planStatus === "changed"}
+                            <span class="plan-badge changed">{t("common", "changed")}</span>
+                        {/if}
+                    </div>
+
                     {#if isExternalFolder && dateStr && !showDateHeader}
                         <div slot="supporting-text">{dateStr}</div>
                     {/if}
@@ -135,5 +146,39 @@
         position: sticky;
         top: 0;
         z-index: 1;
+    }
+
+    .list-headline-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .list-headline-row > span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .plan-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 3px 6px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+    }
+
+    .plan-badge.new {
+        background: #2e7d32;
+        color: #ffffff;
+    }
+
+    .plan-badge.changed {
+        background: #e65100;
+        color: #ffffff;
     }
 </style>

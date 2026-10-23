@@ -48,7 +48,9 @@
         "undo": "Undo",
         "redo": "Redo",
         "open": "Open",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "new": "New",
+        "changed": "Changed"
     },
     "pages": {
         "folder": "Folder",

@@ -10,6 +10,10 @@
 
     let activeProvider = $derived(integrationState.getActiveProvider())
     let externalPlans = $derived(integrationState.cachedPlans)
+    let updatedExternalCount = $derived.by(() => {
+        if (!activeProvider) return 0
+        return externalPlans.filter((p) => Boolean(integrationState.getPlanStatus(p.id))).length
+    })
 
     let folders = $derived(Folders.get(storage.folders))
 
@@ -176,7 +180,14 @@
             <md-list class="folders-list scroll-list">
                 {#if activeProvider}
                     <md-list-item type="button" onclick={() => openFolder(activeProvider.id, activeProvider.name)} class="external-folder-item">
-                        <div slot="headline">{activeProvider.name}</div>
+                        <div slot="headline" class="provider-headline-row">
+                            <span>{activeProvider.name}</span>
+                            {#if updatedExternalCount > 0}
+                                <span class="provider-updates-badge">
+                                    {updatedExternalCount}
+                                </span>
+                            {/if}
+                        </div>
                         <md-icon slot="start">cloud</md-icon>
                         <span slot="trailing-supporting-text" class="item-count">{externalPlans.length}</span>
                         <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
@@ -229,5 +240,24 @@
         color: var(--md-sys-color-on-primary-container, #002020);
         opacity: 0.7;
         padding: 12px 16px 4px 16px;
+    }
+
+    .provider-headline-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .provider-updates-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 2px 7px;
+        border-radius: 9999px;
+        background: var(--md-sys-color-primary, #6750a4);
+        color: var(--md-sys-color-on-primary, #ffffff);
     }
 </style>

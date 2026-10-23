@@ -48,7 +48,9 @@
         "undo": "Annuler",
         "redo": "Rétablir",
         "open": "Ouvrir",
-        "refresh": "Actualiser"
+        "refresh": "Actualiser",
+        "new": "Nouveau",
+        "changed": "Modifié"
     },
     "pages": {
         "folder": "Dossier",

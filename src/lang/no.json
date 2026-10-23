@@ -48,7 +48,9 @@
         "undo": "Angre",
         "redo": "Gjør om",
         "open": "Åpne",
-        "refresh": "Oppdater"
+        "refresh": "Oppdater",
+        "new": "Ny",
+        "changed": "Endret"
     },
     "pages": {
         "folder": "Mappe",

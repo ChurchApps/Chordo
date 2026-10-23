@@ -48,7 +48,9 @@
         "undo": "Annulla",
         "redo": "Ripeti",
         "open": "Apri",
-        "refresh": "Aggiorna"
+        "refresh": "Aggiorna",
+        "new": "Nuovo",
+        "changed": "Modificato"
     },
     "pages": {
         "folder": "Cartella",

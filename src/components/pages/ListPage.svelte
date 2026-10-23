@@ -30,6 +30,7 @@
             untrack(() => {
                 const target = storage.getListById(id)
                 target?.touch()
+                if (isExternal) integrationState.markPlanAsSeen(id)
             })
         }
     })

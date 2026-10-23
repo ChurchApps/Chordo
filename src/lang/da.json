@@ -48,7 +48,9 @@
         "undo": "Fortryd",
         "redo": "Gentag",
         "open": "Åbn",
-        "refresh": "Genopfrisk"
+        "refresh": "Genopfrisk",
+        "new": "Ny",
+        "changed": "Ændret"
     },
     "pages": {
         "folder": "Mappe",

@@ -48,7 +48,9 @@
         "undo": "Ongedaan maken",
         "redo": "Opnieuw",
         "open": "Openen",
-        "refresh": "Vernieuwen"
+        "refresh": "Vernieuwen",
+        "new": "Nieuw",
+        "changed": "Gewijzigd"
     },
     "pages": {
         "folder": "Map",

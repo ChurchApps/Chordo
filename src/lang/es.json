@@ -48,7 +48,9 @@
         "undo": "Deshacer",
         "redo": "Rehacer",
         "open": "Abrir",
-        "refresh": "Actualizar"
+        "refresh": "Actualizar",
+        "new": "Nuevo",
+        "changed": "Modificado"
     },
     "pages": {
         "folder": "Carpeta",

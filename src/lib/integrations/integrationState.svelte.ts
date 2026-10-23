@@ -75,10 +75,14 @@ export function getExternalSong(songId: string | null): Song | null {
 
 const KEY_PROVIDER = "chordo_connected_provider"
 const KEY_PLANS = "chordo_cached_external_plans"
+const KEY_SEEN_PLANS = "chordo_seen_external_plans"
+
+export type PlanStatus = "new" | "changed"
 
 class IntegrationStateManager {
     activeProviderId = $state<ConnectedProviderId>(this.initProvider())
     cachedPlans = $state<ExternalPlan[]>(this.initCachedPlans())
+    seenPlanHashes = $state<Record<string, string>>(this.initSeenPlans())
     isLoading = $state<boolean>(false)
     hasFetchedThisSession = false
 
@@ -97,6 +101,59 @@ class IntegrationStateManager {
             return raw ? JSON.parse(raw) : []
         } catch {
             return []
+        }
+    }
+
+    private initSeenPlans(): Record<string, string> {
+        if (typeof window === "undefined") return {}
+        try {
+            const raw = localStorage.getItem(KEY_SEEN_PLANS)
+            return raw ? JSON.parse(raw) : {}
+        } catch {
+            return {}
+        }
+    }
+
+    getPlanHash(plan: ExternalPlan): string {
+        const repr = {
+            id: plan.id,
+            name: plan.name,
+            items: plan.items.map((i) => ({
+                id: i.id,
+                title: i.title,
+                type: i.type,
+                songId: i.song?.id,
+                songName: i.song?.name,
+                songKey: i.song?.key,
+                songBpm: i.song?.bpm
+            }))
+        }
+        return JSON.stringify(repr)
+    }
+
+    getPlanStatus(planId: string): PlanStatus | null {
+        if (Object.keys(this.seenPlanHashes).length === 0) return null
+        const plan = this.cachedPlans.find((p) => p.id === planId)
+        if (!plan) return null
+
+        const lastHash = this.seenPlanHashes[planId]
+        if (!lastHash) return "new"
+        if (lastHash !== this.getPlanHash(plan)) return "changed"
+        return null
+    }
+
+    markPlanAsSeen(planId: string) {
+        const plan = this.cachedPlans.find((p) => p.id === planId)
+        if (!plan) return
+        const hash = this.getPlanHash(plan)
+        if (this.seenPlanHashes[planId] === hash) return
+
+        this.seenPlanHashes = {
+            ...this.seenPlanHashes,
+            [planId]: hash
+        }
+        if (typeof window !== "undefined") {
+            localStorage.setItem(KEY_SEEN_PLANS, JSON.stringify(this.seenPlanHashes))
         }
     }
 
@@ -128,9 +185,11 @@ class IntegrationStateManager {
         provider?.disconnect()
         this.activeProviderId = null
         this.cachedPlans = []
+        this.seenPlanHashes = {}
         this.hasFetchedThisSession = false
         localStorage.removeItem(KEY_PROVIDER)
         localStorage.removeItem(KEY_PLANS)
+        localStorage.removeItem(KEY_SEEN_PLANS)
         showToast("Disconnected", "info")
     }
 
@@ -140,7 +199,7 @@ class IntegrationStateManager {
 
         this.activeProviderId = id
         localStorage.setItem(KEY_PROVIDER, id)
-        this.syncPlans()
+        this.syncPlans(true)
     }
 
     async syncPlans(force = true): Promise<ExternalPlan[]> {
@@ -150,12 +209,24 @@ class IntegrationStateManager {
             return this.cachedPlans
         }
 
+        const isInitialFetch = Object.keys(this.seenPlanHashes).length === 0
+
         this.isLoading = true
         try {
             const plans = await provider.fetchPlans()
             this.cachedPlans = plans
             this.hasFetchedThisSession = true
             localStorage.setItem(KEY_PLANS, JSON.stringify(plans))
+
+            if (isInitialFetch) {
+                const initialMap: Record<string, string> = {}
+                for (const p of plans) {
+                    initialMap[p.id] = this.getPlanHash(p)
+                }
+                this.seenPlanHashes = initialMap
+                localStorage.setItem(KEY_SEEN_PLANS, JSON.stringify(initialMap))
+            }
+
             return plans
         } catch (e) {
             console.error("Failed to sync plans", e)

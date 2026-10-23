@@ -48,7 +48,9 @@
         "undo": "Desfazer",
         "redo": "Refazer",
         "open": "Abrir",
-        "refresh": "Atualizar"
+        "refresh": "Atualizar",
+        "new": "Novo",
+        "changed": "Alterado"
     },
     "pages": {
         "folder": "Pasta",

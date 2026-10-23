@@ -48,7 +48,9 @@
         "undo": "Rückgängig",
         "redo": "Wiederholen",
         "open": "Öffnen",
-        "refresh": "Aktualisieren"
+        "refresh": "Aktualisieren",
+        "new": "Neu",
+        "changed": "Geändert"
     },
     "pages": {
         "folder": "Ordner",
