@@ -69,6 +69,11 @@
         searchInputElement?.focus()
     }
 
+    function dismissSearch() {
+        if (searchState.query) clearSearch()
+        else closeSearch()
+    }
+
     // Active song context
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let currentSong = $derived(activeSongContext?.song ?? null)
@@ -81,8 +86,8 @@
     <!-- don't show any headers -->
 {:else if searchState.isOpen}
     <header class="top-app-bar search-mode">
-        <md-icon-button aria-label="Close search" onclick={closeSearch}>
-            <span class="material-symbols-outlined">arrow_back</span>
+        <md-icon-button aria-label={searchState.query ? "Clear search" : t("common", "close")} onclick={dismissSearch}>
+            <span class="material-symbols-outlined">close</span>
         </md-icon-button>
 
         <div class="search-input-container">
@@ -94,16 +99,10 @@
                 bind:value={searchState.query}
                 onkeydown={(e) => {
                     if (e.key === "Escape") {
-                        if (searchState.query) clearSearch()
-                        else closeSearch()
+                        dismissSearch()
                     }
                 }}
             />
-            {#if searchState.query}
-                <md-icon-button aria-label="Clear search" onclick={clearSearch}>
-                    <span class="material-symbols-outlined">close</span>
-                </md-icon-button>
-            {/if}
         </div>
     </header>
 {:else}

@@ -191,7 +191,9 @@
                                 {#if artist || key}
                                     <div slot="supporting-text">
                                         {#if artist}<span class="supporting-artist">{artist}</span>{/if}
-                                        {#if key}<span class="supporting-key">{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
+                                        {#if key}<span class="supporting-key"
+                                                >{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span
+                                            >{/if}
                                     </div>
                                 {/if}
                                 <md-icon slot="start">music_note</md-icon>
@@ -235,22 +237,24 @@
         <hr />
 
         {#if recentLists.length > 0}
-            <div class="section-title">{t("home", "recently_used")}</div>
-            <md-list class="folders-list scroll-list" style="overflow: initial;">
-                {#each recentLists as list}
-                    {@const count = list.songs?.filter((s) => s.type !== "section" && !s.isSection).length ?? 0}
-                    <md-list-item type="button" onclick={() => openList(list.id, list.name)} disabled={isEditing}>
-                        <div slot="headline">{list.name}</div>
-                        <md-icon slot="start">list</md-icon>
-                        <span slot="trailing-supporting-text" class="item-count">{count}</span>
-                        {#if !isEditing}
-                            <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-                        {/if}
-                    </md-list-item>
-                {/each}
-            </md-list>
+            <div class="recently-used-section">
+                <div class="section-title">{t("home", "recently_used")}</div>
+                <md-list class="folders-list scroll-list" style="overflow: initial;">
+                    {#each recentLists as list}
+                        {@const count = list.songs?.filter((s) => s.type !== "section" && !s.isSection).length ?? 0}
+                        <md-list-item type="button" onclick={() => openList(list.id, list.name)} disabled={isEditing}>
+                            <div slot="headline">{list.name}</div>
+                            <md-icon slot="start">list</md-icon>
+                            <span slot="trailing-supporting-text" class="item-count">{count}</span>
+                            {#if !isEditing}
+                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
+                            {/if}
+                        </md-list-item>
+                    {/each}
+                </md-list>
 
-            <hr />
+                <hr />
+            </div>
         {/if}
 
         {#if folders.length || activeProvider}
@@ -364,5 +368,11 @@
 
     md-list-item.selected {
         background-color: rgb(255 255 255 / 0.3);
+    }
+
+    @media (max-height: 600px) {
+        .recently-used-section {
+            display: none;
+        }
     }
 </style>
