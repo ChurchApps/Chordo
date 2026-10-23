@@ -6,15 +6,13 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { getPlanAsList, getExternalSong, integrationState } from "$lib/integrations/integrationState.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
+    import { createHoldToSelect } from "$lib/utils/holdToSelect"
     import { onDestroy, untrack } from "svelte"
     import { slide } from "svelte/transition"
     import Song from "../song/Song.svelte"
 
     onDestroy(() => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer)
-            longPressTimer = null
-        }
+        selection.clearTimer()
     })
 
     let listId = $derived(menuState.contentId)
@@ -76,20 +74,26 @@
                 const item = listItems[selectedIndices[0]]
                 listEditingState.selectedIndex = selectedIndices[0]
                 listEditingState.onEditSelected = item && !item.isDeleted ? editSelectedSong : undefined
+                listEditingState.editActionType = item?.type === "section" ? "rename" : "edit"
             } else {
                 listEditingState.onEditSelected = undefined
                 listEditingState.selectedIndex = undefined
+                listEditingState.editActionType = undefined
             }
         } else {
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.selectedIndex = undefined
+            listEditingState.editActionType = undefined
             selectedIndices = []
         }
     })
 
-    let longPressTimer: ReturnType<typeof setTimeout> | null = null
-    let longPressed = false
+    const selection = createHoldToSelect(
+        () => selectedIndices,
+        (indices) => (selectedIndices = indices),
+        { disabled: () => isExternal }
+    )
 
     let reorderState = $state<ReorderState>({
         draggedIdx: null,
@@ -117,32 +121,11 @@
         }
     }
 
-    function startPress(e: PointerEvent, originalIdx: number) {
-        if (isExternal) return
-        if (e.button !== 0) return
-        longPressed = false
-        longPressTimer = setTimeout(() => {
-            longPressed = true
-            listEditingState.isEditing = true
-            if (!selectedIndices.includes(originalIdx)) {
-                selectedIndices = [...selectedIndices, originalIdx]
-            }
-            if (navigator.vibrate) navigator.vibrate(50)
-        }, 500)
-    }
-
-    function endPress() {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer)
-            longPressTimer = null
-        }
-    }
-
     /**
      * Ensures edit mode is active and the targeted item is part of the batch before dragging.
      */
     function prepareImmediateDrag(originalIdx: number) {
-        endPress()
+        selection.clearTimer()
         if (!listEditingState.isEditing) {
             listEditingState.isEditing = true
         }
@@ -161,28 +144,8 @@
         handlePointerDragStart(e, originalIdx, selectedIndices, reorderState, onBatchMove, onDragEnd)
     }
 
-    function handleContextMenu(e: MouseEvent, originalIdx: number) {
-        if (isExternal) return
-        e.preventDefault()
-        listEditingState.isEditing = true
-        if (!selectedIndices.includes(originalIdx)) {
-            selectedIndices = [...selectedIndices, originalIdx]
-        }
-    }
-
     function handleItemClick(item: ListSongDisplayItem, originalIdx: number) {
-        if (longPressed) {
-            longPressed = false
-            return
-        }
-        if (isEditing) {
-            if (selectedIndices.includes(originalIdx)) {
-                selectedIndices = selectedIndices.filter((i) => i !== originalIdx)
-            } else {
-                selectedIndices = [...selectedIndices, originalIdx]
-            }
-            return
-        }
+        if (selection.handleClick(originalIdx, false)) return
         if (item.isDeleted) return
 
         savedFullscreenPosition.pageIndex = null
@@ -217,10 +180,10 @@
                         class:deleted-item={songItem.isDeleted}
                         class:section-item={songItem.type === "section"}
                         disabled={songItem.isDeleted && !isEditing}
-                        onpointerdown={(e: PointerEvent) => startPress(e, originalIdx)}
-                        onpointerup={endPress}
-                        onpointerleave={endPress}
-                        oncontextmenu={(e: MouseEvent) => handleContextMenu(e, originalIdx)}
+                        onpointerdown={(e: PointerEvent) => selection.startPress(e, originalIdx)}
+                        onpointerup={selection.endPress}
+                        onpointerleave={selection.endPress}
+                        oncontextmenu={(e: MouseEvent) => selection.handleContextMenu(e, originalIdx)}
                         onclick={() => handleItemClick(songItem, originalIdx)}
                     >
                         {#if isEditing}

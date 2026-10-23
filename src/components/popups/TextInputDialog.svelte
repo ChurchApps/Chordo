@@ -19,8 +19,8 @@
         submit: (value: string) => void | Promise<void>
     }
 
-    const currentFolder = $derived(menuState.contentId ? storage.getFolderById(menuState.contentId) : null)
-    const currentList = $derived(menuState.contentId ? storage.getListById(menuState.contentId) : null)
+    const currentFolder = $derived(popupState.targetId ? storage.getFolderById(popupState.targetId) : menuState.contentId ? storage.getFolderById(menuState.contentId) : null)
+    const currentList = $derived(popupState.targetId ? storage.getListById(popupState.targetId) : menuState.contentId ? storage.getListById(menuState.contentId) : null)
 
     const config = $derived.by<DialogConfig | null>(() => {
         switch (popupState.popupId) {
@@ -108,7 +108,9 @@
                         if (!currentList) return
                         currentList.name = name
                         storage.updateList(currentList)
-                        updatePageTitle(name)
+                        if (menuState.contentId === currentList.id) {
+                            updatePageTitle(name)
+                        }
                     }
                 }
             case "rename_folder":
@@ -123,7 +125,9 @@
                         if (!currentFolder || currentFolder.type === "shared") return
                         currentFolder.name = name
                         storage.updateFolder(currentFolder)
-                        updatePageTitle(name)
+                        if (menuState.contentId === currentFolder.id) {
+                            updatePageTitle(name)
+                        }
                     }
                 }
             case "rename_section": {

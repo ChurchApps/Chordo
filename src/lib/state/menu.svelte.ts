@@ -15,7 +15,14 @@ type MenuState = {
     customPageTitle: string | null
 }
 
-export const listEditingState = $state<{ isEditing: boolean; selectedIndex?: number; onDeleteSelected?: () => void; onEditSelected?: () => void }>({ isEditing: false })
+export const listEditingState = $state<{
+    isEditing: boolean
+    selectedIndex?: number
+    onDeleteSelected?: () => void
+    onEditSelected?: () => void
+    onDuplicateSelected?: () => void
+    editActionType?: "rename" | "edit"
+}>({ isEditing: false })
 
 export const menuState = $state<MenuState & { previousPages: MenuState[] }>({
     activePage: "home",
@@ -165,9 +172,10 @@ export function goBack(forcePage = false): void {
 /// POPUPS ///
 
 type Popups = keyof typeof popups
-export const popupState = $state<{ popupId: Popups | null }>({ popupId: null })
-export function setActivePopup(popup: Popups | null): void {
+export const popupState = $state<{ popupId: Popups | null; targetId?: string | null }>({ popupId: null, targetId: null })
+export function setActivePopup(popup: Popups | null, targetId?: string | null): void {
     popupState.popupId = popup
+    popupState.targetId = targetId ?? null
 }
 
 // restore page position when returning from draw

@@ -75,50 +75,6 @@
     let activeProvider = $derived(integrationState.getActiveProvider())
     let isExternalFolder = $derived(menuState.activePage === "folder" && !!activeProvider && menuState.contentId === activeProvider.id)
     let isExternalSong = $derived(!storage.getSongById(currentSong?.id ?? null, storage.songs) && !!currentSong)
-
-    function confirmDeleteSong(song: Song | null) {
-        if (!song) return
-        openConfirm({
-            title: t("confirm", "delete_song_title"),
-            message: `Are you sure you want to delete "${song.name}"? This action cannot be undone.`,
-            confirmLabel: t("common", "delete"),
-            isDestructive: true,
-            onConfirm: async () => {
-                await storage.deleteSong(song.id)
-                // If previous history contains the song page for this deleted song, remove it so we return to the page before
-                menuState.previousPages = menuState.previousPages.filter((p) => !(p.activePage === "song" && p.contentId === song.id))
-                goBack()
-            }
-        })
-    }
-
-    function confirmDeleteList(list: List | null) {
-        if (!list) return
-        openConfirm({
-            title: t("confirm", "delete_list_title"),
-            message: `Are you sure you want to delete "${list.name}"?`,
-            confirmLabel: t("common", "delete"),
-            isDestructive: true,
-            onConfirm: () => {
-                storage.deleteList(list.id)
-                goBack()
-            }
-        })
-    }
-
-    function confirmDeleteFolder(folder: Folder | null) {
-        if (!folder || folder.type === "shared") return
-        openConfirm({
-            title: t("confirm", "delete_folder_title"),
-            message: `Are you sure you want to delete folder "${folder.name}"?`,
-            confirmLabel: t("common", "delete"),
-            isDestructive: true,
-            onConfirm: () => {
-                storage.deleteFolder(folder.id)
-                goBack()
-            }
-        })
-    }
 </script>
 
 {#if isFullscreenPage(menuState.activePage) || menuState.activePage === "landing" || autoScrollState.isActive}
@@ -164,8 +120,8 @@
                     <span class="material-symbols-outlined">home</span>
                 </md-icon-button>
             {:else if isEditing}
-                <md-icon-button disabled>
-                    <span class="material-symbols-outlined">edit</span>
+                <md-icon-button aria-label={t("common", "cancel")} onclick={() => (listEditingState.isEditing = false)}>
+                    <span class="material-symbols-outlined">close</span>
                 </md-icon-button>
             {:else if menuState.activePage !== "home" && menuState.previousPages.length > 0}
                 <md-icon-button aria-label="Go back" onclick={goBack}>
@@ -189,9 +145,14 @@
 
         <div class="top-bar-actions">
             {#if isEditing}
+                {#if listEditingState.onDuplicateSelected}
+                    <md-icon-button aria-label="Duplicate selected" onclick={() => listEditingState.onDuplicateSelected?.()}>
+                        <span class="material-symbols-outlined">content_copy</span>
+                    </md-icon-button>
+                {/if}
                 {#if listEditingState.onEditSelected}
-                    <md-icon-button aria-label="Edit selected" onclick={() => listEditingState.onEditSelected?.()}>
-                        <span class="material-symbols-outlined">edit</span>
+                    <md-icon-button aria-label={listEditingState.editActionType === "rename" ? "Rename selected" : "Edit selected"} onclick={() => listEditingState.onEditSelected?.()}>
+                        <span class="material-symbols-outlined">{listEditingState.editActionType === "rename" ? "drive_file_rename_outline" : "edit"}</span>
                     </md-icon-button>
                 {/if}
                 {#if listEditingState.onDeleteSelected}
@@ -311,7 +272,7 @@
                 {/if}
 
                 {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}
-                {#if menuState.activePage !== "share_preview" && !(menuState.activePage === "folder" && activeFolder?.type === "shared")}
+                {#if menuState.activePage !== "share_preview" && menuState.activePage !== "song_edit" && !(menuState.activePage === "folder" && activeFolder?.type === "shared")}
                     <div class="more-menu-wrapper">
                         <md-icon-button id="more-options-btn" aria-label={t("menu", "more_options")} onclick={() => (moreMenuOpen = !moreMenuOpen)}>
                             <span class="material-symbols-outlined">more_vert</span>
@@ -395,60 +356,9 @@
                                     <span class="material-symbols-outlined" slot="start">tune</span>
                                     <div slot="headline">{t("song_fullscreen", "settings_title")}</div>
                                 </md-menu-item>
-                            {:else if menuState.activePage === "song_edit"}
-                                {@const editSong = storage.getSongById(menuState.contentId)}
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        confirmDeleteSong(editSong)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                    <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_song")}</div>
-                                </md-menu-item>
                             {:else if menuState.activePage === "list"}
                                 {@const currentList = storage.getListById(menuState.contentId)}
-                                {@const externalPlan = !currentList ? integrationState.cachedPlans.find((p) => p.id === menuState.contentId) : null}
-                                {#if externalPlan}
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            const result = integrationState.duplicatePlanToLocal(externalPlan)
-                                            if (result) {
-                                                const lastPrev = menuState.previousPages[menuState.previousPages.length - 1]
-                                                if (lastPrev && lastPrev.activePage === "folder") {
-                                                    lastPrev.contentId = result.folder.id
-                                                    lastPrev.customPageTitle = result.folder.name
-                                                }
-                                                setActivePage("list", result.list.id, result.list.name, "replace")
-                                            }
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">content_copy</span>
-                                        <div slot="headline">{t("menu", "duplicate_list")}</div>
-                                    </md-menu-item>
-                                {:else if currentList}
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            setActivePopup("rename_list")
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
-                                        <div slot="headline">{t("menu", "rename_list")}</div>
-                                    </md-menu-item>
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            const newList = Lists.duplicate(currentList.id)
-                                            if (newList) {
-                                                setActivePage("list", newList.id, newList.name, "replace")
-                                            }
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">content_copy</span>
-                                        <div slot="headline">{t("menu", "duplicate_list")}</div>
-                                    </md-menu-item>
+                                {#if currentList}
                                     <md-menu-item
                                         onclick={() => {
                                             moreMenuOpen = false
@@ -457,15 +367,6 @@
                                     >
                                         <span class="material-symbols-outlined" slot="start">share</span>
                                         <div slot="headline">{t("menu", "share_list")}</div>
-                                    </md-menu-item>
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            confirmDeleteList(currentList)
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                        <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_list")}</div>
                                     </md-menu-item>
                                 {/if}
                             {:else if menuState.activePage === "folder"}
@@ -489,25 +390,6 @@
                                     >
                                         <span class="material-symbols-outlined" slot="start">upload</span>
                                         <div slot="headline">{t("menu", "import_list")}</div>
-                                    </md-menu-item>
-
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            setActivePopup("rename_folder")
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
-                                        <div slot="headline">{t("menu", "rename_folder")}</div>
-                                    </md-menu-item>
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            confirmDeleteFolder(currentFolder)
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                        <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_folder")}</div>
                                     </md-menu-item>
                                 {/if}
                             {/if}
