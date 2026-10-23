@@ -4,7 +4,7 @@
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
+    import { getPlanAsList, getExternalSong, integrationState } from "$lib/integrations/integrationState.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
     import { onDestroy, untrack } from "svelte"
     import { slide } from "svelte/transition"
@@ -272,7 +272,14 @@
             <div class="empty-state">
                 <span class="material-symbols-outlined empty-icon">library_music</span>
                 <h2>{t("empty_state", "no_songs_title")}</h2>
-                <p>{t("empty_state", "no_songs_desc")}</p>
+                {#if !isExternal}
+                    <p>{t("empty_state", "no_songs_desc")}</p>
+                {:else}
+                    <md-outlined-button onclick={() => integrationState.syncPlans()} style="margin-top: 16px;">
+                        <span class="material-symbols-outlined" slot="icon">refresh</span>
+                        {t("common", "refresh")}
+                    </md-outlined-button>
+                {/if}
             </div>
         </div>
     {/if}

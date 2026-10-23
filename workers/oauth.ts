@@ -30,7 +30,7 @@ async function handleTokenExchange(req: Request, env: OAuthEnv): Promise<Respons
 
     try {
         const body = await req.json()
-        const { provider, code, code_verifier, redirect_uri, client_id } = body
+        const { provider, code, code_verifier, redirect_uri, client_id, client_secret } = body
 
         if (!provider || !code) {
             return new Response(JSON.stringify({ error: "Missing required parameters" }), {
@@ -58,7 +58,7 @@ async function handleTokenExchange(req: Request, env: OAuthEnv): Promise<Respons
         }
 
         const effectiveClientId = client_id || config.clientId
-        const effectiveClientSecret = config.clientSecret
+        const effectiveClientSecret = client_secret || config.clientSecret
 
         const payload: Record<string, string> = {
             grant_type: "authorization_code",

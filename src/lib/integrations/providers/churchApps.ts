@@ -36,33 +36,113 @@ export class ChurchAppsClient extends BaseOAuthClient {
             let rawItems: any[] = []
 
             try {
-                rawItems = (await this.fetchApi(`/doing/planItems?planId=${rp.id}`)) || []
-            } catch {}
+                rawItems = (await this.fetchApi(`/doing/planItems/plan/${rp.id}`)) || []
+            } catch (err) {
+                console.error(`[ChurchApps] Failed to fetch items for plan ${rp.id}:`, err)
+            }
 
             const items = await Promise.all(
                 rawItems.map(async (item) => {
                     const itemType = (item.itemType || item.type || "").toLowerCase()
-                    const title = item.title || item.name || "Untitled"
+                    const title = item.label || item.title || item.name || "Untitled"
+                    const isSong = itemType === "song" || itemType === "arrangementkey" || item.songId || (itemType !== "header" && item.relatedId)
 
-                    if (itemType === "song" || item.songId) {
+                    if (isSong) {
                         let content = item.chordChart || item.content || item.lyrics || ""
-                        if (!content && item.songId) {
+                        let key = item.key
+                        let bpm = item.bpm
+                        let artist = item.artist || item.author
+                        let songTitle = title
+
+                        // 1. If it's an arrangementKey, fetch the arrangement key details or presenter data
+                        if (itemType === "arrangementkey" && item.relatedId) {
                             try {
-                                const song = await this.fetchApi(`/content/songs/${item.songId}`)
-                                content = song.chordChart || song.content || song.lyrics || ""
-                            } catch {}
+                                const ak = await this.fetchApi(`/content/arrangementKeys/${item.relatedId}`)
+                                if (ak) {
+                                    key = key || ak.key
+                                    bpm = bpm || ak.bpm
+                                    content = content || ak.lyrics || ak.chordChart || ak.content || ""
+                                    // It may have an arrangementId or songId or arrangement object
+                                    const arrId = ak.arrangementId || (ak.arrangement && ak.arrangement.id)
+                                    if (arrId && !content) {
+                                        try {
+                                            const arr = await this.fetchApi(`/content/arrangements/${arrId}`)
+                                            if (arr) {
+                                                content = content || arr.lyrics || arr.chordChart || arr.content || ""
+                                                key = key || arr.key
+                                                bpm = bpm || arr.bpm
+                                            }
+                                        } catch (err) {
+                                            console.warn(`[ChurchApps] Could not fetch arrangement ${arrId}:`, err)
+                                        }
+                                    }
+                                }
+                            } catch (err) {
+                                console.warn(`[ChurchApps] Could not fetch arrangementKey ${item.relatedId}:`, err)
+                            }
+
+                            // Also try presenter endpoint which returns full song data with arrangement
+                            if (!content && item.churchId) {
+                                try {
+                                    const pres = await this.fetchApi(`/content/arrangementKeys/presenter/${item.churchId}/${item.relatedId}`)
+                                    if (pres) {
+                                        content = content || pres.lyrics || pres.chordChart || pres.content || ""
+                                        key = key || pres.key
+                                        bpm = bpm || pres.bpm
+                                        artist = artist || pres.artist || pres.author
+                                        if (pres.title || pres.name) songTitle = pres.title || pres.name
+                                    }
+                                } catch (err) {
+                                    console.warn(`[ChurchApps] Could not fetch presenter data for arrangementKey ${item.relatedId}:`, err)
+                                }
+                            }
                         }
+
+                        // 2. Try arrangement directly if available
+                        const arrId = item.arrangementId || (itemType === "arrangement" ? item.relatedId : null)
+                        if (arrId && (!content || !key || !bpm)) {
+                            try {
+                                const arr = await this.fetchApi(`/content/arrangements/${arrId}`)
+                                if (arr) {
+                                    content = content || arr.lyrics || arr.chordChart || arr.content || ""
+                                    key = key || arr.key
+                                    bpm = bpm || arr.bpm
+                                    artist = artist || arr.artist || arr.author
+                                    if (arr.title || arr.name) songTitle = arr.title || arr.name
+                                }
+                            } catch (err) {
+                                console.warn(`[ChurchApps] Could not fetch arrangement ${arrId}:`, err)
+                            }
+                        }
+
+                        // 3. Fall back to song directly
+                        const songId = item.songId || (itemType === "song" ? item.relatedId : null)
+                        if (songId && (!content || !artist)) {
+                            try {
+                                const song = await this.fetchApi(`/content/songs/${songId}`)
+                                if (song) {
+                                    content = content || song.chordChart || song.content || song.lyrics || ""
+                                    key = key || song.key
+                                    bpm = bpm || song.bpm
+                                    artist = artist || song.artist || song.author
+                                    if (song.title || song.name) songTitle = song.title || song.name
+                                }
+                            } catch (err) {
+                                console.warn(`[ChurchApps] Could not fetch song ${songId}:`, err)
+                            }
+                        }
+
                         return {
                             id: `ca_item_${item.id}`,
-                            title,
+                            title: songTitle,
                             type: "song" as const,
                             song: {
                                 id: `ca_song_${item.id}`,
-                                name: title,
+                                name: songTitle,
                                 content,
-                                artist: item.artist || item.author,
-                                bpm: item.bpm,
-                                key: item.key
+                                artist,
+                                bpm,
+                                key
                             }
                         }
                     }
