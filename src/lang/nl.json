@@ -284,7 +284,8 @@
         "no_limit": "Geen limiet",
         "days": "dagen",
         "access_expired": "Toegang verlopen",
-        "access_expired_msg": "Toegang tot deze gedeelde inhoud is verlopen."
+        "access_expired_msg": "Toegang tot deze gedeelde inhoud is verlopen.",
+        "import_to_open_song": "Importeer de setlijst om het nummer te openen"
     },
     "export": {
         "success": "Succesvol geëxporteerd!",

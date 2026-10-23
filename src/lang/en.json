@@ -284,7 +284,8 @@
         "no_limit": "No limit",
         "days": "days",
         "access_expired": "Access expired",
-        "access_expired_msg": "Access to this shared content has expired."
+        "access_expired_msg": "Access to this shared content has expired.",
+        "import_to_open_song": "Import the setlist to open song"
     },
     "export": {
         "success": "Exported successfully!",

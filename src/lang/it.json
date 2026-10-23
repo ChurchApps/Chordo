@@ -284,7 +284,8 @@
         "no_limit": "Nessun limite",
         "days": "giorni",
         "access_expired": "Accesso scaduto",
-        "access_expired_msg": "L'accesso a questo contenuto condiviso è scaduto."
+        "access_expired_msg": "L'accesso a questo contenuto condiviso è scaduto.",
+        "import_to_open_song": "Importa la scaletta per aprire il brano"
     },
     "export": {
         "success": "Esportato con successo!",

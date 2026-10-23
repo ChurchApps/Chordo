@@ -284,7 +284,8 @@
         "no_limit": "Ingen gräns",
         "days": "dagar",
         "access_expired": "Åtkomst utgången",
-        "access_expired_msg": "Åtkomsten till detta delade innehåll har gått ut."
+        "access_expired_msg": "Åtkomsten till detta delade innehåll har gått ut.",
+        "import_to_open_song": "Importera setlistan för att öppna låten"
     },
     "export": {
         "success": "Exporterades framgångsrikt!",

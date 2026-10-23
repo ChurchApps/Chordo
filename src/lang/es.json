@@ -284,7 +284,8 @@
         "no_limit": "Sin límite",
         "days": "días",
         "access_expired": "Acceso caducado",
-        "access_expired_msg": "El acceso a este contenido compartido ha caducado."
+        "access_expired_msg": "El acceso a este contenido compartido ha caducado.",
+        "import_to_open_song": "Importa la lista para abrir la canción"
     },
     "export": {
         "success": "¡Exportado con éxito!",

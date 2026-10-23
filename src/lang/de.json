@@ -284,7 +284,8 @@
         "no_limit": "Kein Limit",
         "days": "Tage",
         "access_expired": "Zugriff abgelaufen",
-        "access_expired_msg": "Der Zugriff auf diese geteilten Inhalte ist abgelaufen."
+        "access_expired_msg": "Der Zugriff auf diese geteilten Inhalte ist abgelaufen.",
+        "import_to_open_song": "Setliste importieren, um Song zu öffnen"
     },
     "export": {
         "success": "Erfolgreich exportiert!",

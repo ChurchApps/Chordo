@@ -284,7 +284,8 @@
         "no_limit": "Ingen grense",
         "days": "dager",
         "access_expired": "Tilgang utløpt",
-        "access_expired_msg": "Tilgangen til dette delte innholdet har utløpt."
+        "access_expired_msg": "Tilgangen til dette delte innholdet har utløpt.",
+        "import_to_open_song": "Importer setlisten for å åpne sangen"
     },
     "export": {
         "success": "Eksportert!",
