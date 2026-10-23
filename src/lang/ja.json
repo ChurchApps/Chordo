@@ -49,6 +49,7 @@
         "redo": "やり直す",
         "open": "開く",
         "refresh": "更新",
+        "move": "移動",
         "new": "新規",
         "changed": "変更済み"
     },
@@ -60,6 +61,11 @@
         "all_songs": "すべての楽曲",
         "add_songs": "楽曲を追加",
         "share_preview": "共有アイテムのインポート"
+    },
+    "folder": {
+        "move_to_folder": "フォルダへ移動",
+        "moved_single": "{folder} に移動しました",
+        "moved_plural": "{count} 件のセットリストを {folder} に移動しました"
     },
     "folder_types": {
         "shared": "共有されたアイテム"

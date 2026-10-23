@@ -49,6 +49,7 @@
         "redo": "Повторити",
         "open": "Відкрити",
         "refresh": "Оновити",
+        "move": "Перемістити",
         "new": "Новий",
         "changed": "Змінено"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Усі пісні",
         "add_songs": "Додати пісні",
         "share_preview": "Імпорт поширеного"
+    },
+    "folder": {
+        "move_to_folder": "Перемістити до папки",
+        "moved_single": "Переміщено до {folder}",
+        "moved_plural": "Переміщено {count} сет-листів до {folder}"
     },
     "folder_types": {
         "shared": "Поділилися з вами"

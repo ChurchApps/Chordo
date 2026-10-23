@@ -22,6 +22,7 @@ export const listEditingState = $state<{
     onEditSelected?: () => void
     onDuplicateSelected?: () => void
     editActionType?: "rename" | "edit"
+    onMoveSelected?: () => void
 }>({ isEditing: false })
 
 export const menuState = $state<MenuState & { previousPages: MenuState[] }>({

@@ -49,6 +49,7 @@
         "redo": "다시 실행",
         "open": "열기",
         "refresh": "새로고침",
+        "move": "이동",
         "new": "새로 만들기",
         "changed": "변경됨"
     },
@@ -60,6 +61,11 @@
         "all_songs": "모든 곡",
         "add_songs": "곡 추가",
         "share_preview": "공유 항목 가져오기"
+    },
+    "folder": {
+        "move_to_folder": "폴더로 이동",
+        "moved_single": "{folder}(으)로 이동됨",
+        "moved_plural": "{count}개의 세트리스트를 {folder}(으)로 이동함"
     },
     "folder_types": {
         "shared": "공유받은 항목"

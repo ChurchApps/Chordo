@@ -81,18 +81,26 @@
         listEditingState.isEditing = false
     }
 
+    function moveSelectedLists() {
+        if (selectedListIds.length === 0) return
+        setActivePopup("move_lists", selectedListIds.join(","))
+    }
+
     $effect(() => {
         if (!isExternalFolder && isEditing) {
+            listEditingState.onMoveSelected = selectedListIds.length > 0 ? moveSelectedLists : undefined
             listEditingState.onDeleteSelected = selectedListIds.length > 0 ? removeSelectedLists : undefined
             listEditingState.onEditSelected = selectedListIds.length === 1 ? renameSelectedList : undefined
             listEditingState.editActionType = selectedListIds.length === 1 ? "rename" : undefined
             listEditingState.onDuplicateSelected = selectedListIds.length > 0 ? duplicateSelectedLists : undefined
         } else if (isExternalFolder && isEditing) {
+            listEditingState.onMoveSelected = undefined
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.editActionType = undefined
             listEditingState.onDuplicateSelected = selectedListIds.length > 0 ? duplicateSelectedLists : undefined
         } else {
+            listEditingState.onMoveSelected = undefined
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.editActionType = undefined

@@ -144,6 +144,11 @@
 
         <div class="top-bar-actions">
             {#if isEditing}
+                {#if listEditingState.onMoveSelected}
+                    <md-icon-button aria-label="Move selected" onclick={() => listEditingState.onMoveSelected?.()}>
+                        <span class="material-symbols-outlined">drive_file_move</span>
+                    </md-icon-button>
+                {/if}
                 {#if listEditingState.onDuplicateSelected}
                     <md-icon-button aria-label="Duplicate selected" onclick={() => listEditingState.onDuplicateSelected?.()}>
                         <span class="material-symbols-outlined">content_copy</span>

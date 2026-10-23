@@ -49,6 +49,7 @@
         "redo": "Redo",
         "open": "Open",
         "refresh": "Refresh",
+        "move": "Move",
         "new": "New",
         "changed": "Changed"
     },
@@ -60,6 +61,11 @@
         "all_songs": "All songs",
         "add_songs": "Add songs",
         "share_preview": "Import shared"
+    },
+    "folder": {
+        "move_to_folder": "Move to folder",
+        "moved_single": "Moved to {folder}",
+        "moved_plural": "Moved {count} setlists to {folder}"
     },
     "folder_types": {
         "shared": "Shared with you"

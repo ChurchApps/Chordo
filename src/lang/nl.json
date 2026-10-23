@@ -49,6 +49,7 @@
         "redo": "Opnieuw",
         "open": "Openen",
         "refresh": "Vernieuwen",
+        "move": "Verplaatsen",
         "new": "Nieuw",
         "changed": "Gewijzigd"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Alle nummers",
         "add_songs": "Nummers toevoegen",
         "share_preview": "Gedeeld item importeren"
+    },
+    "folder": {
+        "move_to_folder": "Verplaatsen naar map",
+        "moved_single": "Verplaatst naar {folder}",
+        "moved_plural": "{count} setlists verplaatst naar {folder}"
     },
     "folder_types": {
         "shared": "Met jou gedeeld"

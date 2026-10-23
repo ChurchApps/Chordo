@@ -49,6 +49,7 @@
         "redo": "Gjør om",
         "open": "Åpne",
         "refresh": "Oppdater",
+        "move": "Flytt",
         "new": "Ny",
         "changed": "Endret"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Alle sanger",
         "add_songs": "Legg til sanger",
         "share_preview": "Importer delt"
+    },
+    "folder": {
+        "move_to_folder": "Flytt til mappe",
+        "moved_single": "Flyttet til {folder}",
+        "moved_plural": "Flyttet {count} setlister til {folder}"
     },
     "folder_types": {
         "shared": "Delt med deg"

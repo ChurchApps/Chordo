@@ -4,6 +4,7 @@ import MetronomeDialog from "./MetronomeDialog.svelte"
 import SettingsDialog from "./SettingsDialog.svelte"
 import ShareDialog from "./ShareDialog.svelte"
 import TextInputDialog from "./TextInputDialog.svelte"
+import MoveListsDialog from "./MoveListsDialog.svelte"
 import TransposeDialog from "./TransposeDialog.svelte"
 
 export const popups = {
@@ -27,6 +28,9 @@ export const popups = {
     },
     rename_section: {
         component: TextInputDialog
+    },
+    move_lists: {
+        component: MoveListsDialog
     },
     transpose: {
         component: TransposeDialog

@@ -49,6 +49,7 @@
         "redo": "Gör om",
         "open": "Öppna",
         "refresh": "Uppdatera",
+        "move": "Flytta",
         "new": "Ny",
         "changed": "Ändrad"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Alla låtar",
         "add_songs": "Lägg till låtar",
         "share_preview": "Importera delad"
+    },
+    "folder": {
+        "move_to_folder": "Flytta till mapp",
+        "moved_single": "Flyttad till {folder}",
+        "moved_plural": "Flyttade {count} spellistor till {folder}"
     },
     "folder_types": {
         "shared": "Delad med dig"

@@ -49,6 +49,7 @@
         "redo": "Ripeti",
         "open": "Apri",
         "refresh": "Aggiorna",
+        "move": "Sposta",
         "new": "Nuovo",
         "changed": "Modificato"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Tutti i brani",
         "add_songs": "Aggiungi brani",
         "share_preview": "Importa condivisione"
+    },
+    "folder": {
+        "move_to_folder": "Sposta nella cartella",
+        "moved_single": "Spostato in {folder}",
+        "moved_plural": "Spostate {count} scalette in {folder}"
     },
     "folder_types": {
         "shared": "Condiviso con te"

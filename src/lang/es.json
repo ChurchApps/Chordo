@@ -49,6 +49,7 @@
         "redo": "Rehacer",
         "open": "Abrir",
         "refresh": "Actualizar",
+        "move": "Mover",
         "new": "Nuevo",
         "changed": "Modificado"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Todas las canciones",
         "add_songs": "Añadir canciones",
         "share_preview": "Importar compartido"
+    },
+    "folder": {
+        "move_to_folder": "Mover a carpeta",
+        "moved_single": "Movido a {folder}",
+        "moved_plural": "Se movieron {count} listas a {folder}"
     },
     "folder_types": {
         "shared": "Compartido contigo"

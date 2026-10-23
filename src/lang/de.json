@@ -49,6 +49,7 @@
         "redo": "Wiederholen",
         "open": "Öffnen",
         "refresh": "Aktualisieren",
+        "move": "Verschieben",
         "new": "Neu",
         "changed": "Geändert"
     },
@@ -60,6 +61,11 @@
         "all_songs": "Alle Songs",
         "add_songs": "Songs hinzufügen",
         "share_preview": "Geteilte Inhalte importieren"
+    },
+    "folder": {
+        "move_to_folder": "In Ordner verschieben",
+        "moved_single": "In {folder} verschoben",
+        "moved_plural": "{count} Setlisten in {folder} verschoben"
     },
     "folder_types": {
         "shared": "Mit dir geteilt"

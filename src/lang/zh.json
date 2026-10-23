@@ -49,6 +49,7 @@
         "redo": "重做",
         "open": "打开",
         "refresh": "刷新",
+        "move": "移动",
         "new": "新建",
         "changed": "已更改"
     },
@@ -60,6 +61,11 @@
         "all_songs": "所有歌曲",
         "add_songs": "添加歌曲",
         "share_preview": "导入分享内容"
+    },
+    "folder": {
+        "move_to_folder": "移动到文件夹",
+        "moved_single": "已移动到 {folder}",
+        "moved_plural": "已将 {count} 个演出曲目表移动到 {folder}"
     },
     "folder_types": {
         "shared": "与你分享"
