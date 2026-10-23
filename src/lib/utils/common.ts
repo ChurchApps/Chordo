@@ -57,3 +57,47 @@ export function sanitizeFilename(name: string, extension: string = "json"): stri
     const cleanExt = extension.replace(/^\./, "").trim()
     return cleanExt ? `${cleanBase}.${cleanExt}` : cleanBase
 }
+
+/**
+ * Creates a scheduler that debounces calls (if delayMs > 0) and executes via requestAnimationFrame.
+ */
+export function createRafScheduler<T extends (...args: any[]) => void>(fn: T) {
+    let rafId: number | null = null
+    let timerId: ReturnType<typeof setTimeout> | null = null
+
+    function cancel() {
+        if (timerId !== null) {
+            clearTimeout(timerId)
+            timerId = null
+        }
+        if (rafId !== null) {
+            cancelAnimationFrame(rafId)
+            rafId = null
+        }
+    }
+
+    function schedule(...args: Parameters<T>) {
+        scheduleDebounced(0, ...args)
+    }
+
+    function scheduleDebounced(delayMs: number, ...args: Parameters<T>) {
+        cancel()
+        const run = () => {
+            rafId = requestAnimationFrame(() => {
+                rafId = null
+                fn(...args)
+            })
+        }
+
+        if (delayMs > 0) {
+            timerId = setTimeout(() => {
+                timerId = null
+                run()
+            }, delayMs)
+        } else {
+            run()
+        }
+    }
+
+    return { schedule, scheduleDebounced, cancel }
+}

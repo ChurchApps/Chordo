@@ -1,14 +1,17 @@
 <script lang="ts">
+    import { createRafScheduler } from "$lib/utils/common"
+    import { getExternalSong, getPlanAsList } from "$lib/integrations/integrationState.svelte"
     import type { ListSongItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
     import { fullscreenState, goBack, menuState, popupState, savedFullscreenPosition, setActivePopup } from "$lib/state/menu.svelte"
     import { metronomeState } from "$lib/state/metronome.svelte"
     import { playbackState, togglePlayback } from "$lib/state/playback.svelte"
+    import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { enterFullscreen, exitFullscreen, isFullscreenActive, onFullscreenChange } from "$lib/utils/fullscreen"
     import { isIos, isIosSafariNonStandalone, openIosPrompt } from "$lib/utils/iosPwa"
     import { parsePlaybackUrl } from "$lib/utils/playback"
-    import { showToast } from "$lib/state/toast.svelte"
+    import { isVirtualKeyboardOpen } from "$lib/utils/viewport"
     import { releaseWakeLock, requestWakeLock } from "$lib/utils/wakeLock"
     import { onMount } from "svelte"
     import { slide } from "svelte/transition"
@@ -17,7 +20,6 @@
     import ChordPro from "../song/ChordPro.svelte"
     import MetronomeButton from "../song/MetronomeButton.svelte"
     import Paper from "../song/Paper.svelte"
-    import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
     import TransposeButton from "../song/TransposeButton.svelte"
 
     type FullscreenSlide = { type: "song"; songItem: ListSongItem; originalIndex: number } | { type: "section"; sections: Array<{ name: string; originalIndex: number }>; originalIndex: number }
@@ -593,15 +595,10 @@
     let visiblePlaybackInfo = $derived(parsePlaybackUrl(visiblePlaybackUrl))
     let isPlayingVisibleSong = $derived(playbackState.isOpen && !!visibleSong && (playbackState.songId === visibleSong.id || (!!visiblePlaybackUrl && playbackState.customPlaybackUrl === visiblePlaybackUrl)))
 
-    let updateRafId: number | null = null
-    function scheduleUpdatePageCount(immediatePosition = false) {
-        if (updateRafId !== null) cancelAnimationFrame(updateRafId)
-        updateRafId = requestAnimationFrame(() => {
-            updateRafId = null
-            updatePageCount()
-            if (immediatePosition) setPositionByIndex(false)
-        })
-    }
+    const { schedule: scheduleUpdatePageCount, scheduleDebounced: scheduleDebouncedUpdatePageCount, cancel: cancelUpdatePageCount } = createRafScheduler((immediatePosition = false) => {
+        updatePageCount()
+        if (immediatePosition) setPositionByIndex(false)
+    })
 
     // --- Lifecycle & DOM Observation ---
     let hasBeenFullscreen = false
@@ -653,14 +650,19 @@
             const entry = entries[0]
             if (entry) {
                 const { width, height } = entry.contentRect
-                const widthUnchanged = width === lastSliderWidth
+
+                // If on-screen virtual keyboard is currently open, skip recalculating pagination
+                if (isVirtualKeyboardOpen()) return
+
+                const widthUnchanged = Math.abs(width - lastSliderWidth) < 1
+                const heightUnchanged = Math.abs(height - lastSliderHeight) < 1
                 lastSliderWidth = width
                 lastSliderHeight = height
-                // When on-screen keyboard opens, only height changes while width remains unchanged.
-                // Do not recalculate page counts on vertical keyboard height changes.
-                if (widthUnchanged) return
+
+                if (widthUnchanged && heightUnchanged) return
             }
-            scheduleUpdatePageCount(true)
+            // Debounce pagination and position adjustments during continuous resize
+            scheduleDebouncedUpdatePageCount(120, true)
         })
 
         if (sliderEl) {
@@ -674,9 +676,9 @@
 
         return () => {
             clearTimeout(hideTimeout)
+            cancelUpdatePageCount()
             if (transitionTimer !== null) clearTimeout(transitionTimer)
             if (moveRafId !== null) cancelAnimationFrame(moveRafId)
-            if (updateRafId !== null) cancelAnimationFrame(updateRafId)
             window.removeEventListener("wheel", handleWheel)
             removeFullscreenListener()
             resizeObserver.disconnect()
@@ -934,14 +936,14 @@
                     {@const chordColor = storage.settings.paperOptions?.chordColor || "#5498be"}
 
                     <div class="slide" style="--font-scale: {fontScale}; --chord-color: {chordColor};">
-                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} {chordColor} ignoreResizeHeight onPaginate={() => scheduleUpdatePageCount(false)}>
+                        <Paper padding={hasMedia ? 0 : 10} background={paperBg} headerText={song?.name ?? ""} {fontScale} {chordColor} onPaginate={() => scheduleUpdatePageCount(false)}>
                             <ChordPro {songId} {targetKey} numColumns={2} hideChords={fullscreenState.lyricsOnly} showMeta />
                         </Paper>
                     </div>
                 {:else if slideItem.type === "section"}
                     {@const customBg = storage.settings.paperOptions?.background || "white"}
                     <div class="slide">
-                        <Paper padding={16} background={customBg} headerText="" ignoreResizeHeight onPaginate={() => scheduleUpdatePageCount(false)}>
+                        <Paper padding={16} background={customBg} headerText="" onPaginate={() => scheduleUpdatePageCount(false)}>
                             <div class="fullscreen-section-container">
                                 <div class="fullscreen-section-badge">
                                     <span class="material-symbols-outlined fullscreen-section-icon">bookmark</span>

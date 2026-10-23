@@ -2,6 +2,41 @@
  * Utility to keep modals/popups centered when the virtual on-screen keyboard appears.
  */
 
+function getDeepActiveElement(): Element | null {
+    let el = document.activeElement
+    while (el && el.shadowRoot && el.shadowRoot.activeElement) {
+        el = el.shadowRoot.activeElement
+    }
+    return el
+}
+
+export function isVirtualKeyboardOpen(): boolean {
+    if (typeof window === "undefined" || typeof document === "undefined") return false
+
+    // Check if an input or textarea element is actively focused anywhere in the DOM or Shadow DOM
+    const activeEl = getDeepActiveElement() as HTMLElement | null
+    const hasFocusableInput =
+        !!activeEl &&
+        (activeEl.tagName === "INPUT" ||
+            activeEl.tagName === "TEXTAREA" ||
+            activeEl.isContentEditable ||
+            activeEl.getAttribute?.("contenteditable") === "true" ||
+            activeEl.closest?.("md-outlined-text-field") !== null ||
+            activeEl.closest?.("md-filled-text-field") !== null ||
+            activeEl.closest?.("md-dialog") !== null)
+
+    if (hasFocusableInput) return true
+
+    // Also check if visualViewport height has noticeably compressed relative to window.innerHeight
+    const vv = window.visualViewport
+    if (vv && window.innerHeight > 0) {
+        const heightRatio = vv.height / window.innerHeight
+        if (heightRatio < 0.85) return true
+    }
+
+    return false
+}
+
 function updateSingleDialog(dialogEl: HTMLElement, offset: number, maxHeight: string) {
     const internalDialog = dialogEl.shadowRoot?.querySelector<HTMLDialogElement>("dialog")
     const internalContainer = dialogEl.shadowRoot?.querySelector<HTMLElement>(".container")
