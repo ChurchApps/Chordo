@@ -80,9 +80,11 @@
                     <p>{t("landing", "feature_freeshow_desc")}</p>
                 </div>
             </div>
-            <a href="https://freeshow.app" target="_blank" rel="noopener noreferrer" class="integration-btn">
-                <span>freeshow.app</span>
-                <span class="material-symbols-outlined link-icon">open_in_new</span>
+            <a href="https://freeshow.app" target="_blank" rel="noopener noreferrer" class="integration-link" tabindex="-1">
+                <md-outlined-button class="integration-btn">
+                    freeshow.app
+                    <span class="material-symbols-outlined link-icon" slot="icon">open_in_new</span>
+                </md-outlined-button>
             </a>
         </section>
     </div>
@@ -356,28 +358,21 @@
         text-align: left;
     }
 
-    .integration-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 14px;
-        border-radius: 10px;
-        background: var(--md-sys-color-secondary-container, rgba(0, 0, 0, 0.05));
-        color: var(--md-sys-color-primary, #5498be);
-        font-size: 0.85rem;
-        font-weight: 600;
+    .integration-link {
         text-decoration: none;
         flex-shrink: 0;
-        transition: all 0.15s ease;
+        display: inline-flex;
+    }
+
+    .integration-btn {
+        --md-outlined-button-label-text-color: var(--md-sys-color-primary);
+        --md-outlined-button-icon-color: var(--md-sys-color-primary);
+        --md-outlined-button-outline-color: var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.2));
+        font-weight: 600;
     }
 
     .integration-btn .link-icon {
-        font-size: 16px;
-    }
-
-    .integration-btn:hover {
-        background: var(--md-sys-color-primary);
-        color: var(--md-sys-color-on-primary, #ffffff);
+        font-size: 18px;
     }
 
     /* Footer */
@@ -490,9 +485,9 @@
             text-align: center;
         }
 
+        .integration-link,
         .integration-btn {
             width: 100%;
-            justify-content: center;
             box-sizing: border-box;
         }
     }

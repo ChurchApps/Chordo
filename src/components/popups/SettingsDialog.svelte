@@ -244,7 +244,7 @@
 </script>
 
 <md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-    <div slot="headline" class="settings-headline">
+    <div slot="headline" class="dialog-header">
         <span class="material-symbols-outlined settings-icon">{isSongSettings ? "tune" : "settings"}</span>
         {isSongSettings ? t("song_fullscreen", "settings_title") : t("settings", "title")}
     </div>
@@ -521,7 +521,7 @@
 </md-dialog>
 
 <style>
-    .settings-headline {
+    .dialog-header {
         display: flex;
         align-items: center;
         gap: 10px;
@@ -589,7 +589,8 @@
 
     .theme-circles {
         display: grid;
-        grid-template-columns: repeat(7, min-content);
+        grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+        max-width: calc(7 * 38px + 6 * 12px);
         gap: 12px;
         align-items: center;
         padding: 4px 0;

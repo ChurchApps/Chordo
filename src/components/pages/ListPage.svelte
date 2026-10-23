@@ -244,11 +244,8 @@
 
                         {#if !songItem.isDeleted && songItem.type !== "section" && (artist || key)}
                             <div slot="supporting-text">
-                                {artist || ""}
-                                {#if artist && key}
-                                    •
-                                {/if}
-                                {#if key}{t("common", "key")}: {key}{/if}
+                                {#if artist}<span class="supporting-artist">{artist}</span>{/if}
+                                {#if key}<span class="supporting-key">{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
                             </div>
                         {/if}
 
@@ -406,7 +403,8 @@
 
     .section-icon {
         color: var(--md-sys-color-on-surface, #1b1b1f);
-        --md-icon-size: 20px;
+        --md-icon-size: 24px;
+        font-size: 20px;
     }
 
     md-list-item.section-item {

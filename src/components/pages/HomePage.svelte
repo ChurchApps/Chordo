@@ -114,11 +114,8 @@
                                 <div slot="headline">{song.name}</div>
                                 {#if artist || key}
                                     <div slot="supporting-text">
-                                        {artist || ""}
-                                        {#if artist && key}
-                                            •
-                                        {/if}
-                                        {#if key}{t("common", "key")}: {key}{/if}
+                                        {#if artist}<span class="supporting-artist">{artist}</span>{/if}
+                                        {#if key}<span class="supporting-key">{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
                                     </div>
                                 {/if}
                                 <md-icon slot="start">music_note</md-icon>
