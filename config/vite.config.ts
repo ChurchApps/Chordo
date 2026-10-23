@@ -75,7 +75,7 @@ export default defineConfig({
                 const env = loadDevVars()
                 server.middlewares.use(async (req, res, next) => {
                     const url = req.originalUrl || req.url || ""
-                    const isApi = url.startsWith("/api/proxy") || url.startsWith("/api/share")
+                    const isApi = url.startsWith("/api/proxy") || url.startsWith("/api/share") || url.startsWith("/api/oauth")
                     if (!isApi) return next()
 
                     try {

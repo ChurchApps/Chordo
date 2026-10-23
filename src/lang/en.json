@@ -47,7 +47,8 @@
         "copy": "Copy",
         "undo": "Undo",
         "redo": "Redo",
-        "open": "Open"
+        "open": "Open",
+        "refresh": "Refresh"
     },
     "pages": {
         "folder": "Folder",
@@ -81,7 +82,9 @@
         "no_lists_title": "No setlists yet",
         "no_lists_desc": "Tap the + button in the bottom right to create your first setlist where you can add songs.",
         "no_songs_title": "No songs yet",
-        "no_songs_desc": "Tap the + button in the bottom right to add songs."
+        "no_songs_desc": "Tap the + button in the bottom right to add songs.",
+        "no_plans_title": "No service plans",
+        "no_plans_desc": "No recent or upcoming plans found in your account."
     },
     "new": {
         "folder": "Create folder",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Theme color",
+        "connections": "Connections",
+        "connect": "Connect",
+        "disconnect": "Disconnect",
         "data_management": "Data management",
         "export_data": "Export all data",
         "import_data": "Import all data",

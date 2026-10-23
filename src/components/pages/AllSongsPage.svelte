@@ -6,6 +6,7 @@
     import { searchState } from "$lib/state/search.svelte"
     import { resetSetlistAddSort, songSortState } from "$lib/state/songSort.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { formatDate } from "$lib/utils/common"
     import { onDestroy, onMount } from "svelte"
 
     let songs = $derived(Songs.get(storage.songs, null, songSortState.sortBy))
@@ -188,8 +189,8 @@
                 {@const artist = rawArtist}
                 {@const key = song.metadata?.key || song.getMetadata("key") || ""}
 
-                {@const dateStr = song.createdAt ? new Date(song.createdAt).toLocaleDateString() : "—"}
-                {@const prevDateStr = idx > 0 ? (filteredSongs[idx - 1].createdAt ? new Date(filteredSongs[idx - 1].createdAt).toLocaleDateString() : "—") : null}
+                {@const dateStr = formatDate(song.createdAt)}
+                {@const prevDateStr = idx > 0 ? formatDate(filteredSongs[idx - 1].createdAt) : null}
                 {@const showDateHeader = isDateSort && (idx === 0 || dateStr !== prevDateStr)}
 
                 {#if showArtistHeader}

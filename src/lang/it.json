@@ -47,7 +47,8 @@
         "copy": "Copia",
         "undo": "Annulla",
         "redo": "Ripeti",
-        "open": "Apri"
+        "open": "Apri",
+        "refresh": "Aggiorna"
     },
     "pages": {
         "folder": "Cartella",
@@ -81,7 +82,9 @@
         "no_lists_title": "Nessuna scaletta ancora",
         "no_lists_desc": "Tocca il pulsante + in basso a destra per creare la tua prima scaletta.",
         "no_songs_title": "Nessun brano ancora",
-        "no_songs_desc": "Tocca il pulsante + in basso a destra per aggiungere brani."
+        "no_songs_desc": "Tocca il pulsante + in basso a destra per aggiungere brani.",
+        "no_plans_title": "Nessun programma di servizio",
+        "no_plans_desc": "Nessun programma recente o imminente trovato nel tuo account."
     },
     "new": {
         "folder": "Crea cartella",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Colore tema",
+        "connections": "Connessioni",
+        "connect": "Connetti",
+        "disconnect": "Disconnetti",
         "data_management": "Gestione dati",
         "export_data": "Esporta tutti i dati",
         "import_data": "Importa tutti i dati",

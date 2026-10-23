@@ -47,7 +47,8 @@
         "copy": "Copiar",
         "undo": "Deshacer",
         "redo": "Rehacer",
-        "open": "Abrir"
+        "open": "Abrir",
+        "refresh": "Actualizar"
     },
     "pages": {
         "folder": "Carpeta",
@@ -81,7 +82,9 @@
         "no_lists_title": "Aún no hay repertorios",
         "no_lists_desc": "Toca el botón + en la esquina inferior derecha para crear tu primer repertorio y añadir canciones.",
         "no_songs_title": "Aún no hay canciones",
-        "no_songs_desc": "Toca el botón + en la esquina inferior derecha para añadir canciones."
+        "no_songs_desc": "Toca el botón + en la esquina inferior derecha para añadir canciones.",
+        "no_plans_title": "Sin planes de servicio",
+        "no_plans_desc": "No se encontraron planes recientes ni próximos en tu cuenta."
     },
     "new": {
         "folder": "Crear carpeta",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Color del tema",
+        "connections": "Conexiones",
+        "connect": "Conectar",
+        "disconnect": "Desconectar",
         "data_management": "Gestión de datos",
         "export_data": "Exportar todos los datos",
         "import_data": "Importar todos los datos",

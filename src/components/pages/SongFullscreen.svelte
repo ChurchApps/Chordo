@@ -17,13 +17,14 @@
     import ChordPro from "../song/ChordPro.svelte"
     import MetronomeButton from "../song/MetronomeButton.svelte"
     import Paper from "../song/Paper.svelte"
+    import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
     import TransposeButton from "../song/TransposeButton.svelte"
 
     type FullscreenSlide = { type: "song"; songItem: ListSongItem; originalIndex: number } | { type: "section"; sections: Array<{ name: string; originalIndex: number }>; originalIndex: number }
 
     // --- State & Derived State ---
     const listId = $derived(menuState.previousPages.find((a) => a.activePage === "list")?.contentId)
-    const list = $derived(listId ? storage.getListById(listId, storage.lists) : null)
+    const list = $derived(listId ? storage.getListById(listId, storage.lists) || getPlanAsList(listId) : null)
 
     const slides = $derived.by<FullscreenSlide[]>(() => {
         if (!list) {
@@ -575,7 +576,9 @@
         }
     }
 
-    let visibleSong = $derived(visibleSongId ? storage.getSongById(visibleSongId, storage.songs) : null)
+    const isExternalPlan = $derived((!!listId && !storage.getListById(listId, storage.lists) && !!getPlanAsList(listId)) || (!storage.getSongById(visibleSongId ?? null, storage.songs) && !!getExternalSong(visibleSongId ?? null)))
+
+    let visibleSong = $derived(visibleSongId ? storage.getSongById(visibleSongId, storage.songs) || getExternalSong(visibleSongId) : null)
 
     // Metronome
     let visibleSongTempo = $derived(Number(visibleSong?.getMetadata?.("tempo")?.match(/\d+/)?.[0]) || null)
@@ -709,7 +712,7 @@
                     <md-menu id="fullscreen-song-list-menu" anchor="fullscreen-song-list-btn" open={songListMenuOpen} onclosed={() => (songListMenuOpen = false)} class="song-list-menu" quick>
                         {#each slides as item, idx}
                             {#if item.type === "song"}
-                                {@const song = storage.getSongById(item.songItem.id ?? null, storage.songs)}
+                                {@const song = storage.getSongById(item.songItem.id ?? null, storage.songs) || getExternalSong(item.songItem.id ?? null)}
                                 {@const isCurrent = currentSlideIndex === idx}
                                 <md-menu-item selected={isCurrent} class:selected={isCurrent} onclick={() => goToSong(item.originalIndex)}>
                                     <span class="material-symbols-outlined" slot="start" style="font-size: 20px; opacity: 0.7;">music_note</span>
@@ -801,7 +804,7 @@
                         </md-menu-item>
                     {/if}
 
-                    {#if visibleSongId}
+                    {#if visibleSongId && !isExternalPlan}
                         <md-menu-item
                             onclick={() => {
                                 moreMenuOpen = false
@@ -872,7 +875,7 @@
             {#each slides as slideItem, i}
                 {#if slideItem.type === "song"}
                     {@const songId = slideItem.songItem?.id ?? null}
-                    {@const song = storage.getSongById(songId, storage.songs)}
+                    {@const song = storage.getSongById(songId, storage.songs) || getExternalSong(songId)}
                     {@const targetKey = slideItem.songItem?.transposed || song?.lastTransposed}
                     {@const hasMedia = !!song?.images.length}
 

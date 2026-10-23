@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { getExternalSong } from "$lib/integrations/integrationState.svelte"
     import { fullscreenState } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import ChordPro from "./ChordPro.svelte"
@@ -9,13 +10,9 @@
         semitones?: number
     }
 
-    let {
-        songId,
-        targetKey = undefined,
-        semitones = undefined
-    }: Props = $props()
+    let { songId, targetKey = undefined, semitones = undefined }: Props = $props()
 
-    let song = $derived(storage.getSongById(songId, storage.songs))
+    let song = $derived(storage.getSongById(songId, storage.songs) || getExternalSong(songId))
     let hasMedia = $derived(!!song?.images.length)
 
     let customBg = $derived(storage.settings.paperOptions?.background || "#ffffff")
@@ -39,11 +36,7 @@
 </script>
 
 <div id={songId} class="paper-wrapper">
-    <div
-        class="paper"
-        class:hasMedia
-        style="background-color: {paperBg}; color: {isDarkBackground ? '#e6e1e5' : '#111111'}; --font-scale: {fontScale}; --chord-color: {chordColor};"
-    >
+    <div class="paper" class:hasMedia style="background-color: {paperBg}; color: {isDarkBackground ? '#e6e1e5' : '#111111'}; --font-scale: {fontScale}; --chord-color: {chordColor};">
         <ChordPro {songId} {targetKey} {semitones} hideChords={fullscreenState.lyricsOnly} />
     </div>
 </div>

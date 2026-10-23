@@ -1,5 +1,6 @@
 <script lang="ts">
     import { importSetlistFile } from "$lib/export/exportHelper"
+    import { integrationState } from "$lib/integrations/integrationState.svelte"
     import type { Folder } from "$lib/models/Folder"
     import { Lists, type List } from "$lib/models/List"
     import type { Song } from "$lib/models/Song"
@@ -71,6 +72,9 @@
     // Active song context
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let currentSong = $derived(activeSongContext?.song ?? null)
+    let activeProvider = $derived(integrationState.getActiveProvider())
+    let isExternalFolder = $derived(menuState.activePage === "folder" && !!activeProvider && menuState.contentId === activeProvider.id)
+    let isExternalSong = $derived(!storage.getSongById(currentSong?.id ?? null, storage.songs) && !!currentSong)
 
     function confirmDeleteSong(song: Song | null) {
         if (!song) return
@@ -222,16 +226,18 @@
                     <MetronomeButton />
                     <TransposeButton />
 
-                    <md-icon-button
-                        aria-label="Edit"
-                        disabled={!currentSong}
-                        onclick={() => {
-                            if (!currentSong) return
-                            setActivePage("song_edit", currentSong.id, currentSong.name)
-                        }}
-                    >
-                        <span class="material-symbols-outlined">edit</span>
-                    </md-icon-button>
+                    {#if !isExternalSong}
+                        <md-icon-button
+                            aria-label="Edit"
+                            disabled={!currentSong}
+                            onclick={() => {
+                                if (!currentSong) return
+                                setActivePage("song_edit", currentSong.id, currentSong.name)
+                            }}
+                        >
+                            <span class="material-symbols-outlined">edit</span>
+                        </md-icon-button>
+                    {/if}
                 {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
@@ -409,50 +415,79 @@
                                 </md-menu-item>
                             {:else if menuState.activePage === "list"}
                                 {@const currentList = storage.getListById(menuState.contentId)}
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        setActivePopup("rename_list")
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
-                                    <div slot="headline">{t("menu", "rename_list")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        if (currentList) {
+                                {@const externalPlan = !currentList ? integrationState.cachedPlans.find((p) => p.id === menuState.contentId) : null}
+                                {#if externalPlan}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            const result = integrationState.duplicatePlanToLocal(externalPlan)
+                                            if (result) {
+                                                const lastPrev = menuState.previousPages[menuState.previousPages.length - 1]
+                                                if (lastPrev && lastPrev.activePage === "folder") {
+                                                    lastPrev.contentId = result.folder.id
+                                                    lastPrev.customPageTitle = result.folder.name
+                                                }
+                                                setActivePage("list", result.list.id, result.list.name, "replace")
+                                            }
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">content_copy</span>
+                                        <div slot="headline">{t("menu", "duplicate_list")}</div>
+                                    </md-menu-item>
+                                {:else if currentList}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            setActivePopup("rename_list")
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">drive_file_rename_outline</span>
+                                        <div slot="headline">{t("menu", "rename_list")}</div>
+                                    </md-menu-item>
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
                                             const newList = Lists.duplicate(currentList.id)
                                             if (newList) {
                                                 setActivePage("list", newList.id, newList.name, "replace")
                                             }
-                                        }
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">content_copy</span>
-                                    <div slot="headline">{t("menu", "duplicate_list")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        setActivePopup("share_list")
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start">share</span>
-                                    <div slot="headline">{t("menu", "share_list")}</div>
-                                </md-menu-item>
-                                <md-menu-item
-                                    onclick={() => {
-                                        moreMenuOpen = false
-                                        confirmDeleteList(currentList)
-                                    }}
-                                >
-                                    <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
-                                    <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_list")}</div>
-                                </md-menu-item>
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">content_copy</span>
+                                        <div slot="headline">{t("menu", "duplicate_list")}</div>
+                                    </md-menu-item>
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            setActivePopup("share_list")
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">share</span>
+                                        <div slot="headline">{t("menu", "share_list")}</div>
+                                    </md-menu-item>
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            confirmDeleteList(currentList)
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start" style="color: var(--md-sys-color-error, #ba1a1a);">delete</span>
+                                        <div slot="headline" style="color: var(--md-sys-color-error, #ba1a1a);">{t("menu", "delete_list")}</div>
+                                    </md-menu-item>
+                                {/if}
                             {:else if menuState.activePage === "folder"}
                                 {@const currentFolder = storage.getFolderById(menuState.contentId)}
-                                {#if currentFolder && currentFolder.type !== "shared"}
+                                {#if isExternalFolder}
+                                    <md-menu-item
+                                        onclick={() => {
+                                            moreMenuOpen = false
+                                            integrationState.syncPlans()
+                                        }}
+                                    >
+                                        <span class="material-symbols-outlined" slot="start">refresh</span>
+                                        <div slot="headline">{t("common", "refresh")}</div>
+                                    </md-menu-item>
+                                {:else if currentFolder && currentFolder.type !== "shared"}
                                     <md-menu-item
                                         onclick={() => {
                                             moreMenuOpen = false

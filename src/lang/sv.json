@@ -47,7 +47,8 @@
         "copy": "Kopiera",
         "undo": "Ångra",
         "redo": "Gör om",
-        "open": "Öppna"
+        "open": "Öppna",
+        "refresh": "Uppdatera"
     },
     "pages": {
         "folder": "Mapp",
@@ -81,7 +82,9 @@
         "no_lists_title": "Inga setlistor än",
         "no_lists_desc": "Tryck på +-knappen längst ner till höger för att skapa en setlista.",
         "no_songs_title": "Inga låtar än",
-        "no_songs_desc": "Tryck på +-knappen längst ner till höger för att lägga till låtar."
+        "no_songs_desc": "Tryck på +-knappen längst ner till höger för att lägga till låtar.",
+        "no_plans_title": "Inga gudstjänstplaner",
+        "no_plans_desc": "Inga nyligen genomförda eller kommande planer hittades på ditt konto."
     },
     "new": {
         "folder": "Skapa mapp",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Temafärg",
+        "connections": "Anslutningar",
+        "connect": "Anslut",
+        "disconnect": "Koppla från",
         "data_management": "Datahantering",
         "export_data": "Exportera all data",
         "import_data": "Importera all data",

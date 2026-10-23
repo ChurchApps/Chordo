@@ -1,6 +1,7 @@
 import type { pages } from "$components/pages/pages"
 import type { popups } from "$components/popups/popups"
 import storage from "$lib/storage/StorageManager.svelte"
+import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
 import { clone } from "$lib/utils/common"
 import { closeSearch, searchState } from "./search.svelte"
 
@@ -201,7 +202,7 @@ export function setFullscreenLyricsOnly(lyricsOnly: boolean): void {
 export function getCurrentSong() {
     if (menuState.activePage !== "song" && menuState.activePage !== "song_live") return null
     const listId = menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null
-    const list = listId ? storage.getListById(listId, storage.lists) : null
+    const list = listId ? (storage.getListById(listId, storage.lists) || getPlanAsList(listId)) : null
     const currentSongIndex = savedFullscreenPosition.index ?? 0
 
     let songId = menuState.contentId
@@ -213,7 +214,7 @@ export function getCurrentSong() {
         }
         songId = listItem?.id ?? null
     }
-    const song = storage.getSongById(songId, storage.songs)
+    const song = storage.getSongById(songId, storage.songs) || getExternalSong(songId)
     return { song, listItem, list, currentSongIndex }
 }
 

@@ -47,7 +47,8 @@
         "copy": "Kopieren",
         "undo": "Rückgängig",
         "redo": "Wiederholen",
-        "open": "Öffnen"
+        "open": "Öffnen",
+        "refresh": "Aktualisieren"
     },
     "pages": {
         "folder": "Ordner",
@@ -81,7 +82,9 @@
         "no_lists_title": "Noch keine Setlisten",
         "no_lists_desc": "Tippe unten rechts auf das Plus-Symbol, um eine Setliste zu erstellen und Songs hinzuzufügen.",
         "no_songs_title": "Noch keine Songs",
-        "no_songs_desc": "Tippe unten rechts auf das Plus-Symbol, um Songs hinzuzufügen."
+        "no_songs_desc": "Tippe unten rechts auf das Plus-Symbol, um Songs hinzuzufügen.",
+        "no_plans_title": "Keine Ablaufpläne",
+        "no_plans_desc": "Keine aktuellen oder bevorstehenden Pläne in deinem Konto gefunden."
     },
     "new": {
         "folder": "Ordner erstellen",
@@ -209,6 +212,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Farbschema",
+        "connections": "Verbindungen",
+        "connect": "Verbinden",
+        "disconnect": "Trennen",
         "data_management": "Datenverwaltung",
         "export_data": "Alle Daten exportieren",
         "import_data": "Alle Daten importieren",

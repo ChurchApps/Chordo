@@ -24,6 +24,25 @@ export function sortByName<T extends { name: string }>(arr: T[]): T[] {
 }
 
 /**
+ * Formats a date timestamp in a localized, user-friendly format (e.g., "Oct 22, 2026" or "22. okt. 2026")
+ * using the user's preferred browser locale.
+ */
+export function formatDate(timestamp: number | string | Date | undefined | null): string {
+    if (!timestamp) return "—"
+    try {
+        const d = new Date(timestamp)
+        if (isNaN(d.getTime())) return "—"
+        return d.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        })
+    } catch {
+        return "—"
+    }
+}
+
+/**
  * Creates a safe, clean file name for downloads/exports across operating systems.
  */
 export function sanitizeFilename(name: string, extension: string = "json"): string {
