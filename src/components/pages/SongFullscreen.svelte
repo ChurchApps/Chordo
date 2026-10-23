@@ -836,21 +836,70 @@
                 {currentPageIndex + 1}/{totalPages}
             </div>
         {:else}
+            {@const songGroups = (() => {
+                const groups: Array<{ key: string | number; pages: number[]; isCurrentSong: boolean }> = []
+                let currentGroup: { key: string | number; pages: number[]; isCurrentSong: boolean } | null = null
+
+                for (let i = 0; i < totalPages; i++) {
+                    const songId = pageSongMap[i]
+                    const songOrigIdx = pageSongIndexMap[i]
+                    const groupKey = songId ?? `idx_${songOrigIdx ?? i}`
+
+                    if (!currentGroup || currentGroup.key !== groupKey) {
+                        currentGroup = {
+                            key: groupKey,
+                            pages: [i],
+                            isCurrentSong: false
+                        }
+                        groups.push(currentGroup)
+                    } else {
+                        currentGroup.pages.push(i)
+                    }
+                }
+
+                for (const group of groups) {
+                    group.isCurrentSong = group.pages.includes(currentPageIndex)
+                }
+
+                return groups
+            })()}
             <div class="progress">
-                {#each Array(totalPages) as _, i}
-                    <button
-                        type="button"
-                        class="dot"
-                        class:active={i === currentPageIndex}
-                        aria-label={`Page ${i + 1}`}
-                        onclick={(e) => {
-                            e.stopPropagation()
-                            if (i !== currentPageIndex) {
-                                currentPageIndex = i
-                                setPositionByIndex(true)
-                            }
-                        }}
-                    ></button>
+                {#each songGroups as group}
+                    {#if group.pages.length > 1}
+                        <div class="song-dot-group" class:active-song={group.isCurrentSong}>
+                            {#each group.pages as pageIdx}
+                                <button
+                                    type="button"
+                                    class="dot"
+                                    class:active={pageIdx === currentPageIndex}
+                                    class:same-song={group.isCurrentSong && pageIdx !== currentPageIndex}
+                                    aria-label={`Page ${pageIdx + 1}`}
+                                    onclick={(e) => {
+                                        e.stopPropagation()
+                                        if (pageIdx !== currentPageIndex) {
+                                            currentPageIndex = pageIdx
+                                            setPositionByIndex(true)
+                                        }
+                                    }}
+                                ></button>
+                            {/each}
+                        </div>
+                    {:else}
+                        {@const pageIdx = group.pages[0]}
+                        <button
+                            type="button"
+                            class="dot"
+                            class:active={pageIdx === currentPageIndex}
+                            aria-label={`Page ${pageIdx + 1}`}
+                            onclick={(e) => {
+                                e.stopPropagation()
+                                if (pageIdx !== currentPageIndex) {
+                                    currentPageIndex = pageIdx
+                                    setPositionByIndex(true)
+                                }
+                            }}
+                        ></button>
+                    {/if}
                 {/each}
             </div>
         {/if}
@@ -1268,10 +1317,29 @@
         transform: translateX(-50%);
         bottom: 14px;
         display: flex;
-        gap: 6px;
+        align-items: center;
+        gap: 5px;
         z-index: 1001;
         pointer-events: auto;
         padding: 4px;
+    }
+
+    .song-dot-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition:
+            background 160ms ease,
+            border-color 160ms ease;
+    }
+
+    .song-dot-group.active-song {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.38);
     }
 
     .progress-number {
@@ -1324,6 +1392,10 @@
     .dot:hover {
         background: rgba(255, 255, 255, 0.7);
         transform: scale(1.2);
+    }
+
+    .dot.same-song {
+        background: rgba(255, 255, 255, 0.65);
     }
 
     .dot.active {
