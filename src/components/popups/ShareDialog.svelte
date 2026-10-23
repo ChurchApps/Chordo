@@ -195,7 +195,7 @@
 </script>
 
 <md-dialog open onclosed={closeDialog} class="share-dialog">
-    <div slot="headline" class="share-headline">
+    <div slot="headline" class="dialog-header">
         <span class="material-symbols-outlined headline-icon">share</span>
         <span>{isSong ? t("menu", "share_song") : t("menu", "share_list")}</span>
     </div>
@@ -337,7 +337,7 @@
 </md-dialog>
 
 <style>
-    .share-headline {
+    .dialog-header {
         display: flex;
         align-items: center;
         gap: 10px;

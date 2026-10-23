@@ -335,14 +335,7 @@
                                     <md-menu-item
                                         onclick={() => {
                                             moreMenuOpen = false
-                                            const fileInput = document.createElement("input")
-                                            fileInput.type = "file"
-                                            fileInput.accept = ".json,application/json"
-                                            fileInput.onchange = (e) => {
-                                                const file = (e.target as HTMLInputElement).files?.[0]
-                                                if (file) importSetlistFile(file)
-                                            }
-                                            fileInput.click()
+                                            setActivePopup("import_song")
                                         }}
                                     >
                                         <span class="material-symbols-outlined" slot="start">upload</span>
@@ -491,14 +484,7 @@
                                     <md-menu-item
                                         onclick={() => {
                                             moreMenuOpen = false
-                                            const fileInput = document.createElement("input")
-                                            fileInput.type = "file"
-                                            fileInput.accept = ".json,application/json"
-                                            fileInput.onchange = (e) => {
-                                                const file = (e.target as HTMLInputElement).files?.[0]
-                                                if (file) importSetlistFile(file)
-                                            }
-                                            fileInput.click()
+                                            setActivePopup("import_list")
                                         }}
                                     >
                                         <span class="material-symbols-outlined" slot="start">upload</span>
