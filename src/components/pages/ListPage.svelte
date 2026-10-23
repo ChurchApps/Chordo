@@ -4,21 +4,21 @@
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { getPlanAsList, getExternalSong, integrationState } from "$lib/integrations/integrationState.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
+    import { createHoldToSelect } from "$lib/utils/holdToSelect"
     import { onDestroy, untrack } from "svelte"
     import { slide } from "svelte/transition"
     import Song from "../song/Song.svelte"
 
     onDestroy(() => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer)
-            longPressTimer = null
-        }
+        selection.clearTimer()
     })
 
     let listId = $derived(menuState.contentId)
-    let list = $derived(storage.getListById(listId, storage.lists))
-    let listItems = $derived(list ? list.getListItems(storage.songs) : [])
+    let isExternal = $derived(!storage.getListById(listId, storage.lists) && !!getPlanAsList(listId))
+    let list = $derived(storage.getListById(listId, storage.lists) || getPlanAsList(listId))
+    let listItems = $derived(list ? list.getListItems(storage.songs, getExternalSong) : [])
 
     let lastTouchedListId: string | null = null
     $effect(() => {
@@ -28,6 +28,7 @@
             untrack(() => {
                 const target = storage.getListById(id)
                 target?.touch()
+                if (isExternal) integrationState.markPlanAsSeen(id)
             })
         }
     })
@@ -73,20 +74,26 @@
                 const item = listItems[selectedIndices[0]]
                 listEditingState.selectedIndex = selectedIndices[0]
                 listEditingState.onEditSelected = item && !item.isDeleted ? editSelectedSong : undefined
+                listEditingState.editActionType = item?.type === "section" ? "rename" : "edit"
             } else {
                 listEditingState.onEditSelected = undefined
                 listEditingState.selectedIndex = undefined
+                listEditingState.editActionType = undefined
             }
         } else {
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.selectedIndex = undefined
+            listEditingState.editActionType = undefined
             selectedIndices = []
         }
     })
 
-    let longPressTimer: ReturnType<typeof setTimeout> | null = null
-    let longPressed = false
+    const selection = createHoldToSelect(
+        () => selectedIndices,
+        (indices) => (selectedIndices = indices),
+        { disabled: () => isExternal }
+    )
 
     let reorderState = $state<ReorderState>({
         draggedIdx: null,
@@ -114,31 +121,11 @@
         }
     }
 
-    function startPress(e: PointerEvent, originalIdx: number) {
-        if (e.button !== 0) return
-        longPressed = false
-        longPressTimer = setTimeout(() => {
-            longPressed = true
-            listEditingState.isEditing = true
-            if (!selectedIndices.includes(originalIdx)) {
-                selectedIndices = [...selectedIndices, originalIdx]
-            }
-            if (navigator.vibrate) navigator.vibrate(50)
-        }, 500)
-    }
-
-    function endPress() {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer)
-            longPressTimer = null
-        }
-    }
-
     /**
      * Ensures edit mode is active and the targeted item is part of the batch before dragging.
      */
     function prepareImmediateDrag(originalIdx: number) {
-        endPress()
+        selection.clearTimer()
         if (!listEditingState.isEditing) {
             listEditingState.isEditing = true
         }
@@ -157,27 +144,8 @@
         handlePointerDragStart(e, originalIdx, selectedIndices, reorderState, onBatchMove, onDragEnd)
     }
 
-    function handleContextMenu(e: MouseEvent, originalIdx: number) {
-        e.preventDefault()
-        listEditingState.isEditing = true
-        if (!selectedIndices.includes(originalIdx)) {
-            selectedIndices = [...selectedIndices, originalIdx]
-        }
-    }
-
     function handleItemClick(item: ListSongDisplayItem, originalIdx: number) {
-        if (longPressed) {
-            longPressed = false
-            return
-        }
-        if (isEditing) {
-            if (selectedIndices.includes(originalIdx)) {
-                selectedIndices = selectedIndices.filter((i) => i !== originalIdx)
-            } else {
-                selectedIndices = [...selectedIndices, originalIdx]
-            }
-            return
-        }
+        if (selection.handleClick(originalIdx, false)) return
         if (item.isDeleted) return
 
         savedFullscreenPosition.pageIndex = null
@@ -212,10 +180,10 @@
                         class:deleted-item={songItem.isDeleted}
                         class:section-item={songItem.type === "section"}
                         disabled={songItem.isDeleted && !isEditing}
-                        onpointerdown={(e: PointerEvent) => startPress(e, originalIdx)}
-                        onpointerup={endPress}
-                        onpointerleave={endPress}
-                        oncontextmenu={(e: MouseEvent) => handleContextMenu(e, originalIdx)}
+                        onpointerdown={(e: PointerEvent) => selection.startPress(e, originalIdx)}
+                        onpointerup={selection.endPress}
+                        onpointerleave={selection.endPress}
+                        oncontextmenu={(e: MouseEvent) => selection.handleContextMenu(e, originalIdx)}
                         onclick={() => handleItemClick(songItem, originalIdx)}
                     >
                         {#if isEditing}
@@ -240,11 +208,8 @@
 
                         {#if !songItem.isDeleted && songItem.type !== "section" && (artist || key)}
                             <div slot="supporting-text">
-                                {artist || ""}
-                                {#if artist && key}
-                                    •
-                                {/if}
-                                {#if key}{t("common", "key")}: {key}{/if}
+                                {#if artist}<span class="supporting-artist">{artist}</span>{/if}
+                                {#if key}<span class="supporting-key">{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
                             </div>
                         {/if}
 
@@ -268,7 +233,14 @@
             <div class="empty-state">
                 <span class="material-symbols-outlined empty-icon">library_music</span>
                 <h2>{t("empty_state", "no_songs_title")}</h2>
-                <p>{t("empty_state", "no_songs_desc")}</p>
+                {#if !isExternal}
+                    <p>{t("empty_state", "no_songs_desc")}</p>
+                {:else}
+                    <md-outlined-button onclick={() => integrationState.syncPlans()} style="margin-top: 16px;">
+                        <span class="material-symbols-outlined" slot="icon">refresh</span>
+                        {t("common", "refresh")}
+                    </md-outlined-button>
+                {/if}
             </div>
         </div>
     {/if}
@@ -301,17 +273,19 @@
     {/if}
 </main>
 
-<div class="fab-container">
-    {#if isEditing}
-        <md-fab aria-label={t("common", "done")} onclick={() => (listEditingState.isEditing = false)}>
-            <span class="material-symbols-outlined" slot="icon">check</span>
-        </md-fab>
-    {:else}
-        <md-fab aria-label={t("common", "add")} onclick={() => setActivePage("all_songs", listId, t("pages", "add_songs"))}>
-            <span class="material-symbols-outlined" slot="icon">add</span>
-        </md-fab>
-    {/if}
-</div>
+{#if !isExternal}
+    <div class="fab-container">
+        {#if isEditing}
+            <md-fab aria-label={t("common", "done")} onclick={() => (listEditingState.isEditing = false)}>
+                <span class="material-symbols-outlined" slot="icon">check</span>
+            </md-fab>
+        {:else}
+            <md-fab aria-label={t("common", "add")} onclick={() => setActivePage("all_songs", listId, t("pages", "add_songs"))}>
+                <span class="material-symbols-outlined" slot="icon">add</span>
+            </md-fab>
+        {/if}
+    </div>
+{/if}
 
 <style>
     main {
@@ -393,7 +367,8 @@
 
     .section-icon {
         color: var(--md-sys-color-on-surface, #1b1b1f);
-        --md-icon-size: 20px;
+        --md-icon-size: 24px;
+        font-size: 20px;
     }
 
     md-list-item.section-item {

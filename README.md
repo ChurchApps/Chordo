@@ -13,6 +13,11 @@
 - Create setlists
 - Share with others
 - Transpose
+- Metronome
+- Annotation
+- Auto scroll
+- Dark/light mode
+- Pull data from ChurchApps (B1.church) and Planning Center
 - And much more
 
 ### Run locally

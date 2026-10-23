@@ -177,8 +177,8 @@
         }
 
         storage.persist()
-        clearSharePayload()
         setActivePage("song", songToOpen.id, songToOpen.name)
+        clearSharePayload()
     }
 
     async function importList() {
@@ -329,8 +329,12 @@
         }
 
         storage.persist()
-        clearSharePayload()
         setActivePage("list", listToOpen.id, listToOpen.name)
+        clearSharePayload()
+    }
+
+    function handleSongItemClick() {
+        showToast(t("share", "import_to_open_song"), "info")
     }
 </script>
 
@@ -458,7 +462,8 @@
                             {@const isPlaying = playbackState.isOpen && (playbackState.songId === song.id || (pbUrl && playbackState.customPlaybackUrl === pbUrl))}
                             {@const key = item.transposed || song.lastTransposed || song.getMetadata("key")}
 
-                            <div class="song-row">
+                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                            <div class="song-row" role="button" tabindex="0" onclick={handleSongItemClick}>
                                 <span class="track-num">{item.songIndex}</span>
 
                                 <div class="song-main">
@@ -477,7 +482,10 @@
                                         <button
                                             class="play-btn"
                                             class:active={isPlaying}
-                                            onclick={() => handleSongPlayback(song)}
+                                            onclick={(e) => {
+                                                e.stopPropagation()
+                                                handleSongPlayback(song)
+                                            }}
                                             title={`Play with ${pbInfo.provider === "spotify" ? "Spotify" : pbInfo.provider === "youtube" ? "YouTube" : pbInfo.provider}`}
                                             aria-label={`Play ${song.name}`}
                                         >
@@ -725,6 +733,14 @@
         border-radius: 8px;
         background: var(--md-sys-color-surface, #ffffff);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        cursor: pointer;
+        transition:
+            background-color 0.15s,
+            box-shadow 0.15s;
+    }
+
+    .song-row:hover {
+        background: var(--md-sys-color-surface-container-high, #e8e8e8);
     }
 
     .track-num {

@@ -18,7 +18,12 @@ export const SUPPORTED_LANGUAGES = [
     { code: "fr", label: "Français", prefixes: ["fr"] },
     { code: "pt", label: "Português", prefixes: ["pt"] },
     { code: "it", label: "Italiano", prefixes: ["it"] },
-    { code: "nl", label: "Nederlands", prefixes: ["nl"] }
+    { code: "nl", label: "Nederlands", prefixes: ["nl"] },
+    { code: "uk", label: "Українська", prefixes: ["uk"] },
+    { code: "ru", label: "Русский", prefixes: ["ru"] },
+    { code: "zh", label: "中文", prefixes: ["zh"] },
+    { code: "ja", label: "日本語", prefixes: ["ja"] },
+    { code: "ko", label: "한국어", prefixes: ["ko"] }
 ] as const
 
 export type SupportedLocale = (typeof SUPPORTED_LANGUAGES)[number]["code"]

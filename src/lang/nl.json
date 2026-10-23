@@ -47,7 +47,11 @@
         "copy": "Kopiëren",
         "undo": "Ongedaan maken",
         "redo": "Opnieuw",
-        "open": "Openen"
+        "open": "Openen",
+        "refresh": "Vernieuwen",
+        "move": "Verplaatsen",
+        "new": "Nieuw",
+        "changed": "Gewijzigd"
     },
     "pages": {
         "folder": "Map",
@@ -57,6 +61,11 @@
         "all_songs": "Alle nummers",
         "add_songs": "Nummers toevoegen",
         "share_preview": "Gedeeld item importeren"
+    },
+    "folder": {
+        "move_to_folder": "Verplaatsen naar map",
+        "moved_single": "Verplaatst naar {folder}",
+        "moved_plural": "{count} setlists verplaatst naar {folder}"
     },
     "folder_types": {
         "shared": "Met jou gedeeld"
@@ -81,7 +90,9 @@
         "no_lists_title": "Nog geen setlists",
         "no_lists_desc": "Tik rechtsonder op de + knop om je eerste setlist aan te maken.",
         "no_songs_title": "Nog geen nummers",
-        "no_songs_desc": "Tik rechtsonder op de + knop om nummers toe te voegen."
+        "no_songs_desc": "Tik rechtsonder op de + knop om nummers toe te voegen.",
+        "no_plans_title": "Geen dienstroosters",
+        "no_plans_desc": "Geen recente of aankomende roosters gevonden in je account."
     },
     "new": {
         "folder": "Map maken",
@@ -110,15 +121,9 @@
         "share_song": "Nummer delen",
         "print": "Afdrukken",
         "import_song": "Nummer importeren",
-        "delete_song": "Nummer verwijderen",
-        "rename_list": "Setlist hernoemen",
-        "duplicate_list": "Setlist dupliceren",
         "share_list": "Setlist delen",
         "import_list": "Setlist importeren",
         "export_as": "Exporteren als",
-        "delete_list": "Setlist verwijderen",
-        "rename_folder": "Map hernoemen",
-        "delete_folder": "Map verwijderen",
         "auto_scroll": "Automatisch scrollen"
     },
     "confirm": {
@@ -129,7 +134,11 @@
         "delete_list_title": "Setlist verwijderen?",
         "delete_list_msg": "Weet je zeker dat je deze setlist wilt verwijderen?",
         "delete_folder_title": "Map verwijderen?",
-        "delete_folder_msg": "Weet je zeker dat je deze map wilt verwijderen?",
+        "delete_folder_msg": "Weet je zeker dat je deze map en alle bijbehorende setlists wilt verwijderen?",
+        "delete_lists_title": "Setlists verwijderen?",
+        "delete_lists_msg": "Weet je zeker dat je {count} setlists wilt verwijderen?",
+        "delete_folders_title": "Mappen verwijderen?",
+        "delete_folders_msg": "Weet je zeker dat je {count} mappen en alle bijbehorende setlists wilt verwijderen?",
         "overwrite_songs_title": "Bestaande nummers overschrijven?",
         "overwrite_song_msg": "1 nummer in deze setlist staat al in je bibliotheek. Wil je het overschrijven met de gedeelde versie of je eigen versie behouden?",
         "overwrite_songs_msg": "{count} nummers in deze setlist staan al in je bibliotheek. Wil je ze overschrijven of je bestaande versies behouden?",
@@ -209,6 +218,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Themakleur",
+        "connections": "Verbindingen",
+        "connect": "Verbinden",
+        "disconnect": "Verbinding verbreken",
         "data_management": "Gegevensbeheer",
         "export_data": "Alle gegevens exporteren",
         "import_data": "Alle gegevens importeren",
@@ -276,7 +288,8 @@
         "no_limit": "Geen limiet",
         "days": "dagen",
         "access_expired": "Toegang verlopen",
-        "access_expired_msg": "Toegang tot deze gedeelde inhoud is verlopen."
+        "access_expired_msg": "Toegang tot deze gedeelde inhoud is verlopen.",
+        "import_to_open_song": "Importeer de setlijst om het nummer te openen"
     },
     "export": {
         "success": "Succesvol geëxporteerd!",

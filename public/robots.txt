@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+
+# Allow all regular content
+Allow: /
+
+# Disallow API and OAuth callback endpoints
+Disallow: /api/
+Disallow: /oauth/
+Disallow: /oauth/callback

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { closeConfirm, confirmState } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
+    import BaseDialog from "./BaseDialog.svelte"
 
     let isActionTaken = false
 
@@ -42,29 +43,20 @@
 </script>
 
 {#if confirmState.isOpen}
-    <md-dialog open onclosed={handleCancel}>
-        <div slot="headline">
-            {confirmState.config?.title ?? t("common", "confirm")}
-        </div>
-
-        <div slot="content" class="dialog-content">
+    <BaseDialog open={confirmState.isOpen} title={confirmState.config?.title ?? t("common", "confirm")} onclose={handleCancel}>
+        <div class="dialog-content">
             {confirmState.config?.message ?? ""}
         </div>
 
-        <div slot="actions">
+        {#snippet actions()}
             <md-text-button role="button" tabindex="0" onclick={handleSecondary}>
                 {confirmState.config?.secondaryLabel ?? confirmState.config?.cancelLabel ?? t("common", "cancel")}
             </md-text-button>
-            <md-filled-button
-                role="button"
-                tabindex="0"
-                class:destructive={confirmState.config?.isDestructive}
-                onclick={handleConfirm}
-            >
+            <md-filled-button role="button" tabindex="0" class:destructive={confirmState.config?.isDestructive} onclick={handleConfirm}>
                 {confirmState.config?.confirmLabel ?? t("common", "confirm")}
             </md-filled-button>
-        </div>
-    </md-dialog>
+        {/snippet}
+    </BaseDialog>
 {/if}
 
 <style>

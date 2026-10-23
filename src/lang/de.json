@@ -47,7 +47,11 @@
         "copy": "Kopieren",
         "undo": "Rückgängig",
         "redo": "Wiederholen",
-        "open": "Öffnen"
+        "open": "Öffnen",
+        "refresh": "Aktualisieren",
+        "move": "Verschieben",
+        "new": "Neu",
+        "changed": "Geändert"
     },
     "pages": {
         "folder": "Ordner",
@@ -57,6 +61,11 @@
         "all_songs": "Alle Songs",
         "add_songs": "Songs hinzufügen",
         "share_preview": "Geteilte Inhalte importieren"
+    },
+    "folder": {
+        "move_to_folder": "In Ordner verschieben",
+        "moved_single": "In {folder} verschoben",
+        "moved_plural": "{count} Setlisten in {folder} verschoben"
     },
     "folder_types": {
         "shared": "Mit dir geteilt"
@@ -81,7 +90,9 @@
         "no_lists_title": "Noch keine Setlisten",
         "no_lists_desc": "Tippe unten rechts auf das Plus-Symbol, um eine Setliste zu erstellen und Songs hinzuzufügen.",
         "no_songs_title": "Noch keine Songs",
-        "no_songs_desc": "Tippe unten rechts auf das Plus-Symbol, um Songs hinzuzufügen."
+        "no_songs_desc": "Tippe unten rechts auf das Plus-Symbol, um Songs hinzuzufügen.",
+        "no_plans_title": "Keine Ablaufpläne",
+        "no_plans_desc": "Keine aktuellen oder bevorstehenden Pläne in deinem Konto gefunden."
     },
     "new": {
         "folder": "Ordner erstellen",
@@ -110,15 +121,9 @@
         "share_song": "Song teilen",
         "print": "Drucken",
         "import_song": "Song importieren",
-        "delete_song": "Song löschen",
-        "rename_list": "Setliste umbenennen",
-        "duplicate_list": "Setliste duplizieren",
         "share_list": "Setliste teilen",
         "import_list": "Setliste importieren",
         "export_as": "Exportieren als",
-        "delete_list": "Setliste löschen",
-        "rename_folder": "Ordner umbenennen",
-        "delete_folder": "Ordner löschen",
         "auto_scroll": "Automatischer Bildlauf"
     },
     "confirm": {
@@ -129,7 +134,11 @@
         "delete_list_title": "Setliste löschen?",
         "delete_list_msg": "Bist du sicher, dass du diese Setliste löschen möchtest?",
         "delete_folder_title": "Ordner löschen?",
-        "delete_folder_msg": "Bist du sicher, dass du diesen Ordner löschen möchtest?",
+        "delete_folder_msg": "Bist du sicher, dass du diesen Ordner und alle seine Setlisten löschen möchtest?",
+        "delete_lists_title": "Setlisten löschen?",
+        "delete_lists_msg": "Bist du sicher, dass du {count} Setlisten löschen möchtest?",
+        "delete_folders_title": "Ordner löschen?",
+        "delete_folders_msg": "Bist du sicher, dass du {count} Ordner und alle ihre Setlisten löschen möchtest?",
         "overwrite_songs_title": "Bestehende Songs überschreiben?",
         "overwrite_song_msg": "1 Song in dieser Setliste existiert bereits in deiner Bibliothek. Möchtest du ihn mit der geteilten Version überschreiben oder deine behalten?",
         "overwrite_songs_msg": "{count} Songs in dieser Setliste existieren bereits in deiner Bibliothek. Möchtest du sie überschreiben oder die bestehenden behalten?",
@@ -209,6 +218,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Farbschema",
+        "connections": "Verbindungen",
+        "connect": "Verbinden",
+        "disconnect": "Trennen",
         "data_management": "Datenverwaltung",
         "export_data": "Alle Daten exportieren",
         "import_data": "Alle Daten importieren",
@@ -276,7 +288,8 @@
         "no_limit": "Kein Limit",
         "days": "Tage",
         "access_expired": "Zugriff abgelaufen",
-        "access_expired_msg": "Der Zugriff auf diese geteilten Inhalte ist abgelaufen."
+        "access_expired_msg": "Der Zugriff auf diese geteilten Inhalte ist abgelaufen.",
+        "import_to_open_song": "Setliste importieren, um Song zu öffnen"
     },
     "export": {
         "success": "Erfolgreich exportiert!",

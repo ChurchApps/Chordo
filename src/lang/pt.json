@@ -47,7 +47,11 @@
         "copy": "Copiar",
         "undo": "Desfazer",
         "redo": "Refazer",
-        "open": "Abrir"
+        "open": "Abrir",
+        "refresh": "Atualizar",
+        "move": "Mover",
+        "new": "Novo",
+        "changed": "Alterado"
     },
     "pages": {
         "folder": "Pasta",
@@ -57,6 +61,11 @@
         "all_songs": "Todas as músicas",
         "add_songs": "Adicionar músicas",
         "share_preview": "Importar compartilhado"
+    },
+    "folder": {
+        "move_to_folder": "Mover para pasta",
+        "moved_single": "Movido para {folder}",
+        "moved_plural": "{count} listas movidas para {folder}"
     },
     "folder_types": {
         "shared": "Compartilhado com você"
@@ -81,7 +90,9 @@
         "no_lists_title": "Nenhum repertório ainda",
         "no_lists_desc": "Toque no botão + no canto inferior direito para criar seu primeiro repertório.",
         "no_songs_title": "Nenhuma música ainda",
-        "no_songs_desc": "Toque no botão + no canto inferior direito para adicionar músicas."
+        "no_songs_desc": "Toque no botão + no canto inferior direito para adicionar músicas.",
+        "no_plans_title": "Nenhum plano de culto",
+        "no_plans_desc": "Nenhum plano recente ou futuro encontrado na sua conta."
     },
     "new": {
         "folder": "Criar pasta",
@@ -110,15 +121,9 @@
         "share_song": "Compartilhar música",
         "print": "Imprimir",
         "import_song": "Importar música",
-        "delete_song": "Excluir música",
-        "rename_list": "Renomear repertório",
-        "duplicate_list": "Duplicar repertório",
         "share_list": "Compartilhar repertório",
         "import_list": "Importar repertório",
         "export_as": "Exportar como",
-        "delete_list": "Excluir repertório",
-        "rename_folder": "Renomear pasta",
-        "delete_folder": "Excluir pasta",
         "auto_scroll": "Rolagem automática"
     },
     "confirm": {
@@ -129,7 +134,11 @@
         "delete_list_title": "Excluir repertório?",
         "delete_list_msg": "Tem certeza de que deseja excluir este repertório?",
         "delete_folder_title": "Excluir pasta?",
-        "delete_folder_msg": "Tem certeza de que deseja excluir esta pasta?",
+        "delete_folder_msg": "Tem certeza de que deseja excluir esta pasta e todas as suas listas?",
+        "delete_lists_title": "Excluir repertórios?",
+        "delete_lists_msg": "Tem certeza de que deseja excluir {count} repertórios?",
+        "delete_folders_title": "Excluir pastas?",
+        "delete_folders_msg": "Tem certeza de que deseja excluir {count} pastas e todas as suas listas?",
         "overwrite_songs_title": "Substituir músicas existentes?",
         "overwrite_song_msg": "1 música deste repertório já existe na sua biblioteca. Deseja substituí-la pela versão compartilhada ou manter a versão atual?",
         "overwrite_songs_msg": "{count} músicas deste repertório já existem na sua biblioteca. Deseja substituí-las pelas versões compartilhadas ou manter as versões atuais?",
@@ -209,6 +218,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Cor do tema",
+        "connections": "Conexões",
+        "connect": "Conectar",
+        "disconnect": "Desconectar",
         "data_management": "Gerenciamento de dados",
         "export_data": "Exportar todos os dados",
         "import_data": "Importar todos os dados",
@@ -276,7 +288,8 @@
         "no_limit": "Sem limite",
         "days": "dias",
         "access_expired": "Acesso expirado",
-        "access_expired_msg": "O acesso a este conteúdo compartilhado expirou."
+        "access_expired_msg": "O acesso a este conteúdo compartilhado expirou.",
+        "import_to_open_song": "Importe o repertório para abrir a música"
     },
     "export": {
         "success": "Exportado com sucesso!",

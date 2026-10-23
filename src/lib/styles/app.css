@@ -265,10 +265,40 @@ md-select-option * {
     background-color: transparent !important;
 }
 
+md-list-item,
+md-item,
+.dialog-header,
+.section-title,
+.group-header {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 md-list-item [slot="headline"] {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+md-list-item [slot="supporting-text"] {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.supporting-artist {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.supporting-key {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .item-count {
@@ -335,18 +365,6 @@ md-list-item [slot="headline"] {
 
     padding: 0;
     /* background: rgba(255, 255, 255, 0.02); */
-}
-
-.scroll-list::-webkit-scrollbar {
-    height: 10px;
-    width: 10px;
-}
-.scroll-list::-webkit-scrollbar-thumb {
-    background: rgba(208, 188, 255, 0.18);
-    border-radius: 10px;
-}
-.scroll-list::-webkit-scrollbar-track {
-    background: transparent;
 }
 
 @media print {

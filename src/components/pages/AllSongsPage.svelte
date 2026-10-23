@@ -6,6 +6,8 @@
     import { searchState } from "$lib/state/search.svelte"
     import { resetSetlistAddSort, songSortState } from "$lib/state/songSort.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { formatDate } from "$lib/utils/common"
+    import { createHoldToSelect } from "$lib/utils/holdToSelect"
     import { onDestroy, onMount } from "svelte"
 
     let songs = $derived(Songs.get(storage.songs, null, songSortState.sortBy))
@@ -28,10 +30,7 @@
     })
 
     onDestroy(() => {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer)
-            longPressTimer = null
-        }
+        selection.clearTimer()
         if (listOpened) {
             resetSetlistAddSort()
         }
@@ -101,95 +100,46 @@
             listEditingState.onDeleteSelected = selectedSongIds.length > 0 ? removeSelectedSongs : undefined
             if (selectedSongIds.length === 1) {
                 listEditingState.onEditSelected = editSelectedSong
+                listEditingState.editActionType = "edit"
             } else {
                 listEditingState.onEditSelected = undefined
+                listEditingState.editActionType = undefined
             }
         } else if (!isEditing) {
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
+            listEditingState.editActionType = undefined
             selectedSongIds = []
         }
     })
 
-    let longPressTimer: ReturnType<typeof setTimeout> | null = null
-    let longPressed = false
-
-    function startPress(e: PointerEvent, songId: string) {
-        if (listOpened || e.button !== 0) return
-        longPressed = false
-        longPressTimer = setTimeout(() => {
-            longPressed = true
-            listEditingState.isEditing = true
-            if (!selectedSongIds.includes(songId)) {
-                selectedSongIds = [...selectedSongIds, songId]
-            }
-            if (navigator.vibrate) navigator.vibrate(50)
-        }, 500)
-    }
-
-    function endPress() {
-        if (longPressTimer) {
-            clearTimeout(longPressTimer)
-            longPressTimer = null
-        }
-    }
-
-    function handleContextMenu(e: MouseEvent, songId: string) {
-        if (listOpened) return
-        e.preventDefault()
-        listEditingState.isEditing = true
-        if (!selectedSongIds.includes(songId)) {
-            selectedSongIds = [...selectedSongIds, songId]
-        }
-    }
+    const selection = createHoldToSelect(
+        () => selectedSongIds,
+        (ids) => (selectedSongIds = ids),
+        { disabled: () => listOpened }
+    )
 
     function handleItemClick(songId: string, songName: string) {
-        if (longPressed) {
-            longPressed = false
-            return
-        }
         if (listOpened) {
             toggleSong(songId)
             return
         }
-        if (isEditing) {
-            if (selectedSongIds.includes(songId)) {
-                selectedSongIds = selectedSongIds.filter((id) => id !== songId)
-                if (selectedSongIds.length === 0) {
-                    listEditingState.isEditing = false
-                }
-            } else {
-                selectedSongIds = [...selectedSongIds, songId]
-            }
-            return
-        }
+        if (selection.handleClick(songId)) return
         openSong(songId, songName)
     }
 </script>
 
 <main>
-    {#if listOpened && !isSearching}
-        <md-list class="section-create-list">
-            <md-list-item type="button" class="create-section-item" onclick={() => setActivePopup("create_section")}>
-                <div slot="headline" class="create-section-title">{t("list", "create_section")}</div>
-                <md-icon slot="start" class="create-section-icon">bookmark_add</md-icon>
-                <md-icon slot="end" style="opacity: 0.8;">add</md-icon>
-            </md-list-item>
-        </md-list>
-    {/if}
-
     {#if filteredSongs.length}
         <md-list class="song-list scroll-list">
             {#each filteredSongs as song, idx}
-                {@const isSelected = listOpened ? addSongsOrder.includes(song.id) : isEditing && selectedSongIds.includes(song.id)}
-                {@const rawArtist = (song.metadata?.artist || song.getMetadata("artist") || "").trim()}
-                {@const prevRawArtist = idx > 0 ? (filteredSongs[idx - 1].metadata?.artist || filteredSongs[idx - 1].getMetadata("artist") || "").trim() : null}
-                {@const showArtistHeader = isArtistSort && (idx === 0 || rawArtist.toLowerCase() !== prevRawArtist?.toLowerCase())}
-                {@const artist = rawArtist}
-                {@const key = song.metadata?.key || song.getMetadata("key") || ""}
-
-                {@const dateStr = song.createdAt ? new Date(song.createdAt).toLocaleDateString() : "—"}
-                {@const prevDateStr = idx > 0 ? (filteredSongs[idx - 1].createdAt ? new Date(filteredSongs[idx - 1].createdAt).toLocaleDateString() : "—") : null}
+                {@const isSelected = listOpened ? addSongsOrder.includes(song.id) : selectedSongIds.includes(song.id)}
+                {@const artist = song.metadata?.artist}
+                {@const key = song.metadata?.key}
+                {@const prevArtist = idx > 0 ? filteredSongs[idx - 1].metadata?.artist : null}
+                {@const dateStr = formatDate(song.metadata?.created ?? song.metadata?.date)}
+                {@const prevDateStr = idx > 0 ? formatDate(filteredSongs[idx - 1].metadata?.created ?? filteredSongs[idx - 1].metadata?.date) : null}
+                {@const showArtistHeader = isArtistSort && (idx === 0 || (artist || t("sort", "no_artist")) !== (prevArtist || t("sort", "no_artist")))}
                 {@const showDateHeader = isDateSort && (idx === 0 || dateStr !== prevDateStr)}
 
                 {#if showArtistHeader}
@@ -205,18 +155,17 @@
                 <md-list-item
                     type="button"
                     class:selected={isSelected}
-                    onpointerdown={(e: PointerEvent) => startPress(e, song.id)}
-                    onpointerup={endPress}
-                    onpointerleave={endPress}
-                    oncontextmenu={(e: MouseEvent) => handleContextMenu(e, song.id)}
+                    onpointerdown={(e: PointerEvent) => selection.startPress(e, song.id)}
+                    onpointerup={selection.endPress}
+                    onpointerleave={selection.endPress}
+                    oncontextmenu={(e: MouseEvent) => selection.handleContextMenu(e, song.id)}
                     onclick={() => handleItemClick(song.id, song.name)}
                 >
                     <div slot="headline">{song.name}</div>
                     {#if (!isArtistSort && artist) || key}
                         <div slot="supporting-text">
-                            {#if !isArtistSort && artist}{artist}{/if}
-                            {#if !isArtistSort && artist && key} • {/if}
-                            {#if key}{t("common", "key")}: {key}{/if}
+                            {#if !isArtistSort && artist}<span class="supporting-artist">{artist}</span>{/if}
+                            {#if key}<span class="supporting-key">{#if !isArtistSort && artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
                         </div>
                     {/if}
                     <md-icon slot="start">music_note</md-icon>
@@ -258,11 +207,7 @@
         <md-fab aria-label={t("common", "done")} onclick={addSongs}>
             <span class="material-symbols-outlined" slot="icon">check</span>
         </md-fab>
-    {:else if !listOpened && isEditing}
-        <md-fab aria-label={t("common", "done")} onclick={() => (listEditingState.isEditing = false)}>
-            <span class="material-symbols-outlined" slot="icon">check</span>
-        </md-fab>
-    {:else}
+    {:else if !isEditing}
         <md-fab aria-label={t("common", "add")} onclick={() => setActivePopup("create_song")}>
             <span class="material-symbols-outlined" slot="icon">add</span>
         </md-fab>

@@ -16,6 +16,7 @@
     import "@material/web/iconbutton/outlined-icon-button.js"
     import "@material/web/progress/linear-progress.js"
     import "@material/web/switch/switch.js"
+    import BaseDialog from "./BaseDialog.svelte"
 
     let copyTimeout: ReturnType<typeof setTimeout> | undefined
     onDestroy(() => {
@@ -194,13 +195,8 @@
     }
 </script>
 
-<md-dialog open onclosed={closeDialog} class="share-dialog">
-    <div slot="headline" class="share-headline">
-        <span class="material-symbols-outlined headline-icon">share</span>
-        <span>{isSong ? t("menu", "share_song") : t("menu", "share_list")}</span>
-    </div>
-
-    <div slot="content" class="share-dialog-content">
+<BaseDialog open icon="share" title={isSong ? t("menu", "share_song") : t("menu", "share_list")} onclose={closeDialog}>
+    <div class="share-dialog-content">
         <!-- Options Section -->
         {#if hasMedia || hasDrawings}
             <div class="section-container">
@@ -331,24 +327,12 @@
         </div>
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "close")}</md-text-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .share-headline {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--md-sys-color-on-surface, #1d1b20);
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary, #6750a4);
-        font-size: 26px;
-    }
-
     .share-dialog-content {
         display: flex;
         flex-direction: column;

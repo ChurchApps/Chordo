@@ -47,7 +47,11 @@
         "copy": "Copia",
         "undo": "Annulla",
         "redo": "Ripeti",
-        "open": "Apri"
+        "open": "Apri",
+        "refresh": "Aggiorna",
+        "move": "Sposta",
+        "new": "Nuovo",
+        "changed": "Modificato"
     },
     "pages": {
         "folder": "Cartella",
@@ -57,6 +61,11 @@
         "all_songs": "Tutti i brani",
         "add_songs": "Aggiungi brani",
         "share_preview": "Importa condivisione"
+    },
+    "folder": {
+        "move_to_folder": "Sposta nella cartella",
+        "moved_single": "Spostato in {folder}",
+        "moved_plural": "Spostate {count} scalette in {folder}"
     },
     "folder_types": {
         "shared": "Condiviso con te"
@@ -81,7 +90,9 @@
         "no_lists_title": "Nessuna scaletta ancora",
         "no_lists_desc": "Tocca il pulsante + in basso a destra per creare la tua prima scaletta.",
         "no_songs_title": "Nessun brano ancora",
-        "no_songs_desc": "Tocca il pulsante + in basso a destra per aggiungere brani."
+        "no_songs_desc": "Tocca il pulsante + in basso a destra per aggiungere brani.",
+        "no_plans_title": "Nessun programma di servizio",
+        "no_plans_desc": "Nessun programma recente o imminente trovato nel tuo account."
     },
     "new": {
         "folder": "Crea cartella",
@@ -110,15 +121,9 @@
         "share_song": "Condividi brano",
         "print": "Stampa",
         "import_song": "Importa brano",
-        "delete_song": "Elimina brano",
-        "rename_list": "Rinomina scaletta",
-        "duplicate_list": "Duplica scaletta",
         "share_list": "Condividi scaletta",
         "import_list": "Importa scaletta",
         "export_as": "Esporta come",
-        "delete_list": "Elimina scaletta",
-        "rename_folder": "Rinomina cartella",
-        "delete_folder": "Elimina cartella",
         "auto_scroll": "Scorrimento automatico"
     },
     "confirm": {
@@ -129,7 +134,11 @@
         "delete_list_title": "Eliminare scaletta?",
         "delete_list_msg": "Sei sicuro di voler eliminare questa scaletta?",
         "delete_folder_title": "Eliminare cartella?",
-        "delete_folder_msg": "Sei sicuro di voler eliminare questa cartella?",
+        "delete_folder_msg": "Sei sicuro di voler eliminare questa cartella e tutte le sue scalette?",
+        "delete_lists_title": "Eliminare scalette?",
+        "delete_lists_msg": "Sei sicuro di voler eliminare {count} scalette?",
+        "delete_folders_title": "Eliminare cartelle?",
+        "delete_folders_msg": "Sei sicuro di voler eliminare {count} cartelle e tutte le loro scalette?",
         "overwrite_songs_title": "Sovrascrivere i brani esistenti?",
         "overwrite_song_msg": "1 brano in questa scaletta esiste già nella tua libreria. Vuoi sovrascriverlo con la versione condivisa o mantenere la tua versione?",
         "overwrite_songs_msg": "{count} brani in questa scaletta esistono già nella tua libreria. Vuoi sovrascriverli con le versioni condivise o mantenere le tue versioni?",
@@ -209,6 +218,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Colore tema",
+        "connections": "Connessioni",
+        "connect": "Connetti",
+        "disconnect": "Disconnetti",
         "data_management": "Gestione dati",
         "export_data": "Esporta tutti i dati",
         "import_data": "Importa tutti i dati",
@@ -276,7 +288,8 @@
         "no_limit": "Nessun limite",
         "days": "giorni",
         "access_expired": "Accesso scaduto",
-        "access_expired_msg": "L'accesso a questo contenuto condiviso è scaduto."
+        "access_expired_msg": "L'accesso a questo contenuto condiviso è scaduto.",
+        "import_to_open_song": "Importa la scaletta per aprire il brano"
     },
     "export": {
         "success": "Esportato con successo!",

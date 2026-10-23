@@ -8,6 +8,7 @@
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
+    import BaseDialog from "./BaseDialog.svelte"
 
     type DialogConfig = {
         icon: string
@@ -19,8 +20,8 @@
         submit: (value: string) => void | Promise<void>
     }
 
-    const currentFolder = $derived(menuState.contentId ? storage.getFolderById(menuState.contentId) : null)
-    const currentList = $derived(menuState.contentId ? storage.getListById(menuState.contentId) : null)
+    const currentFolder = $derived(popupState.targetId ? storage.getFolderById(popupState.targetId) : menuState.contentId ? storage.getFolderById(menuState.contentId) : null)
+    const currentList = $derived(popupState.targetId ? storage.getListById(popupState.targetId) : menuState.contentId ? storage.getListById(menuState.contentId) : null)
 
     const config = $derived.by<DialogConfig | null>(() => {
         switch (popupState.popupId) {
@@ -108,7 +109,9 @@
                         if (!currentList) return
                         currentList.name = name
                         storage.updateList(currentList)
-                        updatePageTitle(name)
+                        if (menuState.contentId === currentList.id) {
+                            updatePageTitle(name)
+                        }
                     }
                 }
             case "rename_folder":
@@ -123,7 +126,9 @@
                         if (!currentFolder || currentFolder.type === "shared") return
                         currentFolder.name = name
                         storage.updateFolder(currentFolder)
-                        updatePageTitle(name)
+                        if (menuState.contentId === currentFolder.id) {
+                            updatePageTitle(name)
+                        }
                     }
                 }
             case "rename_section": {
@@ -149,7 +154,7 @@
                     icon: "content_paste",
                     title: t("home", "paste_shared"),
                     label: t("share", "paste_link_label"),
-                    placeholder: "https://chordo.org/s?id=...",
+                    placeholder: "https://chordo.org/s/...",
                     actionLabel: t("common", "open"),
                     initialValue: "",
                     submit: async (url) => {
@@ -210,15 +215,8 @@
 </script>
 
 {#if config}
-    <md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-        <div slot="headline">
-            <div class="dialog-header">
-                <span class="material-symbols-outlined headline-icon">{config.icon}</span>
-                <span>{config.title}</span>
-            </div>
-        </div>
-
-        <form slot="content" method="dialog" class="dialog-form">
+    <BaseDialog open={Boolean(config)} icon={config.icon} title={config.title} onclose={closeDialog}>
+        <form method="dialog" class="dialog-form">
             <md-outlined-text-field
                 bind:this={textFieldEl}
                 id="text-popup-input"
@@ -231,26 +229,16 @@
             ></md-outlined-text-field>
         </form>
 
-        <div slot="actions">
+        {#snippet actions()}
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "cancel")}</md-text-button>
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-filled-button role="button" tabindex="0" onclick={handleSubmit} disabled={!inputValue.trim()}>{config.actionLabel}</md-filled-button>
-        </div>
-    </md-dialog>
+        {/snippet}
+    </BaseDialog>
 {/if}
 
 <style>
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.35rem;
-    }
-    .headline-icon {
-        color: var(--md-sys-color-primary);
-    }
     .dialog-form {
         display: flex;
         flex-direction: column;

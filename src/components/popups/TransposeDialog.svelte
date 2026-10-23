@@ -3,6 +3,7 @@
     import { t } from "$lib/state/i18n.svelte"
     import { getCurrentSong, setActivePopup } from "$lib/state/menu.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import BaseDialog from "./BaseDialog.svelte"
 
     interface Props {
         customOriginalKey?: string
@@ -11,12 +12,7 @@
         onClose?: () => void
     }
 
-    let {
-        customOriginalKey = undefined,
-        currentKey = undefined,
-        onSelectKey = undefined,
-        onClose = undefined
-    }: Props = $props()
+    let { customOriginalKey = undefined, currentKey = undefined, onSelectKey = undefined, onClose = undefined }: Props = $props()
 
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let song = $derived(activeSongContext?.song ?? null)
@@ -100,15 +96,8 @@
     }
 </script>
 
-<md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-    <div slot="headline">
-        <div class="dialog-header">
-            <span class="material-symbols-outlined headline-icon">swap_vert</span>
-            <span>{t("transpose", "title")}</span>
-        </div>
-    </div>
-
-    <div slot="content" class="dialog-content">
+<BaseDialog open icon="swap_vert" title={t("transpose", "title")} onclose={closeDialog}>
+    <div class="dialog-content">
         <div class="stepper-row">
             <md-filled-tonal-button onclick={() => stepSemitone(-1)}>
                 <span class="material-symbols-outlined" slot="icon">remove</span>
@@ -148,25 +137,13 @@
         </div>
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         <md-text-button onclick={resetToOriginal}>{t("common", "reset")}</md-text-button>
         <md-filled-button onclick={closeDialog}>{t("common", "done")}</md-filled-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.35rem;
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary);
-    }
-
     .dialog-content {
         display: flex;
         flex-direction: column;

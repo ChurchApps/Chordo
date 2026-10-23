@@ -122,7 +122,7 @@ export class List {
         return songs.filter((s): s is Song => s !== undefined && s !== null)
     }
 
-    getListItems(allSongs: Song[]): ListSongDisplayItem[] {
+    getListItems(allSongs: Song[], getSongFallback?: (id: string) => Song | null | undefined): ListSongDisplayItem[] {
         return this.songs.map((item, index) => {
             if (item.type === "section") {
                 return {
@@ -132,7 +132,7 @@ export class List {
                     isDeleted: false
                 }
             }
-            const song = item.id ? allSongs.find((s) => s.id === item.id) : undefined
+            const song = item.id ? allSongs.find((s) => s.id === item.id) || getSongFallback?.(item.id) || undefined : undefined
             if (song && song.name && item.lastKnownName !== song.name) {
                 item.lastKnownName = song.name
             }

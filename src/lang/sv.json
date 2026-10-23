@@ -47,7 +47,11 @@
         "copy": "Kopiera",
         "undo": "Ångra",
         "redo": "Gör om",
-        "open": "Öppna"
+        "open": "Öppna",
+        "refresh": "Uppdatera",
+        "move": "Flytta",
+        "new": "Ny",
+        "changed": "Ändrad"
     },
     "pages": {
         "folder": "Mapp",
@@ -57,6 +61,11 @@
         "all_songs": "Alla låtar",
         "add_songs": "Lägg till låtar",
         "share_preview": "Importera delad"
+    },
+    "folder": {
+        "move_to_folder": "Flytta till mapp",
+        "moved_single": "Flyttad till {folder}",
+        "moved_plural": "Flyttade {count} spellistor till {folder}"
     },
     "folder_types": {
         "shared": "Delad med dig"
@@ -81,7 +90,9 @@
         "no_lists_title": "Inga setlistor än",
         "no_lists_desc": "Tryck på +-knappen längst ner till höger för att skapa en setlista.",
         "no_songs_title": "Inga låtar än",
-        "no_songs_desc": "Tryck på +-knappen längst ner till höger för att lägga till låtar."
+        "no_songs_desc": "Tryck på +-knappen längst ner till höger för att lägga till låtar.",
+        "no_plans_title": "Inga gudstjänstplaner",
+        "no_plans_desc": "Inga nyligen genomförda eller kommande planer hittades på ditt konto."
     },
     "new": {
         "folder": "Skapa mapp",
@@ -110,15 +121,9 @@
         "share_song": "Dela låt",
         "print": "Skriv ut",
         "import_song": "Importera låt",
-        "delete_song": "Radera låt",
-        "rename_list": "Byt namn på setlista",
-        "duplicate_list": "Duplicera setlista",
         "share_list": "Dela setlista",
         "import_list": "Importera setlista",
         "export_as": "Exportera som",
-        "delete_list": "Radera setlista",
-        "rename_folder": "Byt namn på mapp",
-        "delete_folder": "Radera mapp",
         "auto_scroll": "Autorullning"
     },
     "confirm": {
@@ -129,7 +134,11 @@
         "delete_list_title": "Radera setlista?",
         "delete_list_msg": "Är du säker på att du vill radera denna setlista?",
         "delete_folder_title": "Radera mapp?",
-        "delete_folder_msg": "Är du säker på att du vill radera denna mapp?",
+        "delete_folder_msg": "Är du säker på att du vill radera denna mapp och alla dess spellistor?",
+        "delete_lists_title": "Radera setlistor?",
+        "delete_lists_msg": "Är du säker på att du vill radera {count} setlistor?",
+        "delete_folders_title": "Radera mappar?",
+        "delete_folders_msg": "Är du säker på att du vill radera {count} mappar och alla deras spellistor?",
         "overwrite_songs_title": "Skriva över befintliga låtar?",
         "overwrite_song_msg": "1 låt i denna setlista finns redan i ditt bibliotek. Vill du skriva över den med den delade versionen eller behålla din version?",
         "overwrite_songs_msg": "{count} låtar i denna setlista finns redan i ditt bibliotek. Vill du skriva över dem eller behålla dina befintliga versioner?",
@@ -209,6 +218,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Temafärg",
+        "connections": "Anslutningar",
+        "connect": "Anslut",
+        "disconnect": "Koppla från",
         "data_management": "Datahantering",
         "export_data": "Exportera all data",
         "import_data": "Importera all data",
@@ -276,7 +288,8 @@
         "no_limit": "Ingen gräns",
         "days": "dagar",
         "access_expired": "Åtkomst utgången",
-        "access_expired_msg": "Åtkomsten till detta delade innehåll har gått ut."
+        "access_expired_msg": "Åtkomsten till detta delade innehåll har gått ut.",
+        "import_to_open_song": "Importera setlistan för att öppna låten"
     },
     "export": {
         "success": "Exporterades framgångsrikt!",

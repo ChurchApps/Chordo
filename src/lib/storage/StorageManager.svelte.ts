@@ -209,6 +209,18 @@ class StorageManager {
     deleteFolder(folderId: string) {
         const folder = this.getFolderById(folderId)
         if (folder?.type === "shared") return
+
+        // Delete all setlists in this folder
+        if (folder?.lists?.length) {
+            const listIdsToDelete = new Set(folder.lists)
+            this.lists = this.lists.filter((l) => !listIdsToDelete.has(l.id))
+            for (const f of this.folders) {
+                if (f.id !== folderId && f.lists) {
+                    f.lists = f.lists.filter((id) => !listIdsToDelete.has(id))
+                }
+            }
+        }
+
         this.folders = this.folders.filter((f) => f.id !== folderId)
         this.save()
     }

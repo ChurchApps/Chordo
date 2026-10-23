@@ -6,11 +6,13 @@
     import { fullscreenState, menuState, popupState, setActivePopup, setFullscreenLyricsOnly } from "$lib/state/menu.svelte"
     import { getTheme, SUPPORTED_THEMES, type SupportedTheme } from "$lib/state/theme.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
+    import { integrationState } from "$lib/integrations/integrationState.svelte"
     import "@material/web/iconbutton/filled-tonal-icon-button.js"
     import "@material/web/select/outlined-select.js"
     import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
     import "@material/web/switch/switch.js"
+    import BaseDialog from "./BaseDialog.svelte"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
     let currentTheme = $derived<SupportedTheme>(getTheme())
@@ -242,13 +244,8 @@
     }
 </script>
 
-<md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-    <div slot="headline" class="settings-headline">
-        <span class="material-symbols-outlined settings-icon">{isSongSettings ? "tune" : "settings"}</span>
-        {isSongSettings ? t("song_fullscreen", "settings_title") : t("settings", "title")}
-    </div>
-
-    <div slot="content" class="settings-content">
+<BaseDialog open icon={isSongSettings ? "tune" : "settings"} title={isSongSettings ? t("song_fullscreen", "settings_title") : t("settings", "title")} onclose={closeDialog}>
+    <div class="settings-content">
         {#if isSongSettings}
             <!-- Background Color Section -->
             <div class="settings-section">
@@ -453,6 +450,29 @@
 
             <hr class="section-divider" />
 
+            <!-- Connections Section -->
+            <div class="settings-section">
+                <div class="section-title">
+                    <span class="material-symbols-outlined section-icon">cloud_sync</span>
+                    {t("settings", "connections")}
+                </div>
+
+                <div class="integrations-list">
+                    {#each [{ id: "churchapps", name: "ChurchApps (B1.church)" }, { id: "planning_center", name: "Planning Center" }] as const as provider}
+                        <div class="integration-item">
+                            <span>{provider.name}</span>
+                            {#if integrationState.activeProviderId === provider.id}
+                                <md-outlined-button onclick={() => integrationState.disconnectActive()}>{t("settings", "disconnect")}</md-outlined-button>
+                            {:else}
+                                <md-filled-button disabled={!!integrationState.activeProviderId} onclick={() => integrationState.connect(provider.id)}>{t("settings", "connect")}</md-filled-button>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+            </div>
+
+            <hr class="section-divider" />
+
             <!-- Data Management Section -->
             <div class="settings-section">
                 <div class="section-title">
@@ -488,33 +508,40 @@
         {/if}
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         {#if isSongSettings}
             <md-text-button onclick={resetPaperDefaults}>{t("common", "reset")}</md-text-button>
         {/if}
         <md-filled-button role="button" tabindex="0" onclick={closeDialog}>{t("settings", "done")}</md-filled-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .settings-headline {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--md-sys-color-on-surface, #1d1b20);
-    }
-
-    .settings-icon {
-        color: var(--md-sys-color-primary);
-        font-size: 28px;
-    }
-
     .settings-content {
         display: flex;
         flex-direction: column;
         gap: 16px;
         color: var(--md-sys-color-on-surface, #1d1b20);
         min-width: 280px;
+    }
+
+    .integrations-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .integration-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--md-sys-color-outline-variant, rgba(0, 0, 0, 0.12));
+        background: var(--md-sys-color-surface-container-low, rgba(0, 0, 0, 0.02));
+        font-weight: 500;
+        font-size: 0.95rem;
     }
 
     .settings-section {
@@ -546,7 +573,8 @@
 
     .theme-circles {
         display: grid;
-        grid-template-columns: repeat(7, min-content);
+        grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+        max-width: calc(7 * 38px + 6 * 12px);
         gap: 12px;
         align-items: center;
         padding: 4px 0;

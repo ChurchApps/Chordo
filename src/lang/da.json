@@ -47,7 +47,11 @@
         "copy": "Kopier",
         "undo": "Fortryd",
         "redo": "Gentag",
-        "open": "Åbn"
+        "open": "Åbn",
+        "refresh": "Genopfrisk",
+        "move": "Flyt",
+        "new": "Ny",
+        "changed": "Ændret"
     },
     "pages": {
         "folder": "Mappe",
@@ -57,6 +61,11 @@
         "all_songs": "Alle sange",
         "add_songs": "Tilføj sange",
         "share_preview": "Importer delt"
+    },
+    "folder": {
+        "move_to_folder": "Flyt til mappe",
+        "moved_single": "Flyttet til {folder}",
+        "moved_plural": "Flyttet {count} sætlister til {folder}"
     },
     "folder_types": {
         "shared": "Delt med dig"
@@ -81,7 +90,9 @@
         "no_lists_title": "Ingen sætlister endnu",
         "no_lists_desc": "Tryk på +-knappen nederst til højre for at oprette din første sætliste.",
         "no_songs_title": "Ingen sange endnu",
-        "no_songs_desc": "Tryk på +-knappen nederst til højre for at tilføje sange."
+        "no_songs_desc": "Tryk på +-knappen nederst til højre for at tilføje sange.",
+        "no_plans_title": "Ingen gudstjenesteplaner",
+        "no_plans_desc": "Ingen nylige eller kommende planer fundet på din konto."
     },
     "new": {
         "folder": "Opret mappe",
@@ -110,15 +121,9 @@
         "share_song": "Del sang",
         "print": "Udskriv",
         "import_song": "Importer sang",
-        "delete_song": "Slet sang",
-        "rename_list": "Omdøb sætliste",
-        "duplicate_list": "Dupliker sætliste",
         "share_list": "Del sætliste",
         "import_list": "Importer sætliste",
         "export_as": "Eksporter som",
-        "delete_list": "Slet sætliste",
-        "rename_folder": "Omdøb mappe",
-        "delete_folder": "Slet mappe",
         "auto_scroll": "Automatisk rulning"
     },
     "confirm": {
@@ -129,7 +134,11 @@
         "delete_list_title": "Slet sætliste?",
         "delete_list_msg": "Er du sikker på, at du vil slette denne sætliste?",
         "delete_folder_title": "Slet mappe?",
-        "delete_folder_msg": "Er du sikker på, at du vil slette denne mappe?",
+        "delete_folder_msg": "Er du sikker på, at du vil slette denne mappe og alle dens sætlister?",
+        "delete_lists_title": "Slet sætlister?",
+        "delete_lists_msg": "Er du sikker på, at du vil slette {count} sætlister?",
+        "delete_folders_title": "Slet mapper?",
+        "delete_folders_msg": "Er du sikker på, at du vil slette {count} mapper og alle deres sætlister?",
         "overwrite_songs_title": "Overskriv eksisterende sange?",
         "overwrite_song_msg": "1 sang i denne sætliste findes allerede i dit bibliotek. Vil du overskrive den med den delte version eller beholde din version?",
         "overwrite_songs_msg": "{count} sange i denne sætliste findes allerede i dit bibliotek. Vil du overskrive dem eller beholde dine eksisterende versioner?",
@@ -209,6 +218,9 @@
         "english": "English",
         "norwegian": "Norsk",
         "theme": "Temafarve",
+        "connections": "Forbindelser",
+        "connect": "Forbind",
+        "disconnect": "Afbryd",
         "data_management": "Datastyring",
         "export_data": "Eksporter alle data",
         "import_data": "Importer alle data",
@@ -276,7 +288,8 @@
         "no_limit": "Ingen grænse",
         "days": "dage",
         "access_expired": "Adgang udløbet",
-        "access_expired_msg": "Adgangen til dette delte indhold er udløbet."
+        "access_expired_msg": "Adgangen til dette delte indhold er udløbet.",
+        "import_to_open_song": "Importer sætlisten for at åbne sangen"
     },
     "export": {
         "success": "Blev eksporteret med succes!",

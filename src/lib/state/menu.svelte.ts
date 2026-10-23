@@ -1,6 +1,7 @@
 import type { pages } from "$components/pages/pages"
 import type { popups } from "$components/popups/popups"
 import storage from "$lib/storage/StorageManager.svelte"
+import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
 import { clone } from "$lib/utils/common"
 import { closeSearch, searchState } from "./search.svelte"
 
@@ -14,7 +15,15 @@ type MenuState = {
     customPageTitle: string | null
 }
 
-export const listEditingState = $state<{ isEditing: boolean; selectedIndex?: number; onDeleteSelected?: () => void; onEditSelected?: () => void }>({ isEditing: false })
+export const listEditingState = $state<{
+    isEditing: boolean
+    selectedIndex?: number
+    onDeleteSelected?: () => void
+    onEditSelected?: () => void
+    onDuplicateSelected?: () => void
+    editActionType?: "rename" | "edit"
+    onMoveSelected?: () => void
+}>({ isEditing: false })
 
 export const menuState = $state<MenuState & { previousPages: MenuState[] }>({
     activePage: "home",
@@ -164,9 +173,10 @@ export function goBack(forcePage = false): void {
 /// POPUPS ///
 
 type Popups = keyof typeof popups
-export const popupState = $state<{ popupId: Popups | null }>({ popupId: null })
-export function setActivePopup(popup: Popups | null): void {
+export const popupState = $state<{ popupId: Popups | null; targetId?: string | null }>({ popupId: null, targetId: null })
+export function setActivePopup(popup: Popups | null, targetId?: string | null): void {
     popupState.popupId = popup
+    popupState.targetId = targetId ?? null
 }
 
 // restore page position when returning from draw
@@ -201,7 +211,7 @@ export function setFullscreenLyricsOnly(lyricsOnly: boolean): void {
 export function getCurrentSong() {
     if (menuState.activePage !== "song" && menuState.activePage !== "song_live") return null
     const listId = menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null
-    const list = listId ? storage.getListById(listId, storage.lists) : null
+    const list = listId ? (storage.getListById(listId, storage.lists) || getPlanAsList(listId)) : null
     const currentSongIndex = savedFullscreenPosition.index ?? 0
 
     let songId = menuState.contentId
@@ -213,7 +223,7 @@ export function getCurrentSong() {
         }
         songId = listItem?.id ?? null
     }
-    const song = storage.getSongById(songId, storage.songs)
+    const song = storage.getSongById(songId, storage.songs) || getExternalSong(songId)
     return { song, listItem, list, currentSongIndex }
 }
 
