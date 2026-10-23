@@ -64,14 +64,14 @@ function normalizeSection(name: string, mult = ""): string {
         .trim()
         .replace(/^\{(?:c(?:omment)?:\s*|section:\s*)?/i, "")
         .replace(/[\}:]+$/g, "")
-        .replace(/^([A-Za-z\u00C0-\u024F\u0400-\u04FF]+)(\d+)/, "$1 $2")
+        .replace(/^([A-Za-z\u00C0-\u024F\u0400-\u04FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]+)(\d+)/, "$1 $2")
         .trim()
 
     return mult ? `${clean} (${mult})` : clean
 }
 
 const SECTION_KEYWORDS =
-    /^(?:verse|vers|chorus|kor|refrain|refreng|ref|bridge|bro|b-del|stanza|strofe|couplet|part|del|intro|outro|ending|avslutning|coda|interlude|mellomspill|solo|pre-chorus|prechorus|pre-ref|pre-refreng|post-chorus|tag|hook|vamp|spoken|instrumental|intermezzo|theme|tema)\b/i
+    /^(?:verse|vers|chorus|kor|refrain|refreng|ref|bridge|bro|b-del|stanza|strofe|couplet|part|del|intro|outro|ending|avslutning|coda|interlude|mellomspill|solo|pre-chorus|prechorus|pre-ref|pre-refreng|post-chorus|tag|hook|vamp|spoken|instrumental|intermezzo|theme|tema)\b|^(?:куплет|припев|запев|приспів|заспів|міст|мост|бридж|вступление|вступ|проигрыш|програш|кода|кінцівка|закінчення|主歌|副歌|导歌|前副歌|间奏|尾奏|前奏|桥段|サビ|イントロ|アウトロ|間奏|후렴|브릿지|인트로|아웃트로|간주)(?=[0-9\s:_-]|$)/i
 
 /**
  * Structural detection of section/group headers regardless of language.
