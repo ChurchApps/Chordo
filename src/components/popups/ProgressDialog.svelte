@@ -2,16 +2,9 @@
     import "@material/web/dialog/dialog.js"
     import "@material/web/progress/circular-progress.js"
     import "@material/web/progress/linear-progress.js"
+    import BaseDialog from "./BaseDialog.svelte"
 
-    let {
-        open = false,
-        title = "Processing...",
-        icon = "sync",
-        message = "",
-        detail = "",
-        progress = 0,
-        indeterminate = true
-    } = $props<{
+    interface Props {
         open?: boolean
         title?: string
         icon?: string
@@ -19,19 +12,14 @@
         detail?: string
         progress?: number
         indeterminate?: boolean
-    }>()
+    }
+
+    let { open = false, title = "Processing...", icon = "sync", message = "", detail = "", progress = 0, indeterminate = true }: Props = $props()
 </script>
 
 {#if open}
-    <md-dialog {open} class="progress-dialog">
-        <div slot="headline">
-            <div class="dialog-header">
-                <span class="material-symbols-outlined headline-icon">{icon}</span>
-                <span class="dialog-title">{title}</span>
-            </div>
-        </div>
-
-        <div slot="content" class="dialog-content">
+    <BaseDialog {open} {title} {icon} maxWidth="min(440px, calc(100vw - 32px))">
+        <div class="dialog-content">
             <div class="progress-card">
                 <div class="spinner-container">
                     {#if indeterminate}
@@ -62,37 +50,10 @@
                 {/if}
             </div>
         </div>
-    </md-dialog>
+    </BaseDialog>
 {/if}
 
 <style>
-    .progress-dialog {
-        --md-dialog-container-max-width: min(440px, calc(100vw - 32px));
-        max-width: min(440px, calc(100vw - 32px));
-        width: 100%;
-    }
-
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.25rem;
-    }
-
-    .dialog-title {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-weight: 500;
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary, #6750a4);
-        font-size: 24px;
-        flex-shrink: 0;
-    }
-
     .dialog-content {
         display: flex;
         flex-direction: column;

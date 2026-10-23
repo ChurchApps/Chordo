@@ -11,6 +11,7 @@
     import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
     import { onDestroy } from "svelte"
+    import BaseDialog from "./BaseDialog.svelte"
 
     let activeSongContext = $derived(storage.songs && storage.lists ? getCurrentSong() : null)
     let song = $derived(activeSongContext?.song ?? null)
@@ -50,15 +51,8 @@
     const TIME_SIGNATURE_PRESETS = [1, 2, 3, 4, 5, 6, 7]
 </script>
 
-<md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-    <div slot="headline">
-        <div class="dialog-header">
-            <span class="material-symbols-outlined headline-icon">timer</span>
-            <span>{t("metronome", "title")}</span>
-        </div>
-    </div>
-
-    <div slot="content" class="dialog-content">
+<BaseDialog open icon="timer" title={t("metronome", "title")} onclose={closeDialog}>
+    <div class="dialog-content">
         <!-- Beat Visualizer Dots -->
         <div class="beat-indicators">
             {#each Array(metronomeState.beatsPerBar) as _, i}
@@ -154,25 +148,13 @@
         </button>
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         <md-text-button onclick={resetToSongDefaults}>{t("common", "reset")}</md-text-button>
         <md-filled-button onclick={closeDialog}>{t("common", "done")}</md-filled-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.35rem;
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary);
-    }
-
     .dialog-content {
         display: flex;
         flex-direction: column;

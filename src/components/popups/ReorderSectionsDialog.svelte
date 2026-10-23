@@ -2,6 +2,7 @@
     import { cloneSection, getUniqueSections, parseSongSections, serializeSections, type SongSection } from "$lib/chords/sectionManager"
     import { t } from "$lib/state/i18n.svelte"
     import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
+    import BaseDialog from "./BaseDialog.svelte"
 
     interface Props {
         open: boolean
@@ -47,135 +48,86 @@
 </script>
 
 {#if open}
-    <md-dialog {open} onclosed={onClose} oncancel={onClose}>
-        <div slot="headline">
-            <div class="dialog-header">
-                <span class="material-symbols-outlined headline-icon">reorder</span>
-                <span>{t("song_edit", "reorder_dialog_title")}</span>
-            </div>
-        </div>
+    <BaseDialog {open} icon="reorder" title={t("song_edit", "reorder_dialog_title")} maxWidth="min(480px, calc(100vw - 32px))" onclose={onClose}>
+        <div class="sections-scroll-area scroll-list" ondragover={(e) => handleContainerDragOver(e, sections.length, reorderState)} ondrop={(e) => handleContainerDrop(e, sections.length, reorderState, onMoveSection)}>
+            {#if sections.length === 0}
+                <div class="empty-hint">{t("song_edit", "no_sections")}</div>
+            {:else}
+                <div class="sections-list">
+                    {#each displaySections as { item: section, originalIdx }, idx (section.id + "-" + originalIdx)}
+                        {@const matchCount = getMatchCount(section.canonicalKey)}
+                        {@const isGhost = reorderState.draggedIdx === originalIdx}
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <div
+                            class="section-card"
+                            class:is-dragging={isGhost}
+                            data-reorder-idx={idx}
+                            draggable="true"
+                            ondragstart={(e) => handleItemDragStart(e, originalIdx, [originalIdx], reorderState)}
+                            ondragover={(e) => handleItemDragOver(e, idx, reorderState)}
+                            ondrop={(e) => handleItemDrop(e, idx, reorderState, onMoveSection)}
+                            ondragend={() => resetDragState(reorderState)}
+                        >
+                            <span class="material-symbols-outlined drag-handle" title="Drag to reorder" onpointerdown={(e) => handlePointerDragStart(e, originalIdx, [originalIdx], reorderState, onMoveSection, () => resetDragState(reorderState))}>
+                                drag_indicator
+                            </span>
 
-        <div slot="content" class="dialog-content">
-            <div
-                class="sections-scroll-area scroll-list"
-                ondragover={(e) => handleContainerDragOver(e, sections.length, reorderState)}
-                ondrop={(e) => handleContainerDrop(e, sections.length, reorderState, onMoveSection)}
-            >
-                {#if sections.length === 0}
-                    <div class="empty-hint">{t("song_edit", "no_sections")}</div>
-                {:else}
-                    <div class="sections-list">
-                        {#each displaySections as { item: section, originalIdx }, idx (section.id + "-" + originalIdx)}
-                            {@const matchCount = getMatchCount(section.canonicalKey)}
-                            {@const isGhost = reorderState.draggedIdx === originalIdx}
-                            <!-- svelte-ignore a11y_no_static_element_interactions -->
-                            <div
-                                class="section-card"
-                                class:is-dragging={isGhost}
-                                data-reorder-idx={idx}
-                                draggable="true"
-                                ondragstart={(e) => handleItemDragStart(e, originalIdx, [originalIdx], reorderState)}
-                                ondragover={(e) => handleItemDragOver(e, idx, reorderState)}
-                                ondrop={(e) => handleItemDrop(e, idx, reorderState, onMoveSection)}
-                                ondragend={() => resetDragState(reorderState)}
-                            >
-                                <span
-                                    class="material-symbols-outlined drag-handle"
-                                    title="Drag to reorder"
-                                    onpointerdown={(e) => handlePointerDragStart(e, originalIdx, [originalIdx], reorderState, onMoveSection, () => resetDragState(reorderState))}
-                                >
-                                    drag_indicator
-                                </span>
-
-                                <div class="section-info">
-                                    <div class="section-title-row">
-                                        <span class="section-name">{section.name}</span>
-                                        {#if matchCount > 1}
-                                            <span class="match-badge" title="Repeated section in song">
-                                                <span class="material-symbols-outlined" style="font-size: 13px;">repeat</span>
-                                                {matchCount}x
-                                            </span>
-                                        {/if}
-                                    </div>
-                                    {#if section.preview}
-                                        <div class="section-preview" title={section.preview}>{section.preview}</div>
+                            <div class="section-info">
+                                <div class="section-title-row">
+                                    <span class="section-name">{section.name}</span>
+                                    {#if matchCount > 1}
+                                        <span class="match-badge" title="Repeated section in song">
+                                            <span class="material-symbols-outlined" style="font-size: 13px;">repeat</span>
+                                            {matchCount}x
+                                        </span>
                                     {/if}
                                 </div>
-
-                                <div class="section-actions">
-                                    <md-icon-button
-                                        type="button"
-                                        disabled={matchCount <= 1}
-                                        onclick={() => deleteSection(originalIdx)}
-                                        title={matchCount <= 1 ? t("song_edit", "cant_delete_last_section") : t("song_edit", "delete_section")}
-                                    >
-                                        <md-icon>delete</md-icon>
-                                    </md-icon-button>
-                                </div>
+                                {#if section.preview}
+                                    <div class="section-preview" title={section.preview}>{section.preview}</div>
+                                {/if}
                             </div>
-                        {/each}
-                    </div>
-                {/if}
-            </div>
 
-            {#if availableTemplates.length > 0}
-                <div
-                    class="add-section-area"
-                    ondragover={(e) => handleContainerDragOver(e, sections.length, reorderState)}
-                    ondrop={(e) => handleContainerDrop(e, sections.length, reorderState, onMoveSection)}
-                >
-                    <span class="add-label">{t("song_edit", "add_existing_section")}:</span>
-                    <div class="template-chips">
-                        {#each availableTemplates as template (template.canonicalKey)}
-                            <button type="button" class="add-chip" onclick={() => sections = [...sections, cloneSection(template)]}>
-                                <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
-                                <span>{template.name}</span>
-                            </button>
-                        {/each}
-                    </div>
+                            <div class="section-actions">
+                                <md-icon-button type="button" disabled={matchCount <= 1} onclick={() => deleteSection(originalIdx)} title={matchCount <= 1 ? t("song_edit", "cant_delete_last_section") : t("song_edit", "delete_section")}>
+                                    <md-icon>delete</md-icon>
+                                </md-icon-button>
+                            </div>
+                        </div>
+                    {/each}
                 </div>
             {/if}
         </div>
 
-        <div slot="actions">
+        {#if availableTemplates.length > 0}
+            <div class="add-section-area" ondragover={(e) => handleContainerDragOver(e, sections.length, reorderState)} ondrop={(e) => handleContainerDrop(e, sections.length, reorderState, onMoveSection)}>
+                <span class="add-label">{t("song_edit", "add_existing_section")}:</span>
+                <div class="template-chips">
+                    {#each availableTemplates as template (template.canonicalKey)}
+                        <button type="button" class="add-chip" onclick={() => (sections = [...sections, cloneSection(template)])}>
+                            <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+                            <span>{template.name}</span>
+                        </button>
+                    {/each}
+                </div>
+            </div>
+        {/if}
+
+        {#snippet actions()}
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-text-button role="button" tabindex="0" onclick={onClose}>{t("common", "cancel")}</md-text-button>
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-filled-button role="button" tabindex="0" onclick={handleDone}>{t("common", "done")}</md-filled-button>
-        </div>
-    </md-dialog>
+        {/snippet}
+    </BaseDialog>
 {/if}
 
 <style>
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.35rem;
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary);
-    }
-
-    .dialog-content {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 8px 4px 12px 4px;
-        min-width: 320px;
-        max-width: 480px;
-        box-sizing: border-box;
-    }
-
     .sections-scroll-area {
         display: flex;
         flex-direction: column;
         max-height: 50vh;
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: 4px 4px 8px 4px;
     }
 
     .sections-list {
@@ -198,7 +150,11 @@
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
-        transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        transition:
+            transform 0.15s ease,
+            opacity 0.15s ease,
+            background 0.15s ease,
+            border-color 0.15s ease;
         box-sizing: border-box;
     }
 
@@ -288,9 +244,8 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        padding-top: 10px;
-        padding-left: 4px;
-        padding-right: 4px;
+        padding-top: 12px;
+        margin-top: 12px;
         border-top: 1px solid var(--md-sys-color-outline-variant, #cac4d0);
         flex-shrink: 0;
     }

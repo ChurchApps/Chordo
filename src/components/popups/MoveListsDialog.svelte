@@ -8,6 +8,7 @@
 
     import { menuState } from "$lib/state/menu.svelte"
     import { Folders } from "$lib/models/Folder"
+    import BaseDialog from "./BaseDialog.svelte"
 
     // Current folder id: prefer menuState.contentId if we are on a folder page, otherwise find by list id
     const currentFolderId = $derived(menuState.activePage === "folder" && menuState.contentId ? menuState.contentId : selectedListIds.length > 0 ? (storage.folders.find((f) => f.lists.includes(selectedListIds[0]))?.id ?? null) : null)
@@ -61,13 +62,8 @@
     }
 </script>
 
-<md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-    <div slot="headline">
-        <span class="material-symbols-outlined headline-icon">drive_file_move</span>
-        {t("folder", "move_to_folder")}
-    </div>
-
-    <div slot="content" class="dialog-content">
+<BaseDialog open icon="drive_file_move" title={t("folder", "move_to_folder")} onclose={closeDialog}>
+    <div class="dialog-content">
         <div class="folder-options">
             {#each allFolders as folder (folder.id)}
                 <button type="button" class="folder-option" class:selected={selectedFolderId === folder.id} onclick={() => (selectedFolderId = folder.id)}>
@@ -83,23 +79,17 @@
         </div>
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         <md-text-button role="button" tabindex="0" onclick={closeDialog}>
             {t("common", "cancel")}
         </md-text-button>
         <md-filled-button role="button" tabindex="0" disabled={!selectedFolderId || selectedFolderId === currentFolderId} onclick={moveLists}>
             {t("common", "move")}
         </md-filled-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .headline-icon {
-        vertical-align: middle;
-        margin-right: 8px;
-        color: var(--md-sys-color-primary);
-    }
-
     .dialog-content {
         display: flex;
         flex-direction: column;

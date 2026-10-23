@@ -1,5 +1,6 @@
 <script lang="ts">
     import { t } from "$lib/state/i18n.svelte"
+    import BaseDialog from "./BaseDialog.svelte"
 
     interface Props {
         open: boolean
@@ -25,7 +26,7 @@
                 if (innerInput && typeof innerInput.focus === "function") {
                     innerInput.focus()
                     if (typeof (innerInput as HTMLInputElement).select === "function") {
-                        (innerInput as HTMLInputElement).select()
+                        ;(innerInput as HTMLInputElement).select()
                     }
                 }
             }, 100)
@@ -74,49 +75,23 @@
 </script>
 
 {#if open}
-    <md-dialog {open} onclosed={onClose} oncancel={onClose} class="find-replace-dialog">
-        <div slot="headline">
-            <div class="dialog-header">
-                <span class="material-symbols-outlined headline-icon">find_replace</span>
-                <span>{t("find_replace", "title")}</span>
-            </div>
-        </div>
-
-        <div slot="content" class="dialog-content">
+    <BaseDialog {open} icon="find_replace" title={t("find_replace", "title")} maxWidth="min(440px, calc(100vw - 32px))" onclose={onClose}>
+        <div class="dialog-content">
             <div class="input-row">
-                <md-outlined-text-field
-                    bind:this={findInputEl}
-                    id="find-input"
-                    label={t("find_replace", "find")}
-                    value={findText}
-                    oninput={(e: Event) => (findText = (e.target as HTMLInputElement).value)}
-                    onkeydown={handleKeyDown}
-                    style="flex: 1;"
-                >
+                <md-outlined-text-field bind:this={findInputEl} id="find-input" label={t("find_replace", "find")} value={findText} oninput={(e: Event) => (findText = (e.target as HTMLInputElement).value)} onkeydown={handleKeyDown} style="flex: 1;">
                     <span class="material-symbols-outlined" slot="leading-icon">search</span>
                 </md-outlined-text-field>
             </div>
 
             <div class="input-row">
-                <md-outlined-text-field
-                    id="replace-input"
-                    label={t("find_replace", "replace")}
-                    value={replaceText}
-                    oninput={(e: Event) => (replaceText = (e.target as HTMLInputElement).value)}
-                    onkeydown={handleKeyDown}
-                    style="flex: 1;"
-                >
+                <md-outlined-text-field id="replace-input" label={t("find_replace", "replace")} value={replaceText} oninput={(e: Event) => (replaceText = (e.target as HTMLInputElement).value)} onkeydown={handleKeyDown} style="flex: 1;">
                     <span class="material-symbols-outlined" slot="leading-icon">find_replace</span>
                 </md-outlined-text-field>
             </div>
 
             <div class="options-and-stats">
                 <label class="checkbox-label" for="match-case-checkbox">
-                    <md-checkbox
-                        id="match-case-checkbox"
-                        checked={matchCase}
-                        onchange={(e: Event) => (matchCase = Boolean((e.target as HTMLInputElement).checked))}
-                    ></md-checkbox>
+                    <md-checkbox id="match-case-checkbox" checked={matchCase} onchange={(e: Event) => (matchCase = Boolean((e.target as HTMLInputElement).checked))}></md-checkbox>
                     <span>{t("find_replace", "match_case")}</span>
                 </label>
 
@@ -127,45 +102,20 @@
                     <span>{matchCount}</span>
                 </div>
             </div>
-
         </div>
 
-        <div slot="actions">
+        {#snippet actions()}
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-text-button role="button" tabindex="0" onclick={onClose}>{t("common", "close")}</md-text-button>
-            <md-filled-tonal-button
-                type="button"
-                disabled={!findText || matchCount === 0}
-                onclick={handleReplaceAll}
-            >
+            <md-filled-tonal-button type="button" disabled={!findText || matchCount === 0} onclick={handleReplaceAll}>
                 <span class="material-symbols-outlined" slot="icon">done_all</span>
                 {t("find_replace", "replace_all")}
             </md-filled-tonal-button>
-        </div>
-    </md-dialog>
+        {/snippet}
+    </BaseDialog>
 {/if}
 
 <style>
-    .find-replace-dialog {
-        --md-dialog-container-max-width: min(440px, calc(100vw - 32px));
-        max-width: min(440px, calc(100vw - 32px));
-        width: 100%;
-    }
-
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.25rem;
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary, #6750a4);
-        font-size: 24px;
-        flex-shrink: 0;
-    }
-
     .dialog-content {
         display: flex;
         flex-direction: column;

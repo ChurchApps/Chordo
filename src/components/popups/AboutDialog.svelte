@@ -2,6 +2,7 @@
     import { t } from "$lib/state/i18n.svelte"
     import { setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { onMount } from "svelte"
+    import BaseDialog from "./BaseDialog.svelte"
 
     function closeDialog() {
         setActivePopup(null)
@@ -25,13 +26,8 @@
     })
 </script>
 
-<md-dialog open onclosed={closeDialog}>
-    <div slot="headline" class="about-headline">
-        <span class="material-symbols-outlined about-icon">library_music</span>
-        Chordo: {t("about", "tagline")}
-    </div>
-
-    <div slot="content" class="about-content">
+<BaseDialog open icon="library_music" title={`Chordo: ${t("about", "tagline")}`} onclose={closeDialog}>
+    <div class="about-content">
         <p class="about-version">{t("about", "version")} {appVersion}</p>
         <p class="about-desc">
             {t("about", "desc")}
@@ -67,24 +63,12 @@
         </div>
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("about", "close")}</md-text-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .about-headline {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--md-sys-color-on-surface, #1d1b20);
-    }
-
-    .about-icon {
-        color: var(--md-sys-color-primary);
-        font-size: 28px;
-    }
-
     .about-content {
         display: flex;
         flex-direction: column;

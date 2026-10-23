@@ -8,6 +8,7 @@
     import { showToast } from "$lib/state/toast.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { extractSharePayloadFromUrl, resolveSharePayload } from "$lib/share/share"
+    import BaseDialog from "./BaseDialog.svelte"
 
     type DialogConfig = {
         icon: string
@@ -214,15 +215,8 @@
 </script>
 
 {#if config}
-    <md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-        <div slot="headline">
-            <div class="dialog-header">
-                <span class="material-symbols-outlined headline-icon">{config.icon}</span>
-                <span>{config.title}</span>
-            </div>
-        </div>
-
-        <form slot="content" method="dialog" class="dialog-form">
+    <BaseDialog open={Boolean(config)} icon={config.icon} title={config.title} onclose={closeDialog}>
+        <form method="dialog" class="dialog-form">
             <md-outlined-text-field
                 bind:this={textFieldEl}
                 id="text-popup-input"
@@ -235,26 +229,16 @@
             ></md-outlined-text-field>
         </form>
 
-        <div slot="actions">
+        {#snippet actions()}
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "cancel")}</md-text-button>
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-filled-button role="button" tabindex="0" onclick={handleSubmit} disabled={!inputValue.trim()}>{config.actionLabel}</md-filled-button>
-        </div>
-    </md-dialog>
+        {/snippet}
+    </BaseDialog>
 {/if}
 
 <style>
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.35rem;
-    }
-    .headline-icon {
-        color: var(--md-sys-color-primary);
-    }
     .dialog-form {
         display: flex;
         flex-direction: column;

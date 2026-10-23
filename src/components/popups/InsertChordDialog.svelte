@@ -1,6 +1,7 @@
 <script lang="ts">
     import { t } from "$lib/state/i18n.svelte"
     import { extractBaseKey, getScaleForOriginalKey, isChordToken } from "$lib/chords/transpose"
+    import BaseDialog from "./BaseDialog.svelte"
 
     interface Props {
         open: boolean
@@ -108,15 +109,8 @@
 </script>
 
 {#if open}
-    <md-dialog {open} onclosed={onClose} oncancel={onClose} class="insert-chord-dialog">
-        <div slot="headline">
-            <div class="dialog-header">
-                <span class="material-symbols-outlined headline-icon">music_note</span>
-                <span>{t("song_edit", "add_chord")}</span>
-            </div>
-        </div>
-
-        <div slot="content" class="dialog-content">
+    <BaseDialog {open} icon="music_note" title={t("song_edit", "add_chord")} maxWidth="min(620px, calc(100vw - 32px))" onclose={onClose}>
+        <div class="dialog-content">
             {#if existingChords.length > 0}
                 <!-- Existing chords in song -->
                 <div class="section-container">
@@ -204,36 +198,16 @@
             {/if}
         </div>
 
-        <div slot="actions">
+        {#snippet actions()}
             <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
             <md-text-button role="button" tabindex="0" onclick={onClose}>
                 {t("common", "close")}
             </md-text-button>
-        </div>
-    </md-dialog>
+        {/snippet}
+    </BaseDialog>
 {/if}
 
 <style>
-    .insert-chord-dialog {
-        --md-dialog-container-max-width: min(620px, calc(100vw - 32px));
-        max-width: min(620px, calc(100vw - 32px));
-        width: 100%;
-    }
-
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--md-sys-color-on-surface, #2b2930);
-        font-size: 1.25rem;
-    }
-
-    .headline-icon {
-        color: var(--md-sys-color-primary, #6750a4);
-        font-size: 24px;
-        flex-shrink: 0;
-    }
-
     .dialog-content {
         display: flex;
         flex-direction: column;

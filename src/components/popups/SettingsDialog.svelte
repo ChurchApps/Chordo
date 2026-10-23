@@ -12,6 +12,7 @@
     import "@material/web/select/select-option.js"
     import "@material/web/slider/slider.js"
     import "@material/web/switch/switch.js"
+    import BaseDialog from "./BaseDialog.svelte"
 
     let currentLanguage = $derived<SupportedLocale>(getLocale())
     let currentTheme = $derived<SupportedTheme>(getTheme())
@@ -243,13 +244,8 @@
     }
 </script>
 
-<md-dialog open onclosed={closeDialog} oncancel={closeDialog}>
-    <div slot="headline" class="dialog-header">
-        <span class="material-symbols-outlined settings-icon">{isSongSettings ? "tune" : "settings"}</span>
-        {isSongSettings ? t("song_fullscreen", "settings_title") : t("settings", "title")}
-    </div>
-
-    <div slot="content" class="settings-content">
+<BaseDialog open icon={isSongSettings ? "tune" : "settings"} title={isSongSettings ? t("song_fullscreen", "settings_title") : t("settings", "title")} onclose={closeDialog}>
+    <div class="settings-content">
         {#if isSongSettings}
             <!-- Background Color Section -->
             <div class="settings-section">
@@ -512,27 +508,15 @@
         {/if}
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         {#if isSongSettings}
             <md-text-button onclick={resetPaperDefaults}>{t("common", "reset")}</md-text-button>
         {/if}
         <md-filled-button role="button" tabindex="0" onclick={closeDialog}>{t("settings", "done")}</md-filled-button>
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
-    .dialog-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--md-sys-color-on-surface, #1d1b20);
-    }
-
-    .settings-icon {
-        color: var(--md-sys-color-primary);
-        font-size: 28px;
-    }
-
     .settings-content {
         display: flex;
         flex-direction: column;

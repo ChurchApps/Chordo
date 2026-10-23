@@ -14,6 +14,7 @@
     import "@material/web/dialog/dialog.js"
     import "@material/web/iconbutton/icon-button.js"
     import "@material/web/progress/linear-progress.js"
+    import BaseDialog from "./BaseDialog.svelte"
 
     const isSong = $derived(popupState.popupId === "import_song")
     const isList = $derived(popupState.popupId === "import_list")
@@ -255,27 +256,29 @@
     <input bind:this={txtFileInput} type="file" accept="text/plain,.chordpro,.chpro,.cho,.crd,.pro" multiple style="display: none;" onchange={handleTxtFilesSelected} />
 {/if}
 
-<md-dialog open onclosed={closeDialog} class="import-dialog">
-    <div slot="headline" class="dialog-header">
-        {#if currentMode !== "menu"}
-            <md-icon-button type="button" onclick={backToMenu} class="back-btn">
-                <span class="material-symbols-outlined">arrow_back</span>
-            </md-icon-button>
-        {:else}
-            <span class="material-symbols-outlined headline-icon">download</span>
-        {/if}
-        <span>
-            {#if currentMode === "share"}
-                {t("share", "share_link")}
-            {:else if currentMode === "url"}
-                {t("song_edit", "import_url")}
+<BaseDialog open onclose={closeDialog}>
+    {#snippet headline()}
+        <div class="dialog-header">
+            {#if currentMode !== "menu"}
+                <md-icon-button type="button" onclick={backToMenu} class="back-btn">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </md-icon-button>
             {:else}
-                {isSong ? t("menu", "import_song") : t("menu", "import_list")}
+                <span class="material-symbols-outlined headline-icon">download</span>
             {/if}
-        </span>
-    </div>
+            <span>
+                {#if currentMode === "share"}
+                    {t("share", "share_link")}
+                {:else if currentMode === "url"}
+                    {t("song_edit", "import_url")}
+                {:else}
+                    {isSong ? t("menu", "import_song") : t("menu", "import_list")}
+                {/if}
+            </span>
+        </div>
+    {/snippet}
 
-    <div slot="content" class="import-dialog-content">
+    <div class="import-dialog-content">
         {#if currentMode === "menu"}
             <div class="import-options-list">
                 <!-- Chordo JSON File button -->
@@ -410,14 +413,14 @@
         {/if}
     </div>
 
-    <div slot="actions">
+    {#snippet actions()}
         {#if currentMode !== "menu"}
             <md-text-button role="button" tabindex="0" onclick={backToMenu}>{t("common", "cancel")}</md-text-button>
         {:else}
             <md-text-button role="button" tabindex="0" onclick={closeDialog}>{t("common", "close")}</md-text-button>
         {/if}
-    </div>
-</md-dialog>
+    {/snippet}
+</BaseDialog>
 
 <style>
     .dialog-header {
