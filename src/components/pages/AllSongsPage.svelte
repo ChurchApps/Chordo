@@ -160,8 +160,8 @@
                 {@const artist = song.metadata?.artist}
                 {@const key = song.metadata?.key}
                 {@const prevArtist = idx > 0 ? filteredSongs[idx - 1].metadata?.artist : null}
-                {@const dateStr = formatDate(song.metadata?.created ?? song.metadata?.date)}
-                {@const prevDateStr = idx > 0 ? formatDate(filteredSongs[idx - 1].metadata?.created ?? filteredSongs[idx - 1].metadata?.date) : null}
+                {@const dateStr = formatDate(song.createdAt)}
+                {@const prevDateStr = idx > 0 ? formatDate(filteredSongs[idx - 1].createdAt) : null}
                 {@const showArtistHeader = isArtistSort && (idx === 0 || (artist || t("sort", "no_artist")) !== (prevArtist || t("sort", "no_artist")))}
                 {@const showDateHeader = isDateSort && (idx === 0 || dateStr !== prevDateStr)}
 
