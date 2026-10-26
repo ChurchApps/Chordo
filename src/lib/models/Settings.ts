@@ -48,14 +48,6 @@ export class Settings {
         if (this.theme) {
             setTheme(this.theme)
         }
-        if (typeof document !== "undefined") {
-            const chordColor = this.paperOptions?.chordColor
-            if (chordColor) {
-                document.documentElement.style.setProperty("--chord-color", chordColor)
-            } else {
-                document.documentElement.style.removeProperty("--chord-color")
-            }
-        }
     }
 
     private static ONE_DAY = 24 * 60 * 60 * 1000
