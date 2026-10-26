@@ -33,6 +33,7 @@
         selection.clearTimer()
         if (listOpened) {
             resetSetlistAddSort()
+            listEditingState.onCancelSelection = undefined
         }
     })
 
@@ -96,6 +97,18 @@
     }
 
     $effect(() => {
+        if (listOpened) {
+            listEditingState.onCancelSelection = () => {
+                if (addSongsOrder.length > 0) {
+                    addSongsOrder = []
+                    return true
+                }
+                return false
+            }
+        }
+    })
+
+    $effect(() => {
         if (!listOpened && isEditing) {
             listEditingState.onDeleteSelected = selectedSongIds.length > 0 ? removeSelectedSongs : undefined
             if (selectedSongIds.length === 1) {
@@ -130,6 +143,16 @@
 </script>
 
 <main>
+    {#if listOpened && !isSearching}
+        <md-list class="section-create-list">
+            <md-list-item type="button" class="create-section-item" onclick={() => setActivePopup("create_section")}>
+                <div slot="headline" class="create-section-title">{t("list", "create_section")}</div>
+                <md-icon slot="start" class="create-section-icon">bookmark_add</md-icon>
+                <md-icon slot="end" style="opacity: 0.8;">add</md-icon>
+            </md-list-item>
+        </md-list>
+    {/if}
+
     {#if filteredSongs.length}
         <md-list class="song-list scroll-list">
             {#each filteredSongs as song, idx}
@@ -137,8 +160,8 @@
                 {@const artist = song.metadata?.artist}
                 {@const key = song.metadata?.key}
                 {@const prevArtist = idx > 0 ? filteredSongs[idx - 1].metadata?.artist : null}
-                {@const dateStr = formatDate(song.metadata?.created ?? song.metadata?.date)}
-                {@const prevDateStr = idx > 0 ? formatDate(filteredSongs[idx - 1].metadata?.created ?? filteredSongs[idx - 1].metadata?.date) : null}
+                {@const dateStr = formatDate(song.createdAt)}
+                {@const prevDateStr = idx > 0 ? formatDate(filteredSongs[idx - 1].createdAt) : null}
                 {@const showArtistHeader = isArtistSort && (idx === 0 || (artist || t("sort", "no_artist")) !== (prevArtist || t("sort", "no_artist")))}
                 {@const showDateHeader = isDateSort && (idx === 0 || dateStr !== prevDateStr)}
 
@@ -172,7 +195,7 @@
                     {#if listOpened && isSelected}
                         <span slot="end" class="number">{addSongsOrder.indexOf(song.id) + 1}</span>
                     {:else if listOpened}
-                        <md-icon slot="end" style="opacity: 0.8;">add</md-icon>
+                        <md-icon slot="end" style="opacity: 0.4;">radio_button_unchecked</md-icon>
                     {:else if isEditing && isSelected}
                         <md-icon slot="end" style="color: var(--md-sys-color-primary);">check_circle</md-icon>
                     {:else if isEditing}

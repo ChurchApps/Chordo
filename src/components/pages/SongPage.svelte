@@ -142,7 +142,7 @@
 </script>
 
 <main bind:this={mainElement} onscroll={scrolling} class:auto-scrolling-active={autoScrollState.isActive}>
-    <div class="songs" bind:this={songsElement}>
+    <div class="songs" class:is-setlist={!!list} bind:this={songsElement}>
         {#each songs as songItem, idx ((songItem?.id ?? "song") + "-" + idx)}
             {@const isSection = songItem?.type === "section"}
             {@const songId = isSection ? null : (songItem?.id ?? null)}
@@ -251,6 +251,10 @@
         gap: 20px;
     }
 
+    .songs.is-setlist {
+        padding-bottom: 88vh;
+    }
+
     main.auto-scrolling-active .songs {
         will-change: transform;
     }
@@ -287,6 +291,7 @@
     @media print {
         .songs {
             gap: 0 !important;
+            padding-bottom: 0 !important;
         }
 
         /* If an active song is marked for print, hide all other items and sections */

@@ -261,8 +261,8 @@
 
     /* Highlight style for chord brackets [...] - Deep Blue */
     :global(.chord-highlight) {
-        color: var(--chord-color, #1565c0);
-        background: color-mix(in srgb, var(--chord-color, #1565c0) 12%, transparent);
+        color: #1565c0;
+        background: color-mix(in srgb, #1565c0 12%, transparent);
         border-radius: 2px;
         padding: 0;
         margin: 0;
