@@ -23,6 +23,7 @@ export const listEditingState = $state<{
     onDuplicateSelected?: () => void
     editActionType?: "rename" | "edit"
     onMoveSelected?: () => void
+    onCancelSelection?: () => boolean
 }>({ isEditing: false })
 
 export const menuState = $state<MenuState & { previousPages: MenuState[] }>({
@@ -151,6 +152,10 @@ export function goBack(forcePage = false): void {
             return
         }
 
+        if (listEditingState.onCancelSelection?.()) {
+            return
+        }
+
         if (listEditingState.isEditing) {
             listEditingState.isEditing = false
             return
@@ -256,13 +261,18 @@ if (isBrowser) {
             return
         }
 
-        // 3. If list editing is active, exit editing mode
+        // 3. If a custom selection is active (e.g. adding songs to list), cancel it
+        if (listEditingState.onCancelSelection?.()) {
+            return
+        }
+
+        // 4. If list editing is active, exit editing mode
         if (listEditingState.isEditing) {
             listEditingState.isEditing = false
             return
         }
 
-        // 4. If there are previous pages, navigate back
+        // 5. If there are previous pages, navigate back
         if (menuState.previousPages.length > 0) {
             internalGoBack()
         }

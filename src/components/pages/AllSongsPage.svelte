@@ -33,6 +33,7 @@
         selection.clearTimer()
         if (listOpened) {
             resetSetlistAddSort()
+            listEditingState.onCancelSelection = undefined
         }
     })
 
@@ -94,6 +95,18 @@
 
         setActivePage("song_edit", song.id, song.name)
     }
+
+    $effect(() => {
+        if (listOpened) {
+            listEditingState.onCancelSelection = () => {
+                if (addSongsOrder.length > 0) {
+                    addSongsOrder = []
+                    return true
+                }
+                return false
+            }
+        }
+    })
 
     $effect(() => {
         if (!listOpened && isEditing) {
