@@ -1,12 +1,7 @@
 <script lang="ts">
-    import { importSetlistFile } from "$lib/export/exportHelper"
-    import { integrationState } from "$lib/integrations/integrationState.svelte"
-    import type { Folder } from "$lib/models/Folder"
-    import { Lists, type List } from "$lib/models/List"
-    import type { Song } from "$lib/models/Song"
+    import { getPlanAsList, integrationState } from "$lib/integrations/integrationState.svelte"
     import { clearSharePayload } from "$lib/share/share.svelte"
     import { autoScrollState, startAutoScroll } from "$lib/state/autoScroll.svelte"
-    import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { listSortState, setListSort } from "$lib/state/listSort.svelte"
     import { getCurrentSong, goBack, isFullscreenPage, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
@@ -79,6 +74,7 @@
     let currentSong = $derived(activeSongContext?.song ?? null)
     let activeProvider = $derived(integrationState.getActiveProvider())
     let isExternalFolder = $derived(menuState.activePage === "folder" && !!activeProvider && menuState.contentId === activeProvider.id)
+    let isExternalList = $derived(menuState.activePage === "list" && !storage.getListById(menuState.contentId, storage.lists) && !!getPlanAsList(menuState.contentId))
     let isExternalSong = $derived(!storage.getSongById(currentSong?.id ?? null, storage.songs) && !!currentSong)
 </script>
 
@@ -276,7 +272,7 @@
                 {/if}
 
                 {@const activeFolder = menuState.activePage === "folder" ? storage.getFolderById(menuState.contentId) : null}
-                {#if menuState.activePage !== "share_preview" && menuState.activePage !== "song_edit" && !(menuState.activePage === "folder" && activeFolder?.type === "shared")}
+                {#if menuState.activePage !== "share_preview" && menuState.activePage !== "song_edit" && !(menuState.activePage === "folder" && activeFolder?.type === "shared") && !isExternalList}
                     <div class="more-menu-wrapper">
                         <md-icon-button id="more-options-btn" aria-label={t("menu", "more_options")} onclick={() => (moreMenuOpen = !moreMenuOpen)}>
                             <span class="material-symbols-outlined">more_vert</span>
@@ -284,29 +280,15 @@
 
                         <md-menu id="more-options-menu" anchor="more-options-btn" open={moreMenuOpen} onclosed={() => (moreMenuOpen = false)} quick>
                             {#if menuState.activePage === "all_songs"}
-                                {#if menuState.contentId}
-                                    <!-- don't show if adding to list -->
-
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            setActivePopup("about")
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">info</span>
-                                        <div slot="headline">{t("menu", "about")}</div>
-                                    </md-menu-item>
-                                {:else}
-                                    <md-menu-item
-                                        onclick={() => {
-                                            moreMenuOpen = false
-                                            setActivePopup("import_song")
-                                        }}
-                                    >
-                                        <span class="material-symbols-outlined" slot="start">upload</span>
-                                        <div slot="headline">{t("menu", "import_song")}</div>
-                                    </md-menu-item>
-                                {/if}
+                                <md-menu-item
+                                    onclick={() => {
+                                        moreMenuOpen = false
+                                        setActivePopup("import_song")
+                                    }}
+                                >
+                                    <span class="material-symbols-outlined" slot="start">upload</span>
+                                    <div slot="headline">{t("menu", "import_song")}</div>
+                                </md-menu-item>
                             {:else if menuState.activePage === "home"}
                                 <md-menu-item
                                     onclick={() => {
