@@ -146,8 +146,9 @@
                     </md-icon-button>
                 {/if}
                 {#if listEditingState.onDuplicateSelected}
-                    <md-icon-button aria-label="Duplicate selected" onclick={() => listEditingState.onDuplicateSelected?.()}>
-                        <span class="material-symbols-outlined">content_copy</span>
+                    {@const isImport = listEditingState.duplicateActionType === "import"}
+                    <md-icon-button aria-label={isImport ? t("common", "import") : "Duplicate selected"} title={isImport ? t("common", "import") : "Duplicate selected"} onclick={() => listEditingState.onDuplicateSelected?.()}>
+                        <span class="material-symbols-outlined">{isImport ? "download" : "content_copy"}</span>
                     </md-icon-button>
                 {/if}
                 {#if listEditingState.onEditSelected}

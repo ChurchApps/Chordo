@@ -23,6 +23,7 @@ export const listEditingState = $state<{
     onEditSelected?: () => void
     onDuplicateSelected?: () => void
     editActionType?: "rename" | "edit"
+    duplicateActionType?: "duplicate" | "import"
     onMoveSelected?: () => void
     onCancelSelection?: () => boolean
 }>({ isEditing: false })

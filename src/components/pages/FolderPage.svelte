@@ -105,18 +105,21 @@
             listEditingState.onEditSelected = selectedListIds.length === 1 ? renameSelectedList : undefined
             listEditingState.editActionType = selectedListIds.length === 1 ? "rename" : undefined
             listEditingState.onDuplicateSelected = selectedListIds.length > 0 ? duplicateSelectedLists : undefined
+            listEditingState.duplicateActionType = "duplicate"
         } else if (isExternalFolder && isEditing) {
             listEditingState.onMoveSelected = undefined
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.editActionType = undefined
             listEditingState.onDuplicateSelected = selectedListIds.length > 0 ? duplicateSelectedLists : undefined
+            listEditingState.duplicateActionType = "import"
         } else {
             listEditingState.onMoveSelected = undefined
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.editActionType = undefined
             listEditingState.onDuplicateSelected = undefined
+            listEditingState.duplicateActionType = undefined
             selectedListIds = []
         }
     })
