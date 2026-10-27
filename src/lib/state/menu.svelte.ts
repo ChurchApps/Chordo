@@ -3,6 +3,7 @@ import type { popups } from "$components/popups/popups"
 import storage from "$lib/storage/StorageManager.svelte"
 import { getPlanAsList, getExternalSong } from "$lib/integrations/integrationState.svelte"
 import { clone } from "$lib/utils/common"
+import { closeConfirm, confirmState } from "./confirm.svelte"
 import { closeSearch, searchState } from "./search.svelte"
 
 /// PAGES ///
@@ -22,6 +23,7 @@ export const listEditingState = $state<{
     onEditSelected?: () => void
     onDuplicateSelected?: () => void
     editActionType?: "rename" | "edit"
+    duplicateActionType?: "duplicate" | "import"
     onMoveSelected?: () => void
     onCancelSelection?: () => boolean
 }>({ isEditing: false })
@@ -140,31 +142,42 @@ export function internalGoBack(): void {
     }
 }
 
-export function goBack(forcePage = false): void {
-    if (!forcePage) {
-        if (popupState.popupId !== null) {
-            setActivePopup(null)
-            return
-        }
-
-        if (searchState.isOpen) {
-            closeSearch()
-            return
-        }
-
-        if (listEditingState.onCancelSelection?.()) {
-            return
-        }
-
-        if (listEditingState.isEditing) {
-            listEditingState.isEditing = false
-            return
-        }
-    } else {
-        if (popupState.popupId !== null) setActivePopup(null)
-        if (searchState.isOpen) closeSearch()
-        if (listEditingState.isEditing) listEditingState.isEditing = false
+/**
+ * Dismisses the topmost overlay (confirm, popup, search, selection, or edit mode).
+ * Returns true if an overlay was dismissed, false otherwise.
+ */
+export function dismissActiveOverlay(): boolean {
+    if (confirmState.isOpen) {
+        closeConfirm()
+        return true
     }
+
+    if (popupState.popupId !== null) {
+        setActivePopup(null)
+        return true
+    }
+
+    if (searchState.isOpen) {
+        closeSearch()
+        return true
+    }
+
+    if (listEditingState.onCancelSelection?.()) {
+        return true
+    }
+
+    if (listEditingState.isEditing) {
+        listEditingState.isEditing = false
+        return true
+    }
+
+    return false
+}
+
+export function goBack(forcePage = false): void {
+    if (!forcePage && dismissActiveOverlay()) return
+
+    if (forcePage) dismissActiveOverlay()
 
     if (menuState.previousPages.length > 0) {
         internalGoBack()
@@ -216,7 +229,7 @@ export function setFullscreenLyricsOnly(lyricsOnly: boolean): void {
 export function getCurrentSong() {
     if (menuState.activePage !== "song" && menuState.activePage !== "song_live") return null
     const listId = menuState.previousPages.find((a) => a.activePage === "list")?.contentId || null
-    const list = listId ? (storage.getListById(listId, storage.lists) || getPlanAsList(listId)) : null
+    const list = listId ? storage.getListById(listId, storage.lists) || getPlanAsList(listId) : null
     const currentSongIndex = savedFullscreenPosition.index ?? 0
 
     let songId = menuState.contentId
@@ -248,33 +261,25 @@ if (isBrowser) {
             return
         }
 
-        // 1. If popup is open, close it
-        if (popupState.popupId !== null) {
-            popupState.popupId = null
+        // If an overlay was active, browser back consumed a history slot.
+        // Re-push the current page state to restore the stack depth.
+        if (dismissActiveOverlay()) {
+            try {
+                history.pushState({ type: "page", activePage: menuState.activePage, contentId: menuState.contentId, customPageTitle: menuState.customPageTitle }, "", window.location.href)
+            } catch {
+                // Ignore history push errors
+            }
             return
         }
 
-        // 2. If search is open, close it
-        if (searchState.isOpen) {
-            searchState.isOpen = false
-            searchState.query = ""
-            return
-        }
-
-        // 3. If a custom selection is active (e.g. adding songs to list), cancel it
-        if (listEditingState.onCancelSelection?.()) {
-            return
-        }
-
-        // 4. If list editing is active, exit editing mode
-        if (listEditingState.isEditing) {
-            listEditingState.isEditing = false
-            return
-        }
-
-        // 5. If there are previous pages, navigate back
         if (menuState.previousPages.length > 0) {
             internalGoBack()
+        }
+    })
+
+    window.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Escape" && !e.defaultPrevented && dismissActiveOverlay()) {
+            e.preventDefault()
         }
     })
 }

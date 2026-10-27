@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { getCachedPlansAsLists, integrationState } from "$lib/integrations/integrationState.svelte"
+    import { getCachedPlansAsLists, getExternalSong, integrationState } from "$lib/integrations/integrationState.svelte"
     import { Lists } from "$lib/models/List"
+    import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { listSortState, sortLists } from "$lib/state/listSort.svelte"
     import { listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
@@ -8,9 +9,9 @@
     import storage from "$lib/storage/StorageManager.svelte"
     import { formatDate } from "$lib/utils/common"
     import { createHoldToSelect } from "$lib/utils/holdToSelect"
-    import { openConfirm } from "$lib/state/confirm.svelte"
     import "@material/web/progress/linear-progress.js"
     import { onMount } from "svelte"
+    import SearchResults from "../common/SearchResults.svelte"
 
     let folderId = $derived(menuState.contentId)
     let activeProvider = $derived(integrationState.getActiveProvider())
@@ -24,11 +25,22 @@
     let isDateSort = $derived(listSortState.sortBy.startsWith("date"))
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
-    let searchQuery = $derived(searchState.query.trim().toLowerCase())
 
-    let filteredLists = $derived.by(() => {
-        if (!isSearching) return lists
-        return lists.filter((l) => l.name.toLowerCase().includes(searchQuery))
+    let folderSongs = $derived.by(() => {
+        const songMap = new Map<string, any>()
+        for (const list of lists) {
+            if (!list.songs) continue
+            for (const item of list.songs) {
+                if (item.type === "section" || !item.id) continue
+                if (!songMap.has(item.id)) {
+                    const song = storage.getSongById(item.id, storage.songs) || getExternalSong(item.id)
+                    if (song) {
+                        songMap.set(item.id, song)
+                    }
+                }
+            }
+        }
+        return Array.from(songMap.values())
     })
 
     function openList(listId: string, listName: string) {
@@ -93,18 +105,21 @@
             listEditingState.onEditSelected = selectedListIds.length === 1 ? renameSelectedList : undefined
             listEditingState.editActionType = selectedListIds.length === 1 ? "rename" : undefined
             listEditingState.onDuplicateSelected = selectedListIds.length > 0 ? duplicateSelectedLists : undefined
+            listEditingState.duplicateActionType = "duplicate"
         } else if (isExternalFolder && isEditing) {
             listEditingState.onMoveSelected = undefined
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.editActionType = undefined
             listEditingState.onDuplicateSelected = selectedListIds.length > 0 ? duplicateSelectedLists : undefined
+            listEditingState.duplicateActionType = "import"
         } else {
             listEditingState.onMoveSelected = undefined
             listEditingState.onDeleteSelected = undefined
             listEditingState.onEditSelected = undefined
             listEditingState.editActionType = undefined
             listEditingState.onDuplicateSelected = undefined
+            listEditingState.duplicateActionType = undefined
             selectedListIds = []
         }
     })
@@ -127,13 +142,15 @@
         </div>
     {/if}
 
-    {#if filteredLists.length}
+    {#if isSearching}
+        <SearchResults {lists} songs={folderSongs} />
+    {:else if lists.length}
         <md-list class="list scroll-list">
-            {#each filteredLists as list, idx}
+            {#each lists as list, idx}
                 {@const isSelected = isEditing && selectedListIds.includes(list.id)}
-                {@const count = list.songs?.filter((s) => s.type !== "section").length ?? 0}
+                {@const count = list.songs?.filter((s: any) => s.type !== "section").length ?? 0}
                 {@const dateStr = list.createdAt ? formatDate(list.createdAt) : ""}
-                {@const prevList = idx > 0 ? filteredLists[idx - 1] : null}
+                {@const prevList = idx > 0 ? lists[idx - 1] : null}
                 {@const prevDateStr = prevList && prevList.createdAt ? formatDate(prevList.createdAt) : null}
                 {@const showDateHeader = isDateSort && (idx === 0 || dateStr !== prevDateStr)}
 
@@ -181,14 +198,6 @@
                 </md-list-item>
             {/each}
         </md-list>
-    {:else if isSearching}
-        <div class="center">
-            <div class="empty-state">
-                <span class="material-symbols-outlined empty-icon">search_off</span>
-                <h2>{t("search", "no_results")}</h2>
-                <p>{searchState.query}</p>
-            </div>
-        </div>
     {:else if isExternalFolder}
         <div class="center">
             <div class="empty-state">

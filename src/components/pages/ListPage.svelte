@@ -1,14 +1,15 @@
 <script lang="ts">
+    import { getExternalSong, getPlanAsList, integrationState } from "$lib/integrations/integrationState.svelte"
     import type { ListSongDisplayItem } from "$lib/models/List"
     import { t } from "$lib/state/i18n.svelte"
     import { listEditingState, menuState, savedFullscreenPosition, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
-    import { searchState } from "$lib/state/search.svelte"
+    import { searchListDisplayItems, searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { getPlanAsList, getExternalSong, integrationState } from "$lib/integrations/integrationState.svelte"
-    import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
     import { createHoldToSelect } from "$lib/utils/holdToSelect"
+    import { applyBatchMove, getDisplayList, handleContainerDragOver, handleContainerDrop, handleItemDragOver, handleItemDragStart, handleItemDrop, handlePointerDragStart, resetDragState, type ReorderState } from "$lib/utils/rearrange"
     import { onDestroy, untrack } from "svelte"
     import { slide } from "svelte/transition"
+    import SearchResults from "../common/SearchResults.svelte"
     import Song from "../song/Song.svelte"
 
     onDestroy(() => {
@@ -34,7 +35,6 @@
     })
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
-    let searchQuery = $derived(searchState.query.trim().toLowerCase())
 
     let isEditing = $derived(listEditingState.isEditing)
     let selectedIndices = $state<number[]>([])
@@ -101,10 +101,10 @@
         dragOverIdx: null
     })
 
-    let displaySongs = $derived.by(() => {
+    let filteredItems = $derived.by(() => {
         const base = getDisplayList(listItems, reorderState)
         if (!isSearching) return base
-        return base.filter(({ item: songItem }) => songItem.name.toLowerCase().includes(searchQuery) || (songItem.song?.metadata?.artist && songItem.song.metadata.artist.toLowerCase().includes(searchQuery)))
+        return searchListDisplayItems(base, searchState.query)
     })
 
     function onDragEnd() {
@@ -155,9 +155,9 @@
 </script>
 
 <main>
-    {#if listItems.length}
+    {#if filteredItems.length}
         <md-list class="song-list scroll-list" ondragover={(e: DragEvent) => handleContainerDragOver(e, listItems.length, reorderState)} ondrop={(e: DragEvent) => handleContainerDrop(e, listItems.length, reorderState, onBatchMove)}>
-            {#each displaySongs as { item: songItem, originalIdx }, idx ((songItem.id ?? "item") + "-" + originalIdx)}
+            {#each filteredItems as { item: songItem, originalIdx }, idx ((songItem.id ?? "item") + "-" + originalIdx)}
                 {@const isGhost = reorderState.draggedIdx !== null && (reorderState.draggedIndices.length > 0 ? reorderState.draggedIndices.includes(originalIdx) : originalIdx === reorderState.draggedIdx)}
                 {@const isSelected = isEditing && selectedIndices.includes(originalIdx)}
                 {@const artist = songItem.song?.metadata?.artist || (songItem.song?.getMetadata ? songItem.song.getMetadata("artist") : "")}
@@ -209,7 +209,9 @@
                         {#if !songItem.isDeleted && songItem.type !== "section" && (artist || key)}
                             <div slot="supporting-text">
                                 {#if artist}<span class="supporting-artist">{artist}</span>{/if}
-                                {#if key}<span class="supporting-key">{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
+                                {#if key}<span class="supporting-key"
+                                        >{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span
+                                    >{/if}
                             </div>
                         {/if}
 
@@ -221,13 +223,7 @@
             {/each}
         </md-list>
     {:else if isSearching}
-        <div class="center">
-            <div class="empty-state">
-                <span class="material-symbols-outlined empty-icon">search_off</span>
-                <h2>{t("search", "no_results")}</h2>
-                <p>{searchState.query}</p>
-            </div>
-        </div>
+        <SearchResults />
     {:else}
         <div class="center">
             <div class="empty-state">

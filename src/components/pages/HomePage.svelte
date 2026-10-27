@@ -1,14 +1,15 @@
 <script lang="ts">
+    import { integrationState } from "$lib/integrations/integrationState.svelte"
     import { Folders } from "$lib/models/Folder"
     import { pasteSharedFromClipboard } from "$lib/share/share"
+    import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { listEditingState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
     import { searchState } from "$lib/state/search.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
-    import { isIosStandalone } from "$lib/utils/iosPwa"
     import { createHoldToSelect } from "$lib/utils/holdToSelect"
-    import { integrationState } from "$lib/integrations/integrationState.svelte"
-    import { openConfirm } from "$lib/state/confirm.svelte"
+    import { isIosStandalone } from "$lib/utils/iosPwa"
+    import SearchResults from "../common/SearchResults.svelte"
 
     let activeProvider = $derived(integrationState.getActiveProvider())
     let externalPlans = $derived(integrationState.cachedPlans)
@@ -20,24 +21,6 @@
     let folders = $derived(Folders.get(storage.folders))
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
-    let searchQuery = $derived(searchState.query.trim().toLowerCase())
-
-    let matchedFolders = $derived.by(() => {
-        if (!isSearching) return []
-        return Folders.get(storage.folders).filter((f) => f.name.toLowerCase().includes(searchQuery))
-    })
-
-    let matchedLists = $derived.by(() => {
-        if (!isSearching) return []
-        return storage.lists.filter((l) => l.name.toLowerCase().includes(searchQuery))
-    })
-
-    let matchedSongs = $derived.by(() => {
-        if (!isSearching) return []
-        return storage.songs.filter((s) => s.name.toLowerCase().includes(searchQuery) || (s.metadata?.artist && s.metadata.artist.toLowerCase().includes(searchQuery)))
-    })
-
-    let totalResults = $derived(matchedFolders.length + matchedLists.length + matchedSongs.length)
 
     const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000
 
@@ -64,10 +47,6 @@
 
     function openList(id: string, name: string) {
         setActivePage("list", id, name)
-    }
-
-    function openSong(id: string, name: string) {
-        setActivePage("song", id, name)
     }
 
     function openAllSongs() {
@@ -148,70 +127,7 @@
 <!-- Main Content: show folders or search results -->
 <main>
     {#if isSearching}
-        {#if totalResults > 0}
-            <div class="search-results-container scroll-list">
-                {#if matchedFolders.length > 0}
-                    <div class="search-category-title">{t("search", "category_folders")} ({matchedFolders.length})</div>
-                    <md-list class="folders-list">
-                        {#each matchedFolders as folder}
-                            {@const count = folder.getLists ? folder.getLists(storage.lists).length : (folder.lists?.length ?? 0)}
-                            <md-list-item type="button" onclick={() => openFolder(folder.id, folder.name)}>
-                                <div slot="headline">{folder.type === "shared" ? t("folder_types", "shared") : folder.name}</div>
-                                <md-icon slot="start">{folder.type === "shared" ? "share" : "folder"}</md-icon>
-                                <span slot="trailing-supporting-text" class="item-count">{count}</span>
-                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-                            </md-list-item>
-                        {/each}
-                    </md-list>
-                {/if}
-
-                {#if matchedLists.length > 0}
-                    <div class="search-category-title">{t("search", "category_lists")} ({matchedLists.length})</div>
-                    <md-list class="folders-list">
-                        {#each matchedLists as list}
-                            {@const count = list.songs?.filter((s) => s.type !== "section").length ?? 0}
-                            <md-list-item type="button" onclick={() => openList(list.id, list.name)}>
-                                <div slot="headline">{list.name}</div>
-                                <md-icon slot="start">list</md-icon>
-                                <span slot="trailing-supporting-text" class="item-count">{count}</span>
-                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-                            </md-list-item>
-                        {/each}
-                    </md-list>
-                {/if}
-
-                {#if matchedSongs.length > 0}
-                    <div class="search-category-title">{t("search", "category_songs")} ({matchedSongs.length})</div>
-                    <md-list class="folders-list">
-                        {#each matchedSongs as song}
-                            {@const artist = song.metadata?.artist || (song.getMetadata ? song.getMetadata("artist") : "")}
-                            {@const key = song.metadata?.key || (song.getMetadata ? song.getMetadata("key") : "")}
-                            <md-list-item type="button" onclick={() => openSong(song.id, song.name)}>
-                                <div slot="headline">{song.name}</div>
-                                {#if artist || key}
-                                    <div slot="supporting-text">
-                                        {#if artist}<span class="supporting-artist">{artist}</span>{/if}
-                                        {#if key}<span class="supporting-key"
-                                                >{#if artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span
-                                            >{/if}
-                                    </div>
-                                {/if}
-                                <md-icon slot="start">music_note</md-icon>
-                                <md-icon slot="end" style="opacity: 0.8;">keyboard_arrow_right</md-icon>
-                            </md-list-item>
-                        {/each}
-                    </md-list>
-                {/if}
-            </div>
-        {:else}
-            <div class="center">
-                <div class="empty-state">
-                    <span class="material-symbols-outlined empty-icon">search_off</span>
-                    <h2>{t("search", "no_results")}</h2>
-                    <p>{searchState.query}</p>
-                </div>
-            </div>
-        {/if}
+        <SearchResults {folders} lists={storage.lists} songs={storage.songs} />
     {:else}
         <md-list class="folders-list scroll-list" style="overflow: initial;">
             {#if isIosPwa}
@@ -329,15 +245,7 @@
 {/if}
 
 <style>
-    .search-results-container {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-        height: 100%;
-    }
-
-    .section-title,
-    .search-category-title {
+    .section-title {
         font-size: 0.8rem;
         font-weight: 700;
         text-transform: uppercase;
