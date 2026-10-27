@@ -3,23 +3,23 @@
     import { openConfirm } from "$lib/state/confirm.svelte"
     import { t } from "$lib/state/i18n.svelte"
     import { goBack, listEditingState, menuState, setActivePage, setActivePopup } from "$lib/state/menu.svelte"
-    import { searchState } from "$lib/state/search.svelte"
+    import { searchSongs, searchState } from "$lib/state/search.svelte"
     import { resetSetlistAddSort, songSortState } from "$lib/state/songSort.svelte"
     import storage from "$lib/storage/StorageManager.svelte"
     import { formatDate } from "$lib/utils/common"
     import { createHoldToSelect } from "$lib/utils/holdToSelect"
     import { onDestroy, onMount } from "svelte"
+    import SearchResults from "../common/SearchResults.svelte"
 
     let songs = $derived(Songs.get(storage.songs, null, songSortState.sortBy))
     let isArtistSort = $derived(songSortState.sortBy === "artist_asc" || songSortState.sortBy === "artist_desc")
     let isDateSort = $derived(songSortState.sortBy.startsWith("date"))
 
     let isSearching = $derived(searchState.isOpen && searchState.query.trim().length > 0)
-    let searchQuery = $derived(searchState.query.trim().toLowerCase())
 
     let filteredSongs = $derived.by(() => {
         if (!isSearching) return songs
-        return songs.filter((s) => s.name.toLowerCase().includes(searchQuery) || (s.metadata?.artist && s.metadata.artist.toLowerCase().includes(searchQuery)))
+        return searchSongs(songs, searchState.query)
     })
 
     onMount(() => {
@@ -188,7 +188,11 @@
                     {#if (!isArtistSort && artist) || key}
                         <div slot="supporting-text">
                             {#if !isArtistSort && artist}<span class="supporting-artist">{artist}</span>{/if}
-                            {#if key}<span class="supporting-key">{#if !isArtistSort && artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}</span>{/if}
+                            {#if key}
+                                <span class="supporting-key">
+                                    {#if !isArtistSort && artist}&nbsp;•&nbsp;{/if}{t("common", "key")}: {key}
+                                </span>
+                            {/if}
                         </div>
                     {/if}
                     <md-icon slot="start">music_note</md-icon>
@@ -207,13 +211,7 @@
             {/each}
         </md-list>
     {:else if isSearching}
-        <div class="center">
-            <div class="empty-state">
-                <span class="material-symbols-outlined empty-icon">search_off</span>
-                <h2>{t("search", "no_results")}</h2>
-                <p>{searchState.query}</p>
-            </div>
-        </div>
+        <SearchResults />
     {:else}
         <div class="center">
             <div class="empty-state">

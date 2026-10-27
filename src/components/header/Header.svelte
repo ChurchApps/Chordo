@@ -199,7 +199,7 @@
                             <span class="material-symbols-outlined">edit</span>
                         </md-icon-button>
                     {/if}
-                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder"}
+                {:else if menuState.activePage === "home" || menuState.activePage === "all_songs" || menuState.activePage === "folder" || menuState.activePage === "list"}
                     <md-icon-button aria-label="Search" onclick={openSearch}>
                         <span class="material-symbols-outlined">search</span>
                     </md-icon-button>
