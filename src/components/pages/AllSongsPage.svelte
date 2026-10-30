@@ -57,12 +57,14 @@
         const list = storage.getListById(menuState.contentId)
         if (!list) return
 
+        const songsToAdd = [...addSongsOrder]
+
         // go back first so we get the slide in animation in the list
         goBack(true)
 
         // wait for page navigation animation
         setTimeout(() => {
-            list.addSongs(addSongsOrder)
+            list.addSongs(songsToAdd)
         }, 80)
     }
 
